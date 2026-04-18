@@ -1063,6 +1063,29 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
         await updateUserAdmin(id, data);
         return { success: true };
       }),
+
+    updateUserPassport: adminMiddleware
+      .input(z.object({
+        id: z.number(),
+        passportNumber: z.string().nullable().optional(),
+        passportExpiry: z.string().nullable().optional(),
+        passportIssueDate: z.string().nullable().optional(),
+        passportIssuingCountry: z.string().nullable().optional(),
+        passportNationality: z.string().nullable().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { updateUserPassport } = await import('./db');
+        const { id, ...data } = input;
+        await updateUserPassport(id, data);
+        writeAuditLog({
+          actorId: (ctx as any).user?.id,
+          actorType: 'admin',
+          action: 'passport_updated',
+          entityType: 'user',
+          entityId: id,
+        }).catch(console.error);
+        return { success: true };
+      }),
   }),
 
   emergency: router({
@@ -2198,6 +2221,7 @@ ${faqContext}`;
         notes: z.string().optional().nullable(),
         documentUrl: z.string().optional().nullable(),
         documentKey: z.string().optional().nullable(),
+        quoteRef: z.string().optional().nullable(),
       }))
       .mutation(async ({ input, ctx }) => {
         const { createAdminQuote } = await import("./db");
@@ -2227,7 +2251,7 @@ ${faqContext}`;
         pricePerPerson: z.string().nullable().optional(),
         priceBreakdown: z.string().nullable().optional(),
         notes: z.string().nullable().optional(),
-        status: z.enum(["draft","sent","viewed","accepted","expired"]).optional(),
+        status: z.enum(["draft","sent","viewed","accepted","expired","intake_submitted","converted"]).optional(),
       }))
       .mutation(async ({ input }) => {
         const { updateAdminQuote } = await import("./db");
@@ -2441,6 +2465,63 @@ ${faqContext}`;
       const awaitingResponse = all.filter((q: any) => ["sent","viewed"].includes(q.status)).length;
       return { total, sent, viewed, accepted, conversionRate, awaitingResponse };
     }),
+
+    // ─── Mark intake submitted (client completed intake form via quote link) ──
+    markIntakeSubmitted: adminMiddleware
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const { updateAdminQuote } = await import('./db');
+        await updateAdminQuote(input.id, { status: 'intake_submitted' as any });
+        return { success: true };
+      }),
+
+    // ─── Convert accepted quote to booking ────────────────────────────────
+    convertToBooking: adminMiddleware
+      .input(z.object({
+        id: z.number(),
+        approve: z.boolean(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { getAdminQuoteById, updateAdminQuote, createBooking, getUserByEmail } = await import('./db');
+        const quote = await getAdminQuoteById(input.id);
+        if (!quote) throw new Error('Quote not found');
+
+        if (!input.approve) {
+          // Rejected — just update status back to accepted
+          await updateAdminQuote(input.id, { status: 'accepted' });
+          return { success: true, approved: false };
+        }
+
+        // Create a booking from the quote
+        const ref = `CB-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+        const clientId = quote.userId || (quote.clientEmail ? (await getUserByEmail(quote.clientEmail))?.id : undefined);
+
+        await createBooking({
+          bookingReference: ref,
+          clientId: clientId || undefined,
+          status: 'pending',
+          destination: quote.destination || undefined,
+          departureDate: quote.departureDate || undefined,
+          returnDate: quote.returnDate || undefined,
+          leadPassengerName: quote.clientName || undefined,
+          leadPassengerEmail: quote.clientEmail || undefined,
+          leadPassengerPhone: quote.clientPhone || undefined,
+          totalPrice: quote.totalPrice ? parseFloat(quote.totalPrice) : undefined,
+          notes: `Converted from quote ${quote.quoteRef}. ${quote.notes || ''}`.trim(),
+        });
+
+        await updateAdminQuote(input.id, { status: 'converted' as any });
+
+        writeAuditLog({
+          actorId: (ctx as any).user?.id,
+          actorType: 'admin',
+          action: 'quote_converted_to_booking',
+          entityType: 'booking',
+          newValue: { quoteRef: quote.quoteRef, bookingRef: ref },
+        }).catch(console.error);
+
+        return { success: true, approved: true, bookingRef: ref };
+      }),
   }),
 
   // ─── App Settings ─────────────────────────────────────────────────────────
@@ -2467,6 +2548,95 @@ ${faqContext}`;
         ai_features_enabled: all['ai_features_enabled'] ?? 'true',
       };
     }),
+  }),
+
+  // ─── Community & Impact ────────────────────────────────────────────────────
+  community: router({
+    getPublished: publicProcedure.query(async () => {
+      const { getPublishedCommunityPosts } = await import('./db');
+      return getPublishedCommunityPosts();
+    }),
+
+    getFeatured: publicProcedure.query(async () => {
+      const { getFeaturedCommunityPosts } = await import('./db');
+      return getFeaturedCommunityPosts(4);
+    }),
+
+    getAll: adminMiddleware.query(async () => {
+      const { getAllCommunityPosts } = await import('./db');
+      return getAllCommunityPosts();
+    }),
+
+    create: adminMiddleware
+      .input(z.object({
+        type: z.enum(['charity', 'partnership', 'giveaway', 'community']),
+        title: z.string().min(1),
+        subtitle: z.string().nullable().optional(),
+        description: z.string().nullable().optional(),
+        content: z.string().nullable().optional(),
+        imageUrl: z.string().nullable().optional(),
+        partnerName: z.string().nullable().optional(),
+        charityName: z.string().nullable().optional(),
+        amountRaised: z.string().nullable().optional(),
+        location: z.string().nullable().optional(),
+        eventDate: z.string().nullable().optional(),
+        isFeatured: z.boolean().optional(),
+        isPublished: z.boolean().optional(),
+        displayOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { createCommunityPost } = await import('./db');
+        return createCommunityPost(input);
+      }),
+
+    update: adminMiddleware
+      .input(z.object({
+        id: z.number(),
+        type: z.enum(['charity', 'partnership', 'giveaway', 'community']).optional(),
+        title: z.string().optional(),
+        subtitle: z.string().nullable().optional(),
+        description: z.string().nullable().optional(),
+        content: z.string().nullable().optional(),
+        imageUrl: z.string().nullable().optional(),
+        partnerName: z.string().nullable().optional(),
+        charityName: z.string().nullable().optional(),
+        amountRaised: z.string().nullable().optional(),
+        location: z.string().nullable().optional(),
+        eventDate: z.string().nullable().optional(),
+        isFeatured: z.boolean().optional(),
+        isPublished: z.boolean().optional(),
+        displayOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { updateCommunityPost } = await import('./db');
+        const { id, ...data } = input;
+        await updateCommunityPost(id, data);
+        return { success: true };
+      }),
+
+    delete: adminMiddleware
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const { deleteCommunityPost } = await import('./db');
+        await deleteCommunityPost(input.id);
+        return { success: true };
+      }),
+
+    togglePublished: adminMiddleware
+      .input(z.object({ id: z.number(), isPublished: z.boolean() }))
+      .mutation(async ({ input }) => {
+        const { updateCommunityPost } = await import('./db');
+        await updateCommunityPost(input.id, { isPublished: input.isPublished });
+        return { success: true };
+      }),
+
+    toggleFeatured: adminMiddleware
+      .input(z.object({ id: z.number(), isFeatured: z.boolean() }))
+      .mutation(async ({ input }) => {
+        const { updateCommunityPost } = await import('./db');
+        await updateCommunityPost(input.id, { isFeatured: input.isFeatured });
+        return { success: true };
+      }),
   }),
 
   // ─── JLT Terms & Conditions (auto-fetched from hub.thejltgroup.co.uk) ────────

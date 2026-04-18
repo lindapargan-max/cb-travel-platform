@@ -39,6 +39,7 @@ export default function Navigation() {
     { href: "/", label: "Home" },
     { href: "/about", label: "About Us" },
     { href: null, label: "Weekly Deals", anchor: "deals" },
+    { href: "/community", label: "Community" },
     { href: "/quote-request", label: "Request a Quote" },
     { href: "/faq", label: "FAQ" },
     { href: "/flight-manager", label: "Flight Tracker" },

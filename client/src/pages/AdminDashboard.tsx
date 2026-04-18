@@ -27,7 +27,7 @@ import {
   AlertCircle, RefreshCw, Shield, Lock, UserX, UserCheck, HelpCircle,
   KeyRound, UserPlus, Tag, Copy, Percent, ClipboardList, ExternalLink, ArrowRight,
   ChevronDown, ChevronRight, ChevronLeft, Send, MessageSquare, MailCheck, Ticket, Users2, UserMinus, UserRound,
-  Settings, Info, Check, User, CopyPlus, LayoutDashboard
+  Settings, Info, Check, User, CopyPlus, LayoutDashboard, Heart
 } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
@@ -36,6 +36,7 @@ import AdminCommandCenter from "@/components/admin/AdminCommandCenter";
 import AdminPassportManager from "@/components/admin/AdminPassportManager";
 import AdminPaymentPlans from "@/components/admin/AdminPaymentPlans";
 import AdminQuotesManager from "@/components/admin/AdminQuotesManager";
+import AdminCommunityManager from "@/components/admin/AdminCommunityManager";
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; className: string }> = {
@@ -2757,8 +2758,17 @@ function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userB
     phone: user.phone || "",
     dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split("T")[0] : "",
   });
+  const [passportForm, setPassportForm] = useState({
+    passportNumber: user.passportNumber || "",
+    passportExpiry: user.passportExpiry || "",
+    passportIssueDate: user.passportIssueDate || "",
+    passportIssuingCountry: user.passportIssuingCountry || "",
+    passportNationality: user.passportNationality || "",
+  });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savingPassport, setSavingPassport] = useState(false);
+  const [savedPassport, setSavedPassport] = useState(false);
 
   const updateProfile = trpc.admin.updateUserProfile.useMutation({
     onSuccess: () => {
@@ -2770,6 +2780,19 @@ function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userB
     onError: (e) => {
       toast.error("Failed to update: " + e.message);
       setSaving(false);
+    }
+  });
+
+  const updatePassport = trpc.admin.updateUserPassport.useMutation({
+    onSuccess: () => {
+      setSavedPassport(true);
+      setSavingPassport(false);
+      setTimeout(() => setSavedPassport(false), 2000);
+      onUpdate();
+    },
+    onError: (e) => {
+      toast.error("Failed to save passport: " + e.message);
+      setSavingPassport(false);
     }
   });
 
@@ -2785,137 +2808,192 @@ function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userB
     });
   };
 
-  const passportBookings = userBookings.filter((b: any) => b.passportNumber);
+  const handleSavePassport = () => {
+    setSavingPassport(true);
+    setSavedPassport(false);
+    updatePassport.mutate({
+      id: user.id,
+      passportNumber: passportForm.passportNumber || null,
+      passportExpiry: passportForm.passportExpiry || null,
+      passportIssueDate: passportForm.passportIssueDate || null,
+      passportIssuingCountry: passportForm.passportIssuingCountry || null,
+      passportNationality: passportForm.passportNationality || null,
+    });
+  };
+
+  const inputCls = "w-full px-3 py-2 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all";
+  const labelCls = "text-xs text-muted-foreground font-medium block mb-1";
+
+  // Loyalty points from the user object
+  const loyaltyPoints = (user as any).loyaltyPoints ?? 0;
+  const loyaltyTier = loyaltyPoints >= 10000 ? "Platinum" : loyaltyPoints >= 5000 ? "Gold" : loyaltyPoints >= 1000 ? "Silver" : "Bronze";
+  const tierColor = loyaltyTier === "Platinum" ? "text-purple-700 bg-purple-50" : loyaltyTier === "Gold" ? "text-amber-700 bg-amber-50" : loyaltyTier === "Silver" ? "text-slate-600 bg-slate-100" : "text-orange-700 bg-orange-50";
 
   return (
     <div className="border-t border-border bg-slate-50/60 p-5">
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-        {/* Profile Edit */}
-        <div className="lg:col-span-1">
-          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <span className="w-5 h-5 bg-primary/10 rounded-lg flex items-center justify-center text-primary text-xs">✎</span>
-            Profile
-          </h4>
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-muted-foreground font-medium block mb-1">Full Name</label>
-              <input
-                type="text"
-                value={editForm.name}
-                onChange={e => setEditForm(f => ({...f, name: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground font-medium block mb-1">Email</label>
-              <input
-                type="email"
-                value={editForm.email}
-                onChange={e => setEditForm(f => ({...f, email: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground font-medium block mb-1">Phone</label>
-              <input
-                type="tel"
-                value={editForm.phone}
-                onChange={e => setEditForm(f => ({...f, phone: e.target.value}))}
-                placeholder="Not provided"
-                className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-muted-foreground font-medium block mb-1">Date of Birth</label>
-              <input
-                type="date"
-                value={editForm.dateOfBirth}
-                onChange={e => setEditForm(f => ({...f, dateOfBirth: e.target.value}))}
-                className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
-              />
+        {/* ── Profile Edit ── */}
+        <div className="lg:col-span-1 space-y-5">
+          <div className="bg-white rounded-2xl border border-border p-4">
+            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <span className="w-5 h-5 bg-primary/10 rounded-lg flex items-center justify-center text-primary text-xs">✎</span>
+              Profile
+            </h4>
+            <div className="space-y-3">
+              <div>
+                <label className={labelCls}>Full Name</label>
+                <input type="text" value={editForm.name} onChange={e => setEditForm(f => ({...f, name: e.target.value}))} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Email</label>
+                <input type="email" value={editForm.email} onChange={e => setEditForm(f => ({...f, email: e.target.value}))} className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Phone</label>
+                <input type="tel" value={editForm.phone} onChange={e => setEditForm(f => ({...f, phone: e.target.value}))} placeholder="Not provided" className={inputCls} />
+              </div>
+              <div>
+                <label className={labelCls}>Date of Birth</label>
+                <input type="date" value={editForm.dateOfBirth} onChange={e => setEditForm(f => ({...f, dateOfBirth: e.target.value}))} className={inputCls} />
+              </div>
             </div>
             <button
               onClick={handleSave}
               disabled={saving}
-              className="w-full py-2 text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="mt-4 w-full py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-60"
             >
-              {saving ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving…</> : saved ? "✓ Saved!" : "Save Changes"}
+              {saving ? "Saving…" : saved ? "✓ Saved" : "Save Profile"}
             </button>
-            <div className="text-xs text-muted-foreground mt-1">
-              <p>Member since: {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p>
-              <p>Last login: {user.lastSignedIn ? new Date(user.lastSignedIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' } as any) : 'Never'}</p>
+          </div>
+
+          {/* Loyalty */}
+          <div className="bg-white rounded-2xl border border-border p-4">
+            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <span className="w-5 h-5 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 text-xs">★</span>
+              Loyalty
+            </h4>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-2xl font-bold text-foreground">{loyaltyPoints.toLocaleString()}</p>
+                <p className="text-xs text-muted-foreground">Total points</p>
+              </div>
+              <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${tierColor}`}>{loyaltyTier}</span>
             </div>
           </div>
         </div>
 
-        {/* Bookings */}
+        {/* ── Passport ── */}
         <div className="lg:col-span-1">
-          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <span className="w-5 h-5 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 text-xs">✈</span>
-            Bookings ({userBookings.length})
-          </h4>
-          {userBookings.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">No bookings found for this account.</p>
-          ) : (
-            <div className="space-y-2 max-h-64 overflow-y-auto">
-              {userBookings.map((b: any) => (
-                <div key={b.id} className="bg-white rounded-xl border border-border p-3">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <span className="font-mono text-xs font-bold text-primary">{b.bookingReference}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                      b.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
-                      b.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
-                      b.status === 'cancelled' ? 'bg-slate-100 text-slate-500' :
-                      'bg-yellow-100 text-yellow-700'
-                    }`}>{b.status}</span>
-                  </div>
-                  <p className="text-xs text-foreground font-medium truncate">{b.destination || '—'}</p>
-                  <p className="text-xs text-muted-foreground">{b.departureDate || '—'}</p>
-                  {b.totalPrice && (
-                    <p className="text-xs font-semibold text-foreground mt-1">
-                      £{parseFloat(b.totalPrice).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
-                      {b.amountPaid && parseFloat(b.amountPaid) > 0 && (
-                        <span className="text-muted-foreground font-normal"> · £{parseFloat(b.amountPaid).toLocaleString('en-GB', { minimumFractionDigits: 2 })} paid</span>
-                      )}
-                    </p>
-                  )}
-                </div>
-              ))}
+          <div className="bg-white rounded-2xl border border-border p-4">
+            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <span className="w-5 h-5 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 text-xs">🛂</span>
+              Passport Information
+            </h4>
+            <div className="space-y-3">
+              <div>
+                <label className={labelCls}>Passport Number</label>
+                <input
+                  type="text"
+                  value={passportForm.passportNumber}
+                  onChange={e => setPassportForm(f => ({...f, passportNumber: e.target.value}))}
+                  placeholder="e.g. 123456789"
+                  className={`${inputCls} font-mono`}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Nationality</label>
+                <input
+                  type="text"
+                  value={passportForm.passportNationality}
+                  onChange={e => setPassportForm(f => ({...f, passportNationality: e.target.value}))}
+                  placeholder="e.g. British"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Issuing Country</label>
+                <input
+                  type="text"
+                  value={passportForm.passportIssuingCountry}
+                  onChange={e => setPassportForm(f => ({...f, passportIssuingCountry: e.target.value}))}
+                  placeholder="e.g. United Kingdom"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Issue Date</label>
+                <input
+                  type="date"
+                  value={passportForm.passportIssueDate}
+                  onChange={e => setPassportForm(f => ({...f, passportIssueDate: e.target.value}))}
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className={labelCls}>Expiry Date</label>
+                <input
+                  type="date"
+                  value={passportForm.passportExpiry}
+                  onChange={e => setPassportForm(f => ({...f, passportExpiry: e.target.value}))}
+                  className={inputCls}
+                />
+                {passportForm.passportExpiry && (() => {
+                  const days = Math.ceil((new Date(passportForm.passportExpiry).getTime() - Date.now()) / 86400000);
+                  if (days < 0) return <p className="text-xs text-red-600 mt-1">⚠️ Expired {Math.abs(days)} days ago</p>;
+                  if (days < 180) return <p className="text-xs text-amber-600 mt-1">⚠️ Expires in {days} days — may be invalid for travel</p>;
+                  return <p className="text-xs text-emerald-600 mt-1">✓ Valid ({days} days remaining)</p>;
+                })()}
+              </div>
             </div>
-          )}
+            <button
+              onClick={handleSavePassport}
+              disabled={savingPassport}
+              className="mt-4 w-full py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-60"
+            >
+              {savingPassport ? "Saving…" : savedPassport ? "✓ Saved" : "Save Passport"}
+            </button>
+          </div>
         </div>
 
-        {/* Passport Info */}
+        {/* ── Bookings ── */}
         <div className="lg:col-span-1">
-          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <span className="w-5 h-5 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 text-xs">🛂</span>
-            Passport Information
-          </h4>
-          {passportBookings.length === 0 ? (
-            <p className="text-xs text-muted-foreground italic">No passport data on file.</p>
-          ) : (
-            <div className="space-y-2">
-              {passportBookings.map((b: any) => {
-                const expiry = b.passportExpiry ? new Date(b.passportExpiry) : null;
-                const daysToExpiry = expiry ? Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
-                const isExpiring = daysToExpiry !== null && daysToExpiry < 180;
-                return (
-                  <div key={b.id} className={`bg-white rounded-xl border p-3 ${isExpiring ? "border-amber-200" : "border-border"}`}>
-                    <p className="text-xs text-muted-foreground mb-1 font-mono">{b.bookingReference}</p>
-                    {b.passportNumber && <p className="text-xs"><span className="text-muted-foreground">Number: </span><span className="font-mono font-bold">{b.passportNumber}</span></p>}
-                    {b.passportExpiry && (
-                      <p className={`text-xs font-medium mt-0.5 ${isExpiring ? "text-amber-600" : "text-foreground"}`}>
-                        Expires: {b.passportExpiry} {isExpiring && daysToExpiry !== null && `(${daysToExpiry < 0 ? "EXPIRED" : `${daysToExpiry}d`})`}
-                      </p>
-                    )}
-                    {b.passportIssuingCountry && <p className="text-xs text-muted-foreground">Issued: {b.passportIssuingCountry}</p>}
-                  </div>
-                );
-              })}
-            </div>
-          )}
+          <div className="bg-white rounded-2xl border border-border p-4">
+            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <span className="w-5 h-5 bg-primary/10 rounded-lg flex items-center justify-center text-primary text-xs">✈</span>
+              Bookings <span className="ml-auto text-xs text-muted-foreground font-normal">{userBookings.length} total</span>
+            </h4>
+            {userBookings.length === 0 ? (
+              <p className="text-xs text-muted-foreground italic text-center py-4">No bookings yet</p>
+            ) : (
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {userBookings.map((b: any) => {
+                  const total = b.totalPrice ? parseFloat(b.totalPrice) : 0;
+                  const paid = b.amountPaid ? parseFloat(b.amountPaid) : 0;
+                  const outstanding = total - paid;
+                  return (
+                    <div key={b.id} className="rounded-xl border border-border p-3 bg-slate-50/50">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-mono text-xs font-bold text-primary">{b.bookingReference}</span>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${b.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : b.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{b.status}</span>
+                      </div>
+                      {b.destination && <p className="text-xs text-foreground font-medium">{b.destination}</p>}
+                      {b.departureDate && <p className="text-xs text-muted-foreground">{b.departureDate}</p>}
+                      {total > 0 && (
+                        <div className="mt-1.5 flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">£{total.toLocaleString()}</span>
+                          {outstanding > 0.01 && <span className="text-amber-600 font-semibold">£{outstanding.toLocaleString()} outstanding</span>}
+                          {outstanding <= 0.01 && <span className="text-emerald-600 font-semibold">Paid ✓</span>}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
+
       </div>
     </div>
   );
@@ -3067,6 +3145,7 @@ export default function AdminDashboard() {
         { value: 'faq', label: 'FAQ', icon: HelpCircle },
         { value: 'testimonials', label: 'Reviews', icon: Star },
         { value: 'destinations', label: 'Destinations', icon: Globe },
+        { value: 'community', label: 'Community & Impact', icon: Heart },
       ]
     },
     {
@@ -4094,6 +4173,10 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
+
+          <TabsContent value="community">
+            <AdminCommunityManager />
+          </TabsContent>
 
 <TabsContent value="command">
   <AdminCommandCenter onTabChange={setActiveTab} />

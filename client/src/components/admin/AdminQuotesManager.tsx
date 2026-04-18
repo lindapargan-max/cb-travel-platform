@@ -32,7 +32,7 @@ interface AdminQuote {
   priceBreakdown?: string | null;
   notes?: string | null;
   documentUrl?: string | null;
-  status: "draft" | "sent" | "viewed" | "accepted" | "expired";
+  status: "draft" | "sent" | "viewed" | "accepted" | "expired" | "intake_submitted" | "converted";
   viewCount: number;
   lastViewedAt?: Date | null;
   sentAt?: Date | null;
@@ -79,6 +79,7 @@ interface QuoteForm {
   clientEmail: string;
   clientPhone: string;
   notes: string;
+  quoteRef?: string;
 }
 
 // ─── Status Badge ─────────────────────────────────────────────────────────────
@@ -90,6 +91,8 @@ function QuoteStatusBadge({ status }: { status: string }) {
     viewed: { label: "Viewed", className: "bg-amber-100 text-amber-700 border-amber-200" },
     accepted: { label: "Accepted ✓", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
     expired: { label: "Expired", className: "bg-red-100 text-red-500 border-red-200" },
+    intake_submitted: { label: "Intake Received", className: "bg-purple-100 text-purple-700 border-purple-200" },
+    converted: { label: "Converted ✓", className: "bg-emerald-700 text-white border-emerald-700" },
   };
   const s = map[status] || map.draft;
   return (
@@ -317,6 +320,7 @@ function NewQuoteModal({
     clientEmail: "",
     clientPhone: "",
     notes: "",
+    quoteRef: "",
   });
 
   const resetModal = () => {
@@ -326,17 +330,70 @@ function NewQuoteModal({
     setForm({
       destination: "", departureDate: "", returnDate: "", numberOfTravelers: "",
       hotels: [], flights: [], keyInclusions: "", totalPrice: "", pricePerPerson: "",
-      breakdown: [], clientName: "", clientEmail: "", clientPhone: "", notes: "",
+      breakdown: [], clientName: "", clientEmail: "", clientPhone: "", notes: "", quoteRef: "",
     });
     onClose();
   };
 
-  const handleFileChange = () => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     setDocParsing(true);
-    setTimeout(() => {
+
+    const tryExtract = (text: string) => {
+      // Simple keyword extraction from text content
+      // Destination: look for "destination:", "travelling to", "to:" patterns
+      const destMatch = text.match(/(?:destination|travelling to|destination:|to:?)\s*[:\-]?\s*([A-Z][a-zA-Z\s,]+?)(?:\n|,|\.)/i);
+      if (destMatch?.[1]?.trim()) setField("destination", destMatch[1].trim().slice(0, 100));
+
+      // Dates: look for departure date patterns
+      const depMatch = text.match(/(?:departure|depart|outbound|from)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}-\d{2}-\d{2})/i);
+      if (depMatch?.[1]) {
+        try {
+          const d = new Date(depMatch[1]);
+          if (!isNaN(d.getTime())) setField("departureDate", d.toISOString().split("T")[0]);
+        } catch {}
+      }
+
+      const retMatch = text.match(/(?:return|arrival|inbound)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}|\d{4}-\d{2}-\d{2})/i);
+      if (retMatch?.[1]) {
+        try {
+          const d = new Date(retMatch[1]);
+          if (!isNaN(d.getTime())) setField("returnDate", d.toISOString().split("T")[0]);
+        } catch {}
+      }
+
+      // Price: look for £ or GBP
+      const priceMatch = text.match(/(?:total|price|cost|amount)[:\s£]*(\d[\d,]+(?:\.\d{2})?)/i) || text.match(/£(\d[\d,]+(?:\.\d{2})?)/);
+      if (priceMatch?.[1]) setField("totalPrice", priceMatch[1].replace(/,/g, ""));
+
+      // Travellers
+      const travMatch = text.match(/(\d+)\s*(?:passenger|travell?er|adult|guest|pax)/i);
+      if (travMatch?.[1]) setField("numberOfTravelers", travMatch[1]);
+
+      // Hotel
+      const hotelMatch = text.match(/(?:hotel|resort|property|accommodation)[:\s]+([A-Z][a-zA-Z\s&']+?)(?:\n|,|\.)/i);
+      if (hotelMatch?.[1]?.trim()) {
+        setForm(prev => ({
+          ...prev,
+          hotels: [{ name: hotelMatch[1].trim().slice(0, 100), checkIn: "", checkOut: "", roomType: "" }],
+        }));
+      }
+    };
+
+    // Try reading as text (works for .txt, sometimes .pdf text layer)
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result as string || "";
+      if (text && text.length > 10) tryExtract(text);
       setDocParsing(false);
       setDocParsed(true);
-    }, 1500);
+    };
+    reader.onerror = () => {
+      setDocParsing(false);
+      setDocParsed(true);
+    };
+    reader.readAsText(file);
   };
 
   const setField = (key: keyof QuoteForm, value: string) => {
@@ -758,6 +815,19 @@ function NewQuoteModal({
           {/* ── Step 3 ── */}
           {step === 3 && (
             <div className="space-y-5">
+              {/* Editable Quote Reference */}
+              <div>
+                <Label className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5 block">
+                  Quote Reference <span className="text-muted-foreground/60 normal-case font-normal">(editable)</span>
+                </Label>
+                <Input
+                  value={form.quoteRef || ""}
+                  onChange={(e) => setField("quoteRef", e.target.value.toUpperCase())}
+                  placeholder="CBQ-2026-XXXX"
+                  className="rounded-xl font-mono"
+                />
+                <p className="text-xs text-muted-foreground mt-1">Auto-generated — you can customise this reference</p>
+              </div>
               <div className="rounded-xl border border-border bg-slate-50 p-5 space-y-4">
                 <p className="font-semibold font-serif text-foreground">Email Preview</p>
                 <div className="text-sm space-y-2 text-muted-foreground">
@@ -981,6 +1051,18 @@ export default function AdminQuotesManager() {
   const { data: quotes, isLoading, error } = trpc.adminQuotes.list.useQuery();
   const { data: stats } = trpc.adminQuotes.stats.useQuery();
 
+  const convertToBookingMutation = trpc.adminQuotes.convertToBooking.useMutation({
+    onSuccess: (data) => {
+      if (data.approved) {
+        toast.success(`✅ Booking created! Reference: ${data.bookingRef}`);
+      } else {
+        toast.success('Quote returned to accepted status');
+      }
+      utils.adminQuotes.list.invalidate();
+    },
+    onError: (e) => toast.error('Failed: ' + e.message),
+  });
+
   const createMutation = trpc.adminQuotes.create.useMutation({
     onSuccess: () => {
       utils.adminQuotes.list.invalidate();
@@ -1060,6 +1142,7 @@ export default function AdminQuotesManager() {
       priceBreakdown: breakdownJson,
       notes: form.notes || null,
       status: asDraft ? "draft" : "draft",
+      quoteRef: form.quoteRef || undefined,
     });
 
     setShowNewModal(false);
@@ -1086,6 +1169,7 @@ export default function AdminQuotesManager() {
       priceBreakdown: breakdownJson,
       notes: form.notes || null,
       status: "draft",
+      quoteRef: form.quoteRef || undefined,
     });
 
     if (result?.id) {
@@ -1213,7 +1297,7 @@ export default function AdminQuotesManager() {
                 {quotes.map((quote: AdminQuote, idx: number) => {
                   const isExpanded = expandedId === quote.id;
                   const portalUrl = `https://www.travelcb.co.uk/quote/${quote.quoteRef}`;
-                  const isSent = quote.status === "sent" || quote.status === "viewed" || quote.status === "accepted";
+                  const isSent = quote.status === "sent" || quote.status === "viewed" || quote.status === "accepted" || quote.status === "intake_submitted" || quote.status === "converted";
                   return (
                     <>
                       <tr
@@ -1316,6 +1400,21 @@ export default function AdminQuotesManager() {
                             >
                               <Copy size={14} />
                             </button>
+
+                            {/* Convert to Booking */}
+                            {(quote.status === 'accepted' || quote.status === 'intake_submitted') && (
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Convert ${quote.quoteRef} to a booking for ${quote.clientName}?\n\nThis will create a new pending booking linked to this quote.`)) {
+                                    convertToBookingMutation.mutate({ id: quote.id, approve: true });
+                                  }
+                                }}
+                                className="text-xs bg-emerald-600 text-white px-3 py-1.5 rounded-lg hover:bg-emerald-700 transition-colors font-semibold flex items-center gap-1 whitespace-nowrap"
+                                title="Convert to booking"
+                              >
+                                ✓ Convert to Booking
+                              </button>
+                            )}
 
                             {/* Delete */}
                             <button

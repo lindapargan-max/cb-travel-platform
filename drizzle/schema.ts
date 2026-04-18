@@ -18,6 +18,11 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  passportNumber: varchar("passportNumber", { length: 100 }),
+  passportExpiry: varchar("passportExpiry", { length: 50 }),
+  passportIssueDate: varchar("passportIssueDate", { length: 50 }),
+  passportIssuingCountry: varchar("passportIssuingCountry", { length: 100 }),
+  passportNationality: varchar("passportNationality", { length: 100 }),
 });
 
 export type User = typeof users.$inferSelect;
@@ -620,7 +625,7 @@ export const adminQuotes = mysqlTable("adminQuotes", {
   notes: text("notes"), // Internal admin notes
   documentUrl: text("documentUrl"), // Uploaded PDF URL
   documentKey: text("documentKey"),
-  status: mysqlEnum("status", ["draft", "sent", "viewed", "accepted", "expired"]).default("draft").notNull(),
+  status: mysqlEnum("status", ["draft", "sent", "viewed", "accepted", "expired", "intake_submitted", "converted"]).default("draft").notNull(),
   viewCount: int("viewCount").default(0).notNull(),
   lastViewedAt: timestamp("lastViewedAt"),
   sentAt: timestamp("sentAt"),
@@ -633,3 +638,26 @@ export const adminQuotes = mysqlTable("adminQuotes", {
 
 export type AdminQuote = typeof adminQuotes.$inferSelect;
 export type InsertAdminQuote = typeof adminQuotes.$inferInsert;
+
+export const communityPosts = mysqlTable("communityPosts", {
+  id: int("id").autoincrement().primaryKey(),
+  type: mysqlEnum("type", ["charity", "partnership", "giveaway", "community"]).notNull().default("community"),
+  title: varchar("title", { length: 255 }).notNull(),
+  subtitle: varchar("subtitle", { length: 255 }),
+  description: text("description"),
+  content: mediumtext("content"),
+  imageUrl: mediumtext("imageUrl"),
+  partnerName: varchar("partnerName", { length: 255 }),
+  charityName: varchar("charityName", { length: 255 }),
+  amountRaised: varchar("amountRaised", { length: 100 }),
+  location: varchar("location", { length: 255 }),
+  eventDate: varchar("eventDate", { length: 50 }),
+  isFeatured: boolean("isFeatured").default(false).notNull(),
+  isPublished: boolean("isPublished").default(false).notNull(),
+  displayOrder: int("displayOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CommunityPost = typeof communityPosts.$inferSelect;
+export type InsertCommunityPost = typeof communityPosts.$inferInsert;

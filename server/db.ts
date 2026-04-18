@@ -1941,7 +1941,7 @@ export async function ensureAdminQuotesTable(): Promise<void> {
           notes TEXT,
           documentUrl TEXT,
           documentKey TEXT,
-          status ENUM('draft','sent','viewed','accepted','expired') DEFAULT 'draft' NOT NULL,
+          status ENUM('draft','sent','viewed','accepted','expired','intake_submitted','converted') DEFAULT 'draft' NOT NULL,
           viewCount INT DEFAULT 0 NOT NULL,
           lastViewedAt TIMESTAMP NULL,
           sentAt TIMESTAMP NULL,
@@ -1956,6 +1956,39 @@ export async function ensureAdminQuotesTable(): Promise<void> {
   } catch (_e) {
     // Ignore - table may already exist or raw access not available
   }
+}
+
+export async function ensureUserPassportColumns() {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportNumber VARCHAR(100)`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportExpiry VARCHAR(50)`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportIssueDate VARCHAR(50)`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportIssuingCountry VARCHAR(100)`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportNationality VARCHAR(100)`);
+  } catch (e) {
+    console.error('[DB] ensureUserPassportColumns error:', e);
+  }
+}
+
+export async function updateUserPassport(userId: number, data: {
+  passportNumber?: string | null;
+  passportExpiry?: string | null;
+  passportIssueDate?: string | null;
+  passportIssuingCountry?: string | null;
+  passportNationality?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  const updateData: Record<string, any> = {};
+  if (data.passportNumber !== undefined) updateData.passportNumber = data.passportNumber;
+  if (data.passportExpiry !== undefined) updateData.passportExpiry = data.passportExpiry;
+  if (data.passportIssueDate !== undefined) updateData.passportIssueDate = data.passportIssueDate;
+  if (data.passportIssuingCountry !== undefined) updateData.passportIssuingCountry = data.passportIssuingCountry;
+  if (data.passportNationality !== undefined) updateData.passportNationality = data.passportNationality;
+  if (Object.keys(updateData).length === 0) return;
+  await db.update(users).set(updateData).where(eq(users.id, userId));
 }
 
 function generateQuoteRef(): string {
@@ -1983,12 +2016,13 @@ export async function createAdminQuote(data: {
   documentUrl?: string | null;
   documentKey?: string | null;
   createdBy?: number | null;
+  quoteRef?: string | null;
 }): Promise<{ id: number; quoteRef: string }> {
   await ensureAdminQuotesTable();
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
-  let quoteRef = generateQuoteRef();
+  let quoteRef = (data as any).quoteRef || generateQuoteRef();
   // Ensure uniqueness
   for (let i = 0; i < 5; i++) {
     const existing = await db.select({ id: adminQuotes.id }).from(adminQuotes).where(eq(adminQuotes.quoteRef, quoteRef)).limit(1);
@@ -2050,7 +2084,7 @@ export async function updateAdminQuote(id: number, data: Partial<{
   notes: string | null;
   documentUrl: string | null;
   documentKey: string | null;
-  status: "draft" | "sent" | "viewed" | "accepted" | "expired";
+  status: "draft" | "sent" | "viewed" | "accepted" | "expired" | "intake_submitted" | "converted";
   sentAt: Date | null;
   acceptedAt: Date | null;
   expiresAt: Date | null;
@@ -2122,3 +2156,137 @@ export async function deleteAdminQuote(id: number): Promise<void> {
   if (!db) return;
   await db.delete(adminQuotes).where(eq(adminQuotes.id, id));
 }
+
+// ─── Community Posts ──────────────────────────────────────────────────────────
+
+export async function ensureCommunityPostsTable() {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS communityPosts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        type ENUM('charity','partnership','giveaway','community') NOT NULL DEFAULT 'community',
+        title VARCHAR(255) NOT NULL,
+        subtitle VARCHAR(255),
+        description TEXT,
+        content MEDIUMTEXT,
+        imageUrl MEDIUMTEXT,
+        partnerName VARCHAR(255),
+        charityName VARCHAR(255),
+        amountRaised VARCHAR(100),
+        location VARCHAR(255),
+        eventDate VARCHAR(50),
+        isFeatured BOOLEAN NOT NULL DEFAULT false,
+        isPublished BOOLEAN NOT NULL DEFAULT false,
+        displayOrder INT NOT NULL DEFAULT 0,
+        createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+        updatedAt TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW()
+      )
+    `);
+  } catch (e) {
+    console.error('[DB] ensureCommunityPostsTable error:', e);
+  }
+}
+
+export async function getAllCommunityPosts(): Promise<any[]> {
+  try {
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db.execute(sql`SELECT * FROM communityPosts ORDER BY displayOrder ASC, createdAt DESC`);
+    return (rows as any).rows || rows as any[] || [];
+  } catch { return []; }
+}
+
+export async function getPublishedCommunityPosts(): Promise<any[]> {
+  try {
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db.execute(sql`SELECT * FROM communityPosts WHERE isPublished = true ORDER BY displayOrder ASC, createdAt DESC`);
+    return (rows as any).rows || rows as any[] || [];
+  } catch { return []; }
+}
+
+export async function getFeaturedCommunityPosts(limit = 3): Promise<any[]> {
+  try {
+    const db = await getDb();
+    if (!db) return [];
+    const rows = await db.execute(sql`SELECT * FROM communityPosts WHERE isPublished = true AND isFeatured = true ORDER BY displayOrder ASC, createdAt DESC LIMIT ${limit}`);
+    return (rows as any).rows || rows as any[] || [];
+  } catch { return []; }
+}
+
+export async function getCommunityPostById(id: number): Promise<any | null> {
+  try {
+    const db = await getDb();
+    if (!db) return null;
+    const rows = await db.execute(sql`SELECT * FROM communityPosts WHERE id = ${id} LIMIT 1`);
+    const arr = (rows as any).rows || rows as any[] || [];
+    return arr[0] || null;
+  } catch { return null; }
+}
+
+export async function createCommunityPost(data: {
+  type: 'charity' | 'partnership' | 'giveaway' | 'community';
+  title: string;
+  subtitle?: string | null;
+  description?: string | null;
+  content?: string | null;
+  imageUrl?: string | null;
+  partnerName?: string | null;
+  charityName?: string | null;
+  amountRaised?: string | null;
+  location?: string | null;
+  eventDate?: string | null;
+  isFeatured?: boolean;
+  isPublished?: boolean;
+  displayOrder?: number;
+}): Promise<any> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.execute(sql`
+    INSERT INTO communityPosts (type, title, subtitle, description, content, imageUrl, partnerName, charityName, amountRaised, location, eventDate, isFeatured, isPublished, displayOrder)
+    VALUES (${data.type}, ${data.title}, ${data.subtitle || null}, ${data.description || null}, ${data.content || null}, ${data.imageUrl || null}, ${data.partnerName || null}, ${data.charityName || null}, ${data.amountRaised || null}, ${data.location || null}, ${data.eventDate || null}, ${data.isFeatured ?? false}, ${data.isPublished ?? false}, ${data.displayOrder ?? 0})
+  `);
+  const rows = await db.execute(sql`SELECT * FROM communityPosts ORDER BY id DESC LIMIT 1`);
+  const arr = (rows as any).rows || rows as any[] || [];
+  return arr[0];
+}
+
+export async function updateCommunityPost(id: number, data: Partial<{
+  type: string;
+  title: string;
+  subtitle: string | null;
+  description: string | null;
+  content: string | null;
+  imageUrl: string | null;
+  partnerName: string | null;
+  charityName: string | null;
+  amountRaised: string | null;
+  location: string | null;
+  eventDate: string | null;
+  isFeatured: boolean;
+  isPublished: boolean;
+  displayOrder: number;
+}>): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const updates: Record<string, any> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (v !== undefined) updates[k] = v;
+  }
+  if (Object.keys(updates).length === 0) return;
+  const { communityPosts } = await import('../drizzle/schema');
+  await db.update(communityPosts).set(updates).where(eq(communityPosts.id, id));
+}
+
+export async function deleteCommunityPost(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const { communityPosts } = await import('../drizzle/schema');
+  await db.delete(communityPosts).where(eq(communityPosts.id, id));
+}
+
+// Run on module load
+ensureUserPassportColumns().catch(console.error);
+ensureCommunityPostsTable().catch(console.error);

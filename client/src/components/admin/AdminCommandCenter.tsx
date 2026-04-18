@@ -47,10 +47,12 @@ export default function AdminCommandCenter({ onTabChange }: AdminCommandCenterPr
   const activityItems: ActivityItem[] = [];
 
   bookings.slice(0, 20).forEach((b) => {
-    const date = new Date(b.createdAt ?? "");
-    activityItems.push({ id: `booking-${b.id}`, type: "booking", label: `New booking — ${b.leadPassengerName ?? "Unknown"} → ${b.destination ?? "Unknown"}`, sub: b.bookingReference ?? `Ref #${b.id}`, date });
+    const createdDate = new Date(b.createdAt ?? "");
+    const updatedDate = new Date(b.updatedAt ?? b.createdAt ?? "");
+    activityItems.push({ id: `booking-${b.id}`, type: "booking", label: `New booking — ${b.leadPassengerName ?? "Unknown"} → ${b.destination ?? "Unknown"}`, sub: b.bookingReference ?? `Ref #${b.id}`, date: createdDate });
     if (Number(b.amountPaid) > 0) {
-      activityItems.push({ id: `payment-${b.id}`, type: "payment", label: `Payment received — £${Number(b.amountPaid).toLocaleString()}`, sub: `${b.leadPassengerName ?? "Client"} · ${b.destination ?? ""}`, date });
+      // Use updatedAt so payment updates show as recent activity
+      activityItems.push({ id: `payment-${b.id}`, type: "payment", label: `Payment received — £${Number(b.amountPaid).toLocaleString()}`, sub: `${b.leadPassengerName ?? "Client"} · ${b.destination ?? ""}`, date: updatedDate });
     }
   });
 

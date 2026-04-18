@@ -1135,7 +1135,7 @@ export async function sendAdminQuoteEmail(
           <!-- CTA -->
           <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.8;">You can view your full quotation at any time via your private client portal:</p>
           <div style="text-align:center;margin:28px 0;">
-            <a href="${quoteLink}" style="display:inline-block;background:linear-gradient(135deg,#1e3a5f,#2d5a8a);color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:16px 36px;border-radius:50px;letter-spacing:0.5px;">View Your Quote →</a>
+            <table cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td style="background-color:#1e3a5f;border-radius:50px;padding:0;"><a href="${quoteLink}" style="display:inline-block;background-color:#1e3a5f;color:#ffffff;text-decoration:none;font-family:'Segoe UI',Arial,sans-serif;font-size:15px;font-weight:600;padding:16px 40px;border-radius:50px;letter-spacing:0.5px;mso-padding-alt:16px 40px;">View Your Quote &rarr;</a></td></tr></table>
           </div>
 
           <!-- Features list -->
@@ -1175,7 +1175,38 @@ export async function sendAdminQuoteEmail(
 </body>
 </html>`;
 
-  return send(to, `Your Tailored Travel Quote – ${destination} | CB Travel`, html, 'admin_quote');
+  // Send with high-priority headers so it lands in primary inbox
+  if (!process.env.RESEND_API_KEY) {
+    console.warn('[Email] RESEND_API_KEY not set — skipping quote email');
+    return { success: false, error: 'RESEND_API_KEY not set' };
+  }
+  let success = false;
+  let errorMessage: string | undefined;
+  try {
+    await resend.emails.send({
+      from: FROM,
+      to,
+      subject: `Your Tailored Travel Quote – ${destination} | CB Travel`,
+      html,
+      replyTo: ADMIN_EMAIL,
+      headers: {
+        'X-Priority': '1',
+        'X-MSMail-Priority': 'High',
+        'Importance': 'High',
+        'X-CB-Email-Type': 'admin_quote',
+      },
+    });
+    console.log('[Email] Quote email sent to', to);
+    success = true;
+  } catch (err: any) {
+    console.error('[Email] Failed to send quote email:', err);
+    errorMessage = err?.message || String(err);
+  }
+  try {
+    const { logEmailRecord } = await import("./db");
+    await logEmailRecord({ toEmail: to, subject: `Your Tailored Travel Quote – ${destination} | CB Travel`, emailType: 'admin_quote', status: success ? 'sent' : 'failed', errorMessage });
+  } catch {}
+  return { success, error: errorMessage };
 }
 
 // ─── Payment Reminder Email ────────────────────────────────────────────────────

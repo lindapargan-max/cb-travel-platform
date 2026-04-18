@@ -343,30 +343,63 @@ export default function QuotePage() {
 
         {/* Accepted State */}
         {isAccepted && (
-          <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 mb-6 text-center">
-            <CheckCircle2 size={48} className="text-emerald-600 mx-auto mb-4" />
-            <h2 className="font-serif text-2xl font-bold text-emerald-800 mb-2">Your journey begins here…</h2>
-            <p className="text-emerald-700 text-sm mb-6 leading-relaxed">
-              {user?.name ? `Thank you, ${user.name.split(" ")[0]}. ` : ""}We've received your acceptance and our concierge team will be in touch within 24 hours to secure your booking.
-            </p>
-            <div className="bg-white border border-emerald-200 rounded-xl p-4 mb-6 text-left">
-              <h3 className="font-semibold text-foreground text-sm mb-3">Next Steps:</h3>
-              <ol className="space-y-2 text-sm text-muted-foreground">
-                <li className="flex items-start gap-2"><span className="font-bold text-emerald-600 flex-shrink-0">1.</span> Our team reviews your itinerary</li>
-                <li className="flex items-start gap-2"><span className="font-bold text-emerald-600 flex-shrink-0">2.</span> We confirm pricing and availability</li>
-                <li className="flex items-start gap-2"><span className="font-bold text-emerald-600 flex-shrink-0">3.</span> You complete the booking form</li>
-                <li className="flex items-start gap-2"><span className="font-bold text-emerald-600 flex-shrink-0">4.</span> Your adventure begins! 🌍</li>
-              </ol>
+          <div className="mb-6">
+            {/* Success banner */}
+            <div className="bg-gradient-to-br from-[#1e3a5f] to-[#0f2a4a] rounded-2xl p-8 mb-5 text-center text-white">
+              <CheckCircle2 size={52} className="text-emerald-400 mx-auto mb-4" />
+              <h2 className="font-serif text-2xl font-bold mb-2">Your journey begins here…</h2>
+              <p className="text-blue-200 text-sm leading-relaxed max-w-sm mx-auto">
+                {user?.name ? `Thank you, ${user.name.split(" ")[0]}. ` : ""}
+                You've accepted your quote for{(quote as any).destination ? ` ${(quote as any).destination}` : " your trip"}.
+              </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <a href="/booking-intake">
-                <Button className="rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white">
-                  Complete Booking Form <ArrowRight size={14} className="ml-1" />
-                </Button>
-              </a>
-              <a href="/dashboard">
-                <Button variant="outline" className="rounded-xl">Return to Dashboard</Button>
-              </a>
+
+            {/* Intake form required — prominent CTA */}
+            <div className="bg-white border-2 border-amber-300 rounded-2xl p-6 mb-5 shadow-sm">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl">📋</span>
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-serif text-lg font-bold text-foreground mb-1">
+                    Complete your Booking Form — required next step
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed mb-4">
+                    To confirm your reservation and begin arrangements, please complete our booking form now.
+                    This allows us to finalise all the details for your trip. A final confirmed price will be
+                    sent to you before any payment is taken.
+                  </p>
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-4 text-xs text-blue-700 leading-relaxed">
+                    <strong>Note on pricing:</strong> As travel prices are live and can change at any time, your final price
+                    will be confirmed in writing by our concierge team before your booking is secured.
+                    No payment will be taken without your explicit approval.
+                  </div>
+                  <a href={`/booking-intake?quoteRef=${(quote as any).quoteRef || ""}&destination=${encodeURIComponent((quote as any).destination || "")}`}>
+                    <button className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 bg-[#1e3a5f] hover:bg-[#0f2a4a] text-white font-semibold rounded-xl transition-all shadow-md hover:shadow-lg text-sm">
+                      Complete Booking Form →
+                    </button>
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* What happens next */}
+            <div className="bg-slate-50 rounded-2xl border border-border p-5">
+              <h3 className="font-semibold text-sm text-foreground mb-3">What happens next:</h3>
+              <ol className="space-y-2.5">
+                {[
+                  { n: "1", label: "You complete the booking form below", done: false, highlight: true },
+                  { n: "2", label: "Our team reviews and confirms availability", done: false },
+                  { n: "3", label: "We send you final pricing confirmation in writing", done: false },
+                  { n: "4", label: "You approve — then we collect your deposit", done: false },
+                  { n: "5", label: "Your adventure is confirmed! 🌍", done: false },
+                ].map((step) => (
+                  <li key={step.n} className={`flex items-start gap-3 text-sm ${step.highlight ? "font-semibold text-[#1e3a5f]" : "text-muted-foreground"}`}>
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5 ${step.highlight ? "bg-amber-400 text-amber-900" : "bg-slate-200 text-slate-600"}`}>{step.n}</span>
+                    {step.label}
+                  </li>
+                ))}
+              </ol>
             </div>
           </div>
         )}
@@ -378,8 +411,8 @@ export default function QuotePage() {
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-200">
             <h2 className="font-serif text-xl font-bold text-foreground mb-2">Accept this quote?</h2>
             <p className="text-muted-foreground text-sm mb-4 leading-relaxed">
-              By accepting, you confirm that you'd like CB Travel to proceed with booking your trip
-              {(quote as any).destination ? ` to ${(quote as any).destination}` : ""}. Our team will be in touch within 24 hours.
+              By accepting, you confirm you'd like CB Travel to proceed with your trip
+              {(quote as any).destination ? ` to ${(quote as any).destination}` : ""}. You'll then complete a short booking form — your final price will be confirmed before any payment is taken.
             </p>
             <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl p-3 mb-5">
               <AlertTriangle size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />

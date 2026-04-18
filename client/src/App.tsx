@@ -25,6 +25,7 @@ import LoyaltyDashboard from "./pages/LoyaltyDashboard";
 import AdminLoyalty from "./pages/AdminLoyalty";
 import FlightManager from "./pages/FlightManager";
 import QuotePage from "./pages/QuotePage";
+import CommunityPage from "./pages/CommunityPage";
 import WhatsAppChatButton from "./components/WhatsAppChatButton";
 import AIChatbot from "./components/AIChatbot";
 import EasterGiveawayModal from "./components/EasterGiveawayModal";
@@ -79,6 +80,7 @@ function Router() {
       <Route path="/booking-intake" component={BookingIntakeForm} />
       <Route path="/refer/:code" component={ReferralLanding} />
       <Route path="/quote/:ref" component={QuotePage} />
+      <Route path="/community" component={CommunityPage} />
 
       {/* GDPR pages */}
       <Route path="/cookie-policy" component={CookiePolicy} />
