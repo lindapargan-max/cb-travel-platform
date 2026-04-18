@@ -205,6 +205,7 @@ export default function Home() {
   const { data: testimonials, isLoading: testimonialsLoading } = trpc.testimonials.list.useQuery();
   const { data: destinations, isLoading: destinationsLoading } = trpc.destinations.getActive.useQuery();
   const { data: communityFeatured = [] } = trpc.community.getFeatured.useQuery();
+  const { data: allCommunityPosts = [] } = trpc.community.getPublished.useQuery();
   const subscribeMutation = trpc.newsletter.subscribe.useMutation({
     onSuccess: () => {
       toast.success("You're subscribed! Welcome to the CB Travel family.");
@@ -634,7 +635,7 @@ export default function Home() {
       {/* ─── COMMUNITY & IMPACT TEASER ─────────────────────────────────────── */}
       <section className="py-20 px-4 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
+          <div className="text-center mb-10">
             <p className="text-xs tracking-[4px] uppercase font-semibold text-[#d4af37] mb-3">Community & Impact</p>
             <h2 className="font-serif text-3xl sm:text-4xl font-light text-[#1e3a5f] mb-4">
               Travelling with <span className="font-semibold">Heart</span>
@@ -644,6 +645,30 @@ export default function Home() {
               every booking supports something bigger.
             </p>
           </div>
+
+          {/* Total Given Back stat */}
+          {(() => {
+            const total = (allCommunityPosts as any[]).reduce((sum: number, p: any) => {
+              const n = parseFloat((p.amountRaised || "").replace(/[^0-9.]/g, ""));
+              return sum + (isNaN(n) ? 0 : n);
+            }, 0);
+            if (total <= 0) return null;
+            return (
+              <div className="flex justify-center mb-10">
+                <div className="inline-flex items-center gap-4 bg-gradient-to-r from-[#1e3a5f] to-[#0f2a4a] text-white rounded-2xl px-8 py-5 shadow-lg">
+                  <span className="text-2xl">✦</span>
+                  <div className="text-left">
+                    <p className="text-[10px] tracking-[3px] uppercase text-[#d4af37]/80 font-semibold">Total Given Back</p>
+                    <p className="font-serif text-2xl font-bold text-[#d4af37] leading-tight">
+                      {total >= 1000 ? `£${(total / 1000).toFixed(total % 1000 === 0 ? 0 : 1)}k` : `£${total.toLocaleString("en-GB")}`}
+                    </p>
+                  </div>
+                  <div className="w-px h-10 bg-white/20" />
+                  <p className="text-blue-200 text-xs max-w-[120px] leading-relaxed">Returned to communities &amp; causes</p>
+                </div>
+              </div>
+            );
+          })()}
 
           {communityFeatured.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
@@ -657,7 +682,7 @@ export default function Home() {
                 };
                 const typeLabels: Record<string, string> = { charity: "Charity", partnership: "Partnership", giveaway: "Giveaway", community: "Community" };
                 return (
-                  <div key={post.id} className="bg-white rounded-2xl border border-border shadow-sm hover:shadow-md transition-all overflow-hidden group">
+                  <a key={post.id} href="/community" className="bg-white rounded-2xl border border-border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden group block">
                     {post.imageUrl ? (
                       <div className="aspect-video overflow-hidden">
                         <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -673,9 +698,13 @@ export default function Home() {
                       </span>
                       <h3 className="font-serif text-sm font-semibold text-foreground mt-2 leading-snug">{post.title}</h3>
                       {post.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{post.description}</p>}
-                      {post.amountRaised && <p className="text-xs font-bold text-[#d4af37] mt-1.5">✦ {post.amountRaised}</p>}
+                      {post.amountRaised && (
+                        <div className="mt-2 inline-flex items-center gap-1 bg-[#d4af37]/12 border border-[#d4af37]/25 text-[#9a7c1e] text-[10px] font-bold px-2 py-1 rounded-full">
+                          ✦ Given Back: {post.amountRaised}
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  </a>
                 );
               })}
             </div>

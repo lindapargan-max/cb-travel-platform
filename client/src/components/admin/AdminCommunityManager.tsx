@@ -214,7 +214,7 @@ export default function AdminCommunityManager() {
                   <input type="text" value={form.charityName} onChange={e => setField("charityName", e.target.value)} placeholder="e.g. The Trussell Trust" className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>Amount Raised</label>
+                  <label className={labelCls}>Amount Given Back</label>
                   <input type="text" value={form.amountRaised} onChange={e => setField("amountRaised", e.target.value)} placeholder="e.g. £2,500" className={inputCls} />
                 </div>
               </>
