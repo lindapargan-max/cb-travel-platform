@@ -1847,3 +1847,44 @@ export async function getPointsForEvent(eventKey: string): Promise<{ points: num
   const r = rows[0];
   return { points: r.points, isActive: !!r.isActive, isPerPound: !!r.isPerPound };
 }
+
+// ─── Passport Column Migration ─────────────────────────────────────────────
+export async function ensurePassportColumns() {
+  const db = await getDb();
+  if (!db) return;
+  const alterStatements = [
+    "ALTER TABLE bookings ADD COLUMN passportNumber VARCHAR(100)",
+    "ALTER TABLE bookings ADD COLUMN passportExpiry VARCHAR(50)",
+    "ALTER TABLE bookings ADD COLUMN passportIssueDate VARCHAR(50)",
+    "ALTER TABLE bookings ADD COLUMN passportIssuingCountry VARCHAR(100)",
+  ];
+  for (const stmt of alterStatements) {
+    try {
+      await db.execute(sql`${sql.raw(stmt)}`);
+    } catch (e: any) {
+      // Ignore "Duplicate column" errors (column already exists)
+      const msg = e?.message || String(e);
+      if (!msg.includes("Duplicate column") && !msg.includes("ER_DUP_FIELDNAME") && !msg.includes("already exists")) {
+        console.warn("[DB] Passport migration warning:", msg);
+      }
+    }
+  }
+}
+
+// ─── Update Booking Passport Info ─────────────────────────────────────────
+export async function updateBookingPassport(id: number, data: {
+  passportNumber?: string | null;
+  passportExpiry?: string | null;
+  passportIssueDate?: string | null;
+  passportIssuingCountry?: string | null;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updates: Record<string, any> = {};
+  if (data.passportNumber !== undefined) updates.passportNumber = data.passportNumber;
+  if (data.passportExpiry !== undefined) updates.passportExpiry = data.passportExpiry;
+  if (data.passportIssueDate !== undefined) updates.passportIssueDate = data.passportIssueDate;
+  if (data.passportIssuingCountry !== undefined) updates.passportIssuingCountry = data.passportIssuingCountry;
+  if (Object.keys(updates).length === 0) return;
+  await db.update(bookings).set(updates).where(eq(bookings.id, id));
+}

@@ -71,6 +71,9 @@ async function startServer() {
 
 startServer().catch(console.error);
 
+// Ensure passport columns exist in DB
+import("../db").then(({ ensurePassportColumns }) => ensurePassportColumns()).catch(console.error);
+
 // ─── Auto-send postcards job (runs every hour) ─────────────────────────────
 async function runPostcardJob() {
   try {

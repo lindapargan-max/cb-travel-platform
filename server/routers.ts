@@ -676,6 +676,60 @@ export const appRouter = router({
     toggleChecklistItem: protectedProcedure
       .input(z.number())
       .mutation(({ input }) => toggleChecklistItem(input)),
+
+    updatePassport: adminMiddleware
+      .input(z.object({
+        id: z.number(),
+        passportNumber: z.string().nullable().optional(),
+        passportExpiry: z.string().nullable().optional(),
+        passportIssueDate: z.string().nullable().optional(),
+        passportIssuingCountry: z.string().nullable().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { updateBookingPassport } = await import("./db");
+        await updateBookingPassport(input.id, {
+          passportNumber: input.passportNumber,
+          passportExpiry: input.passportExpiry,
+          passportIssueDate: input.passportIssueDate,
+          passportIssuingCountry: input.passportIssuingCountry,
+        });
+        return { success: true };
+      }),
+
+    sendPassportReminder: adminMiddleware
+      .input(z.object({
+        bookingId: z.number(),
+        previewOnly: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { getAllBookings } = await import("./db");
+        const allBookings = await getAllBookings();
+        const booking = allBookings.find((b: any) => b.id === input.bookingId);
+        if (!booking) throw new Error("Booking not found");
+        const to = booking.leadPassengerEmail || "";
+        const clientName = booking.leadPassengerName || "Valued Client";
+        const passportExpiry = (booking as any).passportExpiry || "unknown date";
+        const destination = booking.destination || "your destination";
+        const departureDate = booking.departureDate || "your departure date";
+        const bookingRef = booking.bookingReference || String(booking.id);
+        if (input.previewOnly) {
+          return {
+            preview: {
+              to,
+              subject: `⚠️ Passport Renewal Required — ${destination}`,
+              clientName,
+              passportExpiry,
+              destination,
+              departureDate,
+              bookingRef,
+            }
+          };
+        }
+        if (!to) throw new Error("No email address for this booking");
+        const { sendPassportReminderEmail } = await import("./emails");
+        const result = await sendPassportReminderEmail(to, clientName, passportExpiry, destination, departureDate, bookingRef, booking.id);
+        return { success: result.success, error: result.error };
+      }),
   }),
 
   quotes: router({

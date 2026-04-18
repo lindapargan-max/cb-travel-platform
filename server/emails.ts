@@ -1027,3 +1027,43 @@ export async function sendTicketReplyEmail(
     'ticket_reply'
   );
 }
+
+export async function sendPassportReminderEmail(
+  to: string,
+  clientName: string,
+  passportExpiry: string,
+  destination: string,
+  departureDate: string,
+  bookingRef: string,
+  bookingId?: number
+): Promise<{ success: boolean; error?: string }> {
+  const subject = `⚠️ Passport Renewal Required — ${destination}`;
+  const html = baseTemplate(`
+    <div style="text-align:center;padding:32px 0 24px;">
+      <div style="display:inline-block;background:#FEF3C7;border-radius:50%;width:72px;height:72px;line-height:72px;font-size:36px;margin-bottom:16px;">⚠️</div>
+      <h1 style="font-size:24px;font-weight:700;color:#1a1a2e;margin:0 0 8px;">Passport Action Required</h1>
+      <p style="color:#64748b;font-size:15px;margin:0;">Booking Reference: <strong>${bookingRef}</strong></p>
+    </div>
+    <div style="background:#FFF8F0;border:1px solid #FED7AA;border-radius:12px;padding:20px 24px;margin:24px 0;">
+      <p style="margin:0;font-size:15px;color:#92400e;line-height:1.6;">
+        Dear <strong>${clientName}</strong>, your passport expires on <strong>${passportExpiry}</strong>. 
+        For your upcoming trip to <strong>${destination}</strong> departing <strong>${departureDate}</strong>, 
+        your passport must be valid for at least <strong>6 months beyond your return date</strong>.
+      </p>
+    </div>
+    <h2 style="font-size:17px;font-weight:600;color:#1a1a2e;margin:28px 0 16px;">What you need to do</h2>
+    <div style="background:#F8FAFC;border-radius:12px;padding:20px 24px;">
+      <ol style="margin:0;padding:0 0 0 20px;color:#475569;font-size:14px;line-height:2;">
+        <li>Check your passport expiry date</li>
+        <li>Apply for a new passport immediately if needed (allow 10+ weeks)</li>
+        <li>Ensure 6+ months validity from your return date</li>
+        <li>Contact us once renewed so we can update your booking</li>
+      </ol>
+    </div>
+    <div style="text-align:center;margin:32px 0 8px;">
+      <a href="https://www.gov.uk/renew-adult-passport" style="display:inline-block;background:#1a1a2e;color:#ffffff;text-decoration:none;padding:14px 32px;border-radius:8px;font-weight:600;font-size:15px;">Renew Your Passport</a>
+    </div>
+    <p style="text-align:center;font-size:13px;color:#94a3b8;margin-top:16px;">Questions? Reply to this email or call us — we're here to help.</p>
+  `);
+  return send(to, subject, html, 'passport_reminder', undefined, bookingId);
+}

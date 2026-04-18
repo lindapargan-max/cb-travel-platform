@@ -81,6 +81,7 @@ export async function flightStatusHandler(req: Request, res: Response) {
 
   let found: AeroFlightResponse | null = null;
   let fetchError = "";
+  let rateLimitHit = false;
 
   for (const date of dates) {
     if (found) break;
@@ -94,7 +95,8 @@ export async function flightStatusHandler(req: Request, res: Response) {
       });
 
       if (response.status === 429) {
-        return res.status(429).json({ error: "Rate limit reached. Try again in a moment." });
+        rateLimitHit = true;
+        continue; // try next date
       }
       if (response.status === 404) continue;
       if (!response.ok) {
@@ -114,9 +116,12 @@ export async function flightStatusHandler(req: Request, res: Response) {
   }
 
   if (!found) {
+    if (rateLimitHit && !fetchError) {
+      return res.status(429).json({ error: "Service temporarily unavailable. Please try again in 30 seconds." });
+    }
     return res.status(404).json({
-      error: fetchError || "Flight not found",
-      message: `No results for "${flight}". Make sure you're using the IATA flight number (e.g. EZY8432, BA2490, VS401).`,
+      error: "Flight not found",
+      message: `No flights found for "${flight}". Please check the flight number (e.g. BA249, EZY8432, VS401).`,
     });
   }
 
