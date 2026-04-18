@@ -2194,7 +2194,7 @@ export async function getAllCommunityPosts(): Promise<any[]> {
     const db = await getDb();
     if (!db) return [];
     const rows = await db.execute(sql`SELECT * FROM communityPosts ORDER BY displayOrder ASC, createdAt DESC`);
-    return (rows as any).rows || rows as any[] || [];
+    return ((rows as any)[0] as any[]) || [];
   } catch { return []; }
 }
 
@@ -2203,7 +2203,7 @@ export async function getPublishedCommunityPosts(): Promise<any[]> {
     const db = await getDb();
     if (!db) return [];
     const rows = await db.execute(sql`SELECT * FROM communityPosts WHERE isPublished = true ORDER BY displayOrder ASC, createdAt DESC`);
-    return (rows as any).rows || rows as any[] || [];
+    return ((rows as any)[0] as any[]) || [];
   } catch { return []; }
 }
 
@@ -2212,7 +2212,7 @@ export async function getFeaturedCommunityPosts(limit = 3): Promise<any[]> {
     const db = await getDb();
     if (!db) return [];
     const rows = await db.execute(sql`SELECT * FROM communityPosts WHERE isPublished = true AND isFeatured = true ORDER BY displayOrder ASC, createdAt DESC LIMIT ${limit}`);
-    return (rows as any).rows || rows as any[] || [];
+    return ((rows as any)[0] as any[]) || [];
   } catch { return []; }
 }
 
@@ -2221,7 +2221,7 @@ export async function getCommunityPostById(id: number): Promise<any | null> {
     const db = await getDb();
     if (!db) return null;
     const rows = await db.execute(sql`SELECT * FROM communityPosts WHERE id = ${id} LIMIT 1`);
-    const arr = (rows as any).rows || rows as any[] || [];
+    const arr = ((rows as any)[0] as any[]) || [];
     return arr[0] || null;
   } catch { return null; }
 }
@@ -2249,7 +2249,7 @@ export async function createCommunityPost(data: {
     VALUES (${data.type}, ${data.title}, ${data.subtitle || null}, ${data.description || null}, ${data.content || null}, ${data.imageUrl || null}, ${data.partnerName || null}, ${data.charityName || null}, ${data.amountRaised || null}, ${data.location || null}, ${data.eventDate || null}, ${data.isFeatured ?? false}, ${data.isPublished ?? false}, ${data.displayOrder ?? 0})
   `);
   const rows = await db.execute(sql`SELECT * FROM communityPosts ORDER BY id DESC LIMIT 1`);
-  const arr = (rows as any).rows || rows as any[] || [];
+  const arr = ((rows as any)[0] as any[]) || [];
   return arr[0];
 }
 
