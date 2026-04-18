@@ -208,16 +208,10 @@ export default function AdminCommunityManager() {
               )}
             </div>
             {(form.type === "charity") && (
-              <>
-                <div>
-                  <label className={labelCls}>Charity Name</label>
-                  <input type="text" value={form.charityName} onChange={e => setField("charityName", e.target.value)} placeholder="e.g. The Trussell Trust" className={inputCls} />
-                </div>
-                <div>
-                  <label className={labelCls}>Amount Given Back</label>
-                  <input type="text" value={form.amountRaised} onChange={e => setField("amountRaised", e.target.value)} placeholder="e.g. £2,500" className={inputCls} />
-                </div>
-              </>
+              <div>
+                <label className={labelCls}>Charity Name</label>
+                <input type="text" value={form.charityName} onChange={e => setField("charityName", e.target.value)} placeholder="e.g. The Trussell Trust" className={inputCls} />
+              </div>
             )}
             {(form.type === "partnership") && (
               <div>
@@ -228,9 +222,13 @@ export default function AdminCommunityManager() {
             {(form.type === "giveaway") && (
               <div>
                 <label className={labelCls}>Prize / What's Being Given</label>
-                <input type="text" value={form.amountRaised} onChange={e => setField("amountRaised", e.target.value)} placeholder="e.g. Weekend for 2 in Paris" className={inputCls} />
+                <input type="text" value={form.prize} onChange={e => setField("prize", e.target.value)} placeholder="e.g. Weekend for 2 in Paris" className={inputCls} />
               </div>
             )}
+            <div>
+              <label className={labelCls}>Amount Given Back</label>
+              <input type="text" value={form.amountRaised} onChange={e => setField("amountRaised", e.target.value)} placeholder="e.g. £2,500 (optional)" className={inputCls} />
+            </div>
             <div>
               <label className={labelCls}>Location</label>
               <input type="text" value={form.location} onChange={e => setField("location", e.target.value)} placeholder="e.g. Birmingham, UK" className={inputCls} />
