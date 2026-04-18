@@ -67,6 +67,10 @@ export const bookings = mysqlTable("bookings", {
   postcardSentAt: timestamp("postcardSentAt"),
   flightStatusNumber: varchar("flightStatusNumber", { length: 20 }),
   notificationsEnabled: boolean("notificationsEnabled").default(true).notNull(),
+  passportNumber: varchar("passportNumber", { length: 100 }),
+  passportExpiry: varchar("passportExpiry", { length: 50 }),
+  passportIssueDate: varchar("passportIssueDate", { length: 50 }),
+  passportIssuingCountry: varchar("passportIssuingCountry", { length: 100 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
