@@ -1,0 +1,23 @@
+-- Email Logs table
+CREATE TABLE IF NOT EXISTS emailLogs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  toEmail VARCHAR(320) NOT NULL,
+  subject VARCHAR(500) NOT NULL,
+  emailType VARCHAR(100) NOT NULL,
+  status ENUM('sent','failed') NOT NULL DEFAULT 'sent',
+  errorMessage TEXT,
+  userId INT,
+  bookingId INT,
+  sentAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Password Reset Tokens
+CREATE TABLE IF NOT EXISTS passwordResetTokens (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  userId INT NOT NULL,
+  email VARCHAR(320) NOT NULL,
+  token VARCHAR(10) NOT NULL,
+  expiresAt TIMESTAMP NOT NULL,
+  usedAt TIMESTAMP,
+  createdAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
