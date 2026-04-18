@@ -1,280 +1,377 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
-import { Shield, AlertTriangle, CheckCircle2, Send, Users } from "lucide-react";
 import { toast } from "sonner";
+import {
+  AlertTriangle, CheckCircle2, Clock, Edit2, Mail, Search,
+  ShieldAlert, ShieldCheck, X, Eye, Send
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle
+} from "@/components/ui/dialog";
 
-type RiskTier = "critical" | "warning" | "safe";
+type PassportStatus = "critical" | "warning" | "ok" | "missing";
 
-interface PassportRecord {
+interface PassportClient {
   bookingId: number;
-  clientName: string;
   bookingRef: string;
+  clientName: string;
+  clientEmail: string;
   destination: string;
-  departureDate: Date | null;
-  mockExpiry: Date;
-  daysUntilExpiry: number;
-  monthsUntilExpiryFromDeparture: number;
-  risk: RiskTier;
+  departureDate: string | null;
+  passportNumber: string | null;
+  passportExpiry: string | null;
+  passportIssueDate: string | null;
+  passportIssuingCountry: string | null;
+  status: PassportStatus;
+  daysUntilExpiry: number | null;
+  daysUntilDeparture: number | null;
 }
 
-function getRiskFromMonths(months: number): RiskTier {
-  if (months < 3) return "critical";
-  if (months < 6) return "warning";
-  return "safe";
+function getPassportStatus(passportExpiry: string | null, departureDate: string | null): { status: PassportStatus; daysUntilExpiry: number | null } {
+  if (!passportExpiry) return { status: "missing", daysUntilExpiry: null };
+  const expiry = new Date(passportExpiry);
+  if (isNaN(expiry.getTime())) return { status: "missing", daysUntilExpiry: null };
+  const now = new Date();
+  const daysUntilExpiry = Math.floor((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  // Check validity for 6 months beyond return date
+  const checkDate = departureDate ? new Date(new Date(departureDate).getTime() + (180 * 24 * 60 * 60 * 1000)) : new Date(now.getTime() + (180 * 24 * 60 * 60 * 1000));
+  if (expiry < checkDate) {
+    if (daysUntilExpiry < 0) return { status: "critical", daysUntilExpiry };
+    if (daysUntilExpiry < 90) return { status: "critical", daysUntilExpiry };
+    return { status: "warning", daysUntilExpiry };
+  }
+  return { status: "ok", daysUntilExpiry };
 }
 
-function diffMonths(a: Date, b: Date): number {
-  return (a.getFullYear() - b.getFullYear()) * 12 + (a.getMonth() - b.getMonth());
+function StatusBadgeComp({ status }: { status: PassportStatus }) {
+  const config: Record<PassportStatus, { label: string; className: string }> = {
+    critical: { label: "Critical", className: "bg-red-100 text-red-800 border-red-200" },
+    warning:  { label: "Expiring Soon", className: "bg-amber-100 text-amber-800 border-amber-200" },
+    ok:       { label: "Valid", className: "bg-emerald-100 text-emerald-800 border-emerald-200" },
+    missing:  { label: "Missing", className: "bg-slate-100 text-slate-600 border-slate-200" },
+  };
+  const c = config[status];
+  return <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${c.className}`}>{c.label}</span>;
 }
 
 export default function AdminPassportManager() {
-  const [filter, setFilter] = useState<RiskTier | "all">("all");
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState<PassportStatus | "all">("all");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ passportNumber: "", passportExpiry: "", passportIssueDate: "", passportIssuingCountry: "" });
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [sendingId, setSendingId] = useState<number | null>(null);
+
   const bookingsQuery = trpc.bookings.getAllAdmin.useQuery();
-  const bookings = bookingsQuery.data ?? [];
+  const updatePassportMut = trpc.bookings.updatePassport.useMutation({
+    onSuccess: () => { toast.success("Passport details saved"); setEditingId(null); bookingsQuery.refetch(); },
+    onError: (e) => toast.error(e.message),
+  });
+  const sendReminderMut = trpc.bookings.sendPassportReminder.useMutation({
+    onSuccess: (data: any) => {
+      if (data?.preview) {
+        setPreviewData(data.preview);
+      } else {
+        toast.success("Reminder email sent!");
+        setSendingId(null);
+      }
+    },
+    onError: (e) => { toast.error(e.message); setSendingId(null); },
+  });
 
-  const today = new Date();
+  const clients = useMemo<PassportClient[]>(() => {
+    const allBookings = bookingsQuery.data ?? [];
+    return allBookings
+      .filter((b) => b.status !== "cancelled")
+      .map((b) => {
+        const pp = (b as any).passportExpiry || null;
+        const dep = b.departureDate || null;
+        const { status, daysUntilExpiry } = getPassportStatus(pp, dep);
+        const daysUntilDeparture = dep ? Math.floor((new Date(dep).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+        return {
+          bookingId: b.id,
+          bookingRef: b.bookingReference ?? `BK${b.id}`,
+          clientName: b.leadPassengerName ?? "Unknown",
+          clientEmail: b.leadPassengerEmail ?? "",
+          destination: b.destination ?? "Unknown",
+          departureDate: dep,
+          passportNumber: (b as any).passportNumber || null,
+          passportExpiry: pp,
+          passportIssueDate: (b as any).passportIssueDate || null,
+          passportIssuingCountry: (b as any).passportIssuingCountry || null,
+          status,
+          daysUntilExpiry,
+          daysUntilDeparture,
+        };
+      });
+  }, [bookingsQuery.data]);
 
-  const records: PassportRecord[] = bookings
-    .filter((b) => b.status !== "cancelled")
-    .map((b) => {
-      const id = typeof b.id === "number" ? b.id : parseInt(String(b.id), 10) || 0;
-      const mockExpiry = new Date(2024 + (id % 4), id % 12, (id % 28) + 1);
-      const departureDate = b.departureDate ? new Date(b.departureDate) : null;
-      const refDate = departureDate ?? today;
-      const monthsUntilExpiryFromDeparture = diffMonths(mockExpiry, refDate);
-      const daysUntilExpiry = Math.round((mockExpiry.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-      const risk = getRiskFromMonths(monthsUntilExpiryFromDeparture);
+  const filtered = useMemo(() => {
+    return clients
+      .filter((c) => filterStatus === "all" || c.status === filterStatus)
+      .filter((c) => {
+        if (!search) return true;
+        const q = search.toLowerCase();
+        return c.clientName.toLowerCase().includes(q) || c.destination.toLowerCase().includes(q) || c.bookingRef.toLowerCase().includes(q) || (c.passportNumber || "").toLowerCase().includes(q);
+      })
+      .sort((a, b) => {
+        const order: Record<PassportStatus, number> = { critical: 0, missing: 1, warning: 2, ok: 3 };
+        return order[a.status] - order[b.status];
+      });
+  }, [clients, search, filterStatus]);
 
-      return {
-        bookingId: id,
-        clientName: b.leadPassengerName ?? "Unknown Client",
-        bookingRef: b.bookingReference ?? `BK${id}`,
-        destination: b.destination ?? "Unknown",
-        departureDate,
-        mockExpiry,
-        daysUntilExpiry,
-        monthsUntilExpiryFromDeparture,
-        risk,
-      };
+  const stats = useMemo(() => ({
+    critical: clients.filter((c) => c.status === "critical").length,
+    warning: clients.filter((c) => c.status === "warning").length,
+    missing: clients.filter((c) => c.status === "missing").length,
+    ok: clients.filter((c) => c.status === "ok").length,
+  }), [clients]);
+
+  const openEdit = (c: PassportClient) => {
+    setEditForm({
+      passportNumber: c.passportNumber || "",
+      passportExpiry: c.passportExpiry || "",
+      passportIssueDate: c.passportIssueDate || "",
+      passportIssuingCountry: c.passportIssuingCountry || "",
     });
-
-  const criticalCount = records.filter((r) => r.risk === "critical").length;
-  const warningCount = records.filter((r) => r.risk === "warning").length;
-  const safeCount = records.filter((r) => r.risk === "safe").length;
-
-  const filtered = filter === "all" ? records : records.filter((r) => r.risk === filter);
-
-  const riskConfig: Record<RiskTier, { label: string; color: string; bg: string; border: string; dot: string }> = {
-    critical: {
-      label: "Critical",
-      color: "text-red-300",
-      bg: "bg-red-950/40",
-      border: "border-red-800/50",
-      dot: "bg-red-500",
-    },
-    warning: {
-      label: "Warning",
-      color: "text-yellow-300",
-      bg: "bg-yellow-950/40",
-      border: "border-yellow-800/50",
-      dot: "bg-yellow-400",
-    },
-    safe: {
-      label: "Safe",
-      color: "text-emerald-300",
-      bg: "bg-emerald-950/30",
-      border: "border-emerald-800/50",
-      dot: "bg-emerald-500",
-    },
+    setEditingId(c.bookingId);
   };
 
-  const handleSendReminder = (name: string) => {
-    toast.success(`Reminder sent to ${name}`);
+  const handlePreviewReminder = (c: PassportClient) => {
+    setSendingId(c.bookingId);
+    sendReminderMut.mutate({ bookingId: c.bookingId, previewOnly: true });
   };
 
-  const handleSendAllCritical = () => {
-    const criticals = records.filter((r) => r.risk === "critical");
-    if (criticals.length === 0) {
-      toast.info("No critical clients to notify");
-      return;
-    }
-    toast.success(`Sent passport reminders to ${criticals.length} critical client${criticals.length > 1 ? "s" : ""}`);
+  const handleConfirmSend = () => {
+    if (!previewData || !sendingId) return;
+    sendReminderMut.mutate({ bookingId: sendingId, previewOnly: false });
+    setPreviewData(null);
   };
 
-  const progressColor = (risk: RiskTier) => {
-    if (risk === "critical") return "bg-red-500";
-    if (risk === "warning") return "bg-yellow-400";
-    return "bg-emerald-500";
-  };
-
-  // Progress: months until expiry from departure / 24 months max (capped 0-100)
-  const progressPct = (months: number) => Math.max(0, Math.min(100, (months / 24) * 100));
+  if (bookingsQuery.isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1,2,3].map(i => <div key={i} className="h-20 rounded-2xl bg-muted animate-pulse" />)}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-6 p-1">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-xl bg-amber-400/10 border border-amber-400/20">
-            <Shield className="w-5 h-5 text-amber-400" />
-          </div>
-          <div>
-            <h2 className="text-lg font-bold text-slate-100">Passport Risk Manager</h2>
-            <p className="text-xs text-slate-500">Proactive passport validity monitoring</p>
-          </div>
-        </div>
-        <button
-          onClick={handleSendAllCritical}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-red-900/40 border border-red-700/50 text-red-300 hover:bg-red-800/50 text-sm font-semibold transition-all duration-200"
-        >
-          <Send className="w-3.5 h-3.5" />
-          Send All Critical Reminders
-        </button>
-      </div>
-
-      {/* Risk Summary Strip */}
-      <div className="grid grid-cols-3 gap-3">
-        <button
-          onClick={() => setFilter(filter === "critical" ? "all" : "critical")}
-          className={`rounded-2xl border p-4 text-left transition-all duration-200 ${
-            filter === "critical"
-              ? "bg-red-900/50 border-red-600/60"
-              : "bg-red-950/40 border-red-800/40 hover:border-red-700/60"
-          }`}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="w-4 h-4 text-red-400" />
-            <span className="text-xs font-semibold text-red-300/70 uppercase tracking-wide">Critical</span>
-          </div>
-          <p className="text-3xl font-bold text-red-300">{criticalCount}</p>
-          <p className="text-xs text-red-400/60 mt-0.5">{"< 3 months"}</p>
-        </button>
-
-        <button
-          onClick={() => setFilter(filter === "warning" ? "all" : "warning")}
-          className={`rounded-2xl border p-4 text-left transition-all duration-200 ${
-            filter === "warning"
-              ? "bg-yellow-900/50 border-yellow-600/60"
-              : "bg-yellow-950/40 border-yellow-800/40 hover:border-yellow-700/60"
-          }`}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle className="w-4 h-4 text-yellow-400" />
-            <span className="text-xs font-semibold text-yellow-300/70 uppercase tracking-wide">Warning</span>
-          </div>
-          <p className="text-3xl font-bold text-yellow-300">{warningCount}</p>
-          <p className="text-xs text-yellow-400/60 mt-0.5">3–6 months</p>
-        </button>
-
-        <button
-          onClick={() => setFilter(filter === "safe" ? "all" : "safe")}
-          className={`rounded-2xl border p-4 text-left transition-all duration-200 ${
-            filter === "safe"
-              ? "bg-emerald-900/50 border-emerald-600/60"
-              : "bg-emerald-950/30 border-emerald-800/40 hover:border-emerald-700/60"
-          }`}
-        >
-          <div className="flex items-center gap-2 mb-1">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span className="text-xs font-semibold text-emerald-300/70 uppercase tracking-wide">Safe</span>
-          </div>
-          <p className="text-3xl font-bold text-emerald-300">{safeCount}</p>
-          <p className="text-xs text-emerald-400/60 mt-0.5">{"> 6 months"}</p>
-        </button>
-      </div>
-
-      {/* Filter Tabs */}
-      <div className="flex gap-2">
-        {(["all", "critical", "warning", "safe"] as const).map((f) => (
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { label: "Critical", count: stats.critical, icon: <ShieldAlert className="w-5 h-5 text-red-600" />, bg: "bg-red-50", border: "border-red-100", text: "text-red-700", id: "critical" as PassportStatus },
+          { label: "Expiring Soon", count: stats.warning, icon: <AlertTriangle className="w-5 h-5 text-amber-600" />, bg: "bg-amber-50", border: "border-amber-100", text: "text-amber-700", id: "warning" as PassportStatus },
+          { label: "Missing Data", count: stats.missing, icon: <Clock className="w-5 h-5 text-slate-500" />, bg: "bg-slate-50", border: "border-slate-200", text: "text-slate-600", id: "missing" as PassportStatus },
+          { label: "All Clear", count: stats.ok, icon: <ShieldCheck className="w-5 h-5 text-emerald-600" />, bg: "bg-emerald-50", border: "border-emerald-100", text: "text-emerald-700", id: "ok" as PassportStatus },
+        ].map((s) => (
           <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all duration-200 ${
-              filter === f
-                ? "bg-amber-400/20 border border-amber-400/40 text-amber-300"
-                : "bg-slate-800/60 border border-slate-700/50 text-slate-400 hover:text-slate-200"
-            }`}
+            key={s.id}
+            onClick={() => setFilterStatus(filterStatus === s.id ? "all" : s.id)}
+            className={`rounded-2xl border p-4 text-left transition-all hover:shadow-md ${s.bg} ${s.border} ${filterStatus === s.id ? "ring-2 ring-offset-1 ring-current" : ""}`}
           >
-            {f === "all" ? `All (${records.length})` : f}
+            <div className="flex items-center justify-between mb-2">
+              {s.icon}
+              <span className={`text-2xl font-bold ${s.text}`}>{s.count}</span>
+            </div>
+            <p className={`text-xs font-semibold ${s.text}`}>{s.label}</p>
           </button>
         ))}
       </div>
 
-      {/* Client List */}
-      <div className="rounded-2xl bg-slate-900/60 border border-slate-700/50 overflow-hidden shadow-lg">
-        <div className="px-5 py-3.5 border-b border-slate-700/50 flex items-center gap-2">
-          <Users className="w-4 h-4 text-slate-400" />
-          <h3 className="text-xs font-semibold text-slate-300 uppercase tracking-widest">
-            Client Passport Status
-            <span className="ml-2 text-slate-500 normal-case font-normal">({filtered.length} clients)</span>
-          </h3>
+      {/* Search + Filter */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, destination, reference, passport number..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        {filterStatus !== "all" && (
+          <Button variant="outline" onClick={() => setFilterStatus("all")} className="gap-2">
+            <X className="w-4 h-4" /> Clear filter
+          </Button>
+        )}
+      </div>
+
+      {/* Results */}
+      <div className="rounded-2xl border border-border bg-white shadow-sm overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">
+          <p className="text-sm font-semibold text-foreground">
+            {filtered.length} {filtered.length === 1 ? "client" : "clients"}
+            {filterStatus !== "all" && <span className="text-muted-foreground font-normal"> · filtered</span>}
+          </p>
         </div>
 
         {filtered.length === 0 ? (
-          <p className="text-sm text-slate-500 text-center py-10">No clients in this category</p>
+          <div className="py-16 text-center text-muted-foreground">
+            <ShieldCheck className="w-10 h-10 mx-auto mb-3 opacity-30" />
+            <p className="font-medium">No clients found</p>
+          </div>
         ) : (
-          <div className="divide-y divide-slate-800/60">
-            {filtered.map((r) => {
-              const cfg = riskConfig[r.risk];
-              const pct = progressPct(r.monthsUntilExpiryFromDeparture);
-              return (
-                <div key={r.bookingId} className={`px-5 py-4 hover:bg-slate-800/30 transition-colors`}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-3 flex-1 min-w-0">
-                      <div className={`mt-1 w-2.5 h-2.5 rounded-full flex-shrink-0 ${cfg.dot}`} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm font-semibold text-slate-100">{r.clientName}</span>
-                          <span className="text-xs text-slate-500">{r.bookingRef}</span>
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${cfg.bg} ${cfg.border} ${cfg.color}`}>
-                            {cfg.label}
-                          </span>
-                        </div>
-                        <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-0.5">
-                          <span className="text-xs text-slate-400">{r.destination}</span>
-                          {r.departureDate && (
-                            <span className="text-xs text-slate-500">
-                              Departs {r.departureDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                            </span>
-                          )}
-                          <span className="text-xs text-slate-500">
-                            Passport expires{" "}
-                            {r.mockExpiry.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
-                            {r.daysUntilExpiry > 0
-                              ? ` (${r.daysUntilExpiry}d away)`
-                              : " (EXPIRED)"}
-                          </span>
-                        </div>
-                        {/* Progress bar */}
-                        <div className="mt-2 w-full max-w-xs">
-                          <div className="h-1.5 rounded-full bg-slate-700/60 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-500 ${progressColor(r.risk)}`}
-                              style={{ width: `${pct}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-slate-600 mt-0.5">
-                            {r.monthsUntilExpiryFromDeparture > 0
-                              ? `${r.monthsUntilExpiryFromDeparture}mo validity at departure`
-                              : "Expired before departure"}
-                          </p>
-                        </div>
-                      </div>
+          <div className="divide-y divide-border">
+            {filtered.map((c) => (
+              <div key={c.bookingId} className="px-5 py-4 hover:bg-muted/30 transition-colors">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <p className="font-semibold text-foreground text-sm">{c.clientName}</p>
+                      <StatusBadgeComp status={c.status} />
+                      {c.daysUntilDeparture !== null && c.daysUntilDeparture <= 30 && c.daysUntilDeparture >= 0 && (
+                        <Badge variant="outline" className="text-xs border-orange-200 text-orange-700 bg-orange-50">Departing in {c.daysUntilDeparture}d</Badge>
+                      )}
                     </div>
-                    <button
-                      onClick={() => handleSendReminder(r.clientName)}
-                      className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700/60 hover:bg-slate-700/60 text-xs font-semibold text-slate-300 hover:text-slate-100 transition-all duration-200"
-                    >
-                      <Send className="w-3 h-3" />
-                      Send Reminder
-                    </button>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mt-1">
+                      <span>✈ {c.destination}</span>
+                      {c.departureDate && <span>Dep: {new Date(c.departureDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>}
+                      <span className="font-mono text-xs">{c.bookingRef}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs mt-2">
+                      <span className="text-muted-foreground">
+                        Passport: <span className="text-foreground font-medium">{c.passportNumber || <span className="text-slate-400 italic">not recorded</span>}</span>
+                      </span>
+                      <span className="text-muted-foreground">
+                        Expires: <span className={`font-medium ${c.status === "critical" ? "text-red-600" : c.status === "warning" ? "text-amber-600" : "text-foreground"}`}>
+                          {c.passportExpiry ? new Date(c.passportExpiry).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : <span className="text-slate-400 italic">not recorded</span>}
+                        </span>
+                      </span>
+                      {c.passportIssuingCountry && <span className="text-muted-foreground">Country: <span className="text-foreground font-medium">{c.passportIssuingCountry}</span></span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button size="sm" variant="outline" onClick={() => openEdit(c)} className="gap-1.5 text-xs">
+                      <Edit2 className="w-3.5 h-3.5" /> Edit
+                    </Button>
+                    {c.clientEmail && (c.status === "critical" || c.status === "warning" || c.status === "missing") && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handlePreviewReminder(c)}
+                        disabled={sendReminderMut.isPending && sendingId === c.bookingId}
+                        className="gap-1.5 text-xs hover:bg-amber-50 hover:text-amber-700 hover:border-amber-200"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Preview Reminder
+                      </Button>
+                    )}
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
+
+      {/* Edit Passport Modal */}
+      <Dialog open={editingId !== null} onOpenChange={(o) => !o && setEditingId(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Passport Details</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label>Passport Number</Label>
+              <Input
+                placeholder="e.g. 123456789"
+                value={editForm.passportNumber}
+                onChange={(e) => setEditForm((f) => ({ ...f, passportNumber: e.target.value }))}
+                className="mt-1.5"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Issue Date</Label>
+                <Input
+                  type="date"
+                  value={editForm.passportIssueDate}
+                  onChange={(e) => setEditForm((f) => ({ ...f, passportIssueDate: e.target.value }))}
+                  className="mt-1.5"
+                />
+              </div>
+              <div>
+                <Label>Expiry Date</Label>
+                <Input
+                  type="date"
+                  value={editForm.passportExpiry}
+                  onChange={(e) => setEditForm((f) => ({ ...f, passportExpiry: e.target.value }))}
+                  className="mt-1.5"
+                />
+              </div>
+            </div>
+            <div>
+              <Label>Issuing Country</Label>
+              <Input
+                placeholder="e.g. United Kingdom"
+                value={editForm.passportIssuingCountry}
+                onChange={(e) => setEditForm((f) => ({ ...f, passportIssuingCountry: e.target.value }))}
+                className="mt-1.5"
+              />
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setEditingId(null)}>Cancel</Button>
+              <Button
+                onClick={() => {
+                  if (!editingId) return;
+                  updatePassportMut.mutate({
+                    id: editingId,
+                    passportNumber: editForm.passportNumber || null,
+                    passportExpiry: editForm.passportExpiry || null,
+                    passportIssueDate: editForm.passportIssueDate || null,
+                    passportIssuingCountry: editForm.passportIssuingCountry || null,
+                  });
+                }}
+                disabled={updatePassportMut.isPending}
+              >
+                Save Passport Details
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Preview Modal */}
+      <Dialog open={previewData !== null} onOpenChange={(o) => { if (!o) { setPreviewData(null); setSendingId(null); } }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Preview Reminder Email</DialogTitle>
+          </DialogHeader>
+          {previewData && (
+            <div className="space-y-4">
+              <div className="rounded-xl bg-muted/50 border border-border p-4 text-sm space-y-2">
+                <div className="flex gap-2"><span className="text-muted-foreground font-medium w-16">To:</span><span className="text-foreground">{previewData.to}</span></div>
+                <div className="flex gap-2"><span className="text-muted-foreground font-medium w-16">Subject:</span><span className="text-foreground">{previewData.subject}</span></div>
+              </div>
+              <div className="rounded-xl bg-amber-50 border border-amber-100 p-4 text-sm space-y-2">
+                <p className="font-semibold text-amber-900">Email will contain:</p>
+                <ul className="list-disc list-inside text-amber-800 space-y-1 text-xs">
+                  <li>Dear <strong>{previewData.clientName}</strong></li>
+                  <li>Passport expires: <strong>{previewData.passportExpiry}</strong></li>
+                  <li>Upcoming trip to: <strong>{previewData.destination}</strong></li>
+                  <li>Departure date: <strong>{previewData.departureDate}</strong></li>
+                  <li>Link to renew passport on gov.uk</li>
+                </ul>
+              </div>
+              <div className="flex justify-end gap-3">
+                <Button variant="outline" onClick={() => { setPreviewData(null); setSendingId(null); }}>Cancel</Button>
+                <Button
+                  onClick={handleConfirmSend}
+                  disabled={sendReminderMut.isPending}
+                  className="gap-2"
+                >
+                  <Send className="w-4 h-4" /> Send Reminder
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
