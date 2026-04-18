@@ -35,6 +35,7 @@ import { BookingCard } from "@/components/BookingCard";
 import AdminCommandCenter from "@/components/admin/AdminCommandCenter";
 import AdminPassportManager from "@/components/admin/AdminPassportManager";
 import AdminPaymentPlans from "@/components/admin/AdminPaymentPlans";
+import AdminQuotesManager from "@/components/admin/AdminQuotesManager";
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; className: string }> = {
@@ -2749,6 +2750,177 @@ function AdminThingsToDo({ destination }: { destination: string }) {
   );
 }
 
+function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userBookings: any[]; onUpdate: () => void }) {
+  const [editForm, setEditForm] = useState({
+    name: user.name || "",
+    email: user.email || "",
+    phone: user.phone || "",
+    dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split("T")[0] : "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const updateProfile = trpc.admin.updateUserProfile.useMutation({
+    onSuccess: () => {
+      setSaved(true);
+      setSaving(false);
+      setTimeout(() => setSaved(false), 2000);
+      onUpdate();
+    },
+    onError: (e) => {
+      toast.error("Failed to update: " + e.message);
+      setSaving(false);
+    }
+  });
+
+  const handleSave = () => {
+    setSaving(true);
+    setSaved(false);
+    updateProfile.mutate({
+      id: user.id,
+      name: editForm.name || undefined,
+      email: editForm.email || undefined,
+      phone: editForm.phone || null,
+      dateOfBirth: editForm.dateOfBirth || null,
+    });
+  };
+
+  const passportBookings = userBookings.filter((b: any) => b.passportNumber);
+
+  return (
+    <div className="border-t border-border bg-slate-50/60 p-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+        {/* Profile Edit */}
+        <div className="lg:col-span-1">
+          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <span className="w-5 h-5 bg-primary/10 rounded-lg flex items-center justify-center text-primary text-xs">✎</span>
+            Profile
+          </h4>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs text-muted-foreground font-medium block mb-1">Full Name</label>
+              <input
+                type="text"
+                value={editForm.name}
+                onChange={e => setEditForm(f => ({...f, name: e.target.value}))}
+                className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground font-medium block mb-1">Email</label>
+              <input
+                type="email"
+                value={editForm.email}
+                onChange={e => setEditForm(f => ({...f, email: e.target.value}))}
+                className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground font-medium block mb-1">Phone</label>
+              <input
+                type="tel"
+                value={editForm.phone}
+                onChange={e => setEditForm(f => ({...f, phone: e.target.value}))}
+                placeholder="Not provided"
+                className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-muted-foreground font-medium block mb-1">Date of Birth</label>
+              <input
+                type="date"
+                value={editForm.dateOfBirth}
+                onChange={e => setEditForm(f => ({...f, dateOfBirth: e.target.value}))}
+                className="w-full px-3 py-2 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+              />
+            </div>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="w-full py-2 text-sm font-semibold rounded-xl bg-primary text-white hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {saving ? <><span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />Saving…</> : saved ? "✓ Saved!" : "Save Changes"}
+            </button>
+            <div className="text-xs text-muted-foreground mt-1">
+              <p>Member since: {user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—'}</p>
+              <p>Last login: {user.lastSignedIn ? new Date(user.lastSignedIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' } as any) : 'Never'}</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bookings */}
+        <div className="lg:col-span-1">
+          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <span className="w-5 h-5 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 text-xs">✈</span>
+            Bookings ({userBookings.length})
+          </h4>
+          {userBookings.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic">No bookings found for this account.</p>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {userBookings.map((b: any) => (
+                <div key={b.id} className="bg-white rounded-xl border border-border p-3">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <span className="font-mono text-xs font-bold text-primary">{b.bookingReference}</span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                      b.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
+                      b.status === 'completed' ? 'bg-emerald-100 text-emerald-700' :
+                      b.status === 'cancelled' ? 'bg-slate-100 text-slate-500' :
+                      'bg-yellow-100 text-yellow-700'
+                    }`}>{b.status}</span>
+                  </div>
+                  <p className="text-xs text-foreground font-medium truncate">{b.destination || '—'}</p>
+                  <p className="text-xs text-muted-foreground">{b.departureDate || '—'}</p>
+                  {b.totalPrice && (
+                    <p className="text-xs font-semibold text-foreground mt-1">
+                      £{parseFloat(b.totalPrice).toLocaleString('en-GB', { minimumFractionDigits: 2 })}
+                      {b.amountPaid && parseFloat(b.amountPaid) > 0 && (
+                        <span className="text-muted-foreground font-normal"> · £{parseFloat(b.amountPaid).toLocaleString('en-GB', { minimumFractionDigits: 2 })} paid</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Passport Info */}
+        <div className="lg:col-span-1">
+          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+            <span className="w-5 h-5 bg-amber-50 rounded-lg flex items-center justify-center text-amber-600 text-xs">🛂</span>
+            Passport Information
+          </h4>
+          {passportBookings.length === 0 ? (
+            <p className="text-xs text-muted-foreground italic">No passport data on file.</p>
+          ) : (
+            <div className="space-y-2">
+              {passportBookings.map((b: any) => {
+                const expiry = b.passportExpiry ? new Date(b.passportExpiry) : null;
+                const daysToExpiry = expiry ? Math.ceil((expiry.getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : null;
+                const isExpiring = daysToExpiry !== null && daysToExpiry < 180;
+                return (
+                  <div key={b.id} className={`bg-white rounded-xl border p-3 ${isExpiring ? "border-amber-200" : "border-border"}`}>
+                    <p className="text-xs text-muted-foreground mb-1 font-mono">{b.bookingReference}</p>
+                    {b.passportNumber && <p className="text-xs"><span className="text-muted-foreground">Number: </span><span className="font-mono font-bold">{b.passportNumber}</span></p>}
+                    {b.passportExpiry && (
+                      <p className={`text-xs font-medium mt-0.5 ${isExpiring ? "text-amber-600" : "text-foreground"}`}>
+                        Expires: {b.passportExpiry} {isExpiring && daysToExpiry !== null && `(${daysToExpiry < 0 ? "EXPIRED" : `${daysToExpiry}d`})`}
+                      </p>
+                    )}
+                    {b.passportIssuingCountry && <p className="text-xs text-muted-foreground">Issued: {b.passportIssuingCountry}</p>}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDashboard() {
   const utils = trpc.useUtils();
   const { data: bookings, isLoading: bookingsLoading } = trpc.bookings.getAllAdmin.useQuery();
@@ -2814,6 +2986,7 @@ export default function AdminDashboard() {
   const setSettingMut = trpc.settings.set.useMutation();
   const updateIntakeStatus = trpc.intake.updateStatus.useMutation({ onSuccess: () => { toast.success("Status updated!"); utils.intake.list.invalidate(); }, onError: (e) => toast.error(e.message) });
   const [activeTab, setActiveTab] = useState('command');
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
   const [selectedIntake, setSelectedIntake] = useState<any>(null);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [intakeAdminNotes, setIntakeAdminNotes] = useState("");
@@ -2841,7 +3014,7 @@ export default function AdminDashboard() {
   const openSupportCount = allTickets?.filter((t:any)=>t.status==="open").length || 0;
   const currentNavLabel = [
     { value: 'bookings', label: 'Bookings' }, { value: 'deals', label: 'Deals' },
-    { value: 'quotes', label: 'Quotes' }, { value: 'intake', label: 'Intake' },
+    { value: 'quotes', label: 'Quote Requests' }, { value: 'quotes-manager', label: 'Quotes Manager' }, { value: 'intake', label: 'Intake' },
     { value: 'accounts', label: 'Accounts' }, { value: 'client-notes', label: 'CRM Notes' },
     { value: 'support', label: 'Support Tickets' }, { value: 'emails', label: 'Email Builder' },
     { value: 'campaigns', label: 'Campaigns' }, { value: 'subscribers', label: 'Subscribers' },
@@ -2866,7 +3039,8 @@ export default function AdminDashboard() {
       items: [
         { value: 'bookings', label: 'Bookings', icon: Plane },
         { value: 'deals', label: 'Deals', icon: Tag },
-        { value: 'quotes', label: 'Quotes', icon: FileText },
+        { value: 'quotes', label: 'Quote Requests', icon: FileText },
+        { value: 'quotes-manager', label: 'Quotes Manager', icon: Send },
         { value: 'intake', label: 'Intake', icon: ClipboardList, badge: newIntakeCount || null },
       ]
     },
@@ -3131,33 +3305,75 @@ export default function AdminDashboard() {
             ) : <div className="bg-white rounded-2xl border border-border p-12 text-center"><FileText size={40} className="mx-auto text-muted-foreground/30 mb-3" /><p className="text-muted-foreground">No quote requests yet.</p></div>}
           </TabsContent>
 
+          {/* QUOTES MANAGER */}
+          <TabsContent value="quotes-manager">
+            <AdminQuotesManager />
+          </TabsContent>
+
           {/* ACCOUNTS */}
           <TabsContent value="accounts">
-            <div className="flex items-center justify-between mb-5"><h2 className="font-serif text-xl font-semibold">User Accounts</h2><CreateUserModal onSuccess={() => utils.admin.users.invalidate()} /></div>
-            {usersLoading ? <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-16 animate-pulse border border-border" />)}</div> : allUsers && allUsers.length > 0 ? (
-              <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
-                <div className="divide-y divide-border">{allUsers.map((u: any) => (
-                  <div key={u.id} className={`flex items-center justify-between px-5 py-4 ${u.isDisabled ? "bg-gray-50 opacity-70" : ""}`}>
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 ${u.role === "admin" ? "bg-primary" : "bg-slate-400"}`}>{(u.name || u.email || "?").charAt(0).toUpperCase()}</div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap"><p className="text-sm font-semibold text-foreground truncate">{u.name || "—"}</p>{u.role === "admin" && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Admin</span>}{u.isDisabled && <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-medium">Disabled</span>}</div>
-                        <p className="text-xs text-muted-foreground truncate">{u.email}{u.phone ? ` · ${u.phone}` : ''}</p>
-                        {u.dateOfBirth && <p className="text-xs text-muted-foreground">🎂 {new Date(u.dateOfBirth).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</p>}
-                        <p className="text-xs text-muted-foreground">{u.lastSignedIn ? `Last login: ${new Date(u.lastSignedIn).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : 'Never logged in'}</p>
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-serif text-xl font-semibold">User Accounts</h2>
+              <CreateUserModal onSuccess={() => utils.admin.users.invalidate()} />
+            </div>
+            {usersLoading ? (
+              <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-16 animate-pulse border border-border" />)}</div>
+            ) : allUsers && allUsers.length > 0 ? (
+              <div className="space-y-2">
+                {allUsers.map((u: any) => {
+                  const isExpanded = expandedUserId === u.id;
+                  const userBookings = (bookings || []).filter((b: any) =>
+                    b.clientId === u.id ||
+                    (b.leadPassengerEmail && b.leadPassengerEmail.toLowerCase() === (u.email || '').toLowerCase())
+                  );
+                  return (
+                    <div key={u.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all ${u.isDisabled ? "opacity-60" : "border-border"}`}>
+                      {/* Row header */}
+                      <div className="flex items-center justify-between px-5 py-4">
+                        <button
+                          className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                          onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
+                        >
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 ${u.role === "admin" ? "bg-primary" : "bg-slate-400"}`}>
+                            {(u.name || u.email || "?").charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-semibold text-foreground truncate">{u.name || "—"}</p>
+                              {u.role === "admin" && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Admin</span>}
+                              {u.isDisabled && <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-medium">Disabled</span>}
+                              {userBookings.length > 0 && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{userBookings.length} booking{userBookings.length !== 1 ? "s" : ""}</span>}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">{u.email}{u.phone ? ` · ${u.phone}` : ""}</p>
+                          </div>
+                          <span className="ml-2 text-muted-foreground shrink-0 text-xs">{isExpanded ? "▲" : "▼"}</span>
+                        </button>
+                        <div className="flex items-center gap-1 flex-shrink-0 ml-3" onClick={e => e.stopPropagation()}>
+                          <ChangePasswordModal user={u} onSuccess={() => utils.admin.users.invalidate()} />
+                          <SendSetPasswordLinkModal user={u} onSuccess={() => utils.admin.users.invalidate()} />
+                          <SendEmailModal recipient={u} />
+                          <Button variant="ghost" size="sm" className={`rounded-lg gap-1 text-xs ${u.isDisabled ? "text-green-600 hover:bg-green-50" : "text-orange-600 hover:bg-orange-50"}`} onClick={() => disableUser.mutate({ id: u.id, disabled: !u.isDisabled })}>{u.isDisabled ? <><UserCheck size={13} /> Enable</> : <><UserX size={13} /> Disable</>}</Button>
+                          <Button variant="ghost" size="sm" className="rounded-lg gap-1 text-xs text-destructive hover:bg-destructive/5" onClick={() => { if (confirm(`Delete account for ${u.name || u.email}? This cannot be undone.`)) deleteUser.mutate(u.id); }}><Trash2 size={13} /> Delete</Button>
+                        </div>
                       </div>
+                      {/* Expanded profile panel */}
+                      {isExpanded && (
+                        <ClientProfilePanel
+                          user={u}
+                          userBookings={userBookings}
+                          onUpdate={() => utils.admin.users.invalidate()}
+                        />
+                      )}
                     </div>
-                    <div className="flex items-center gap-1 flex-shrink-0 ml-3">
-                      <ChangePasswordModal user={u} onSuccess={() => utils.admin.users.invalidate()} />
-                      <SendSetPasswordLinkModal user={u} onSuccess={() => utils.admin.users.invalidate()} />
-                      <SendEmailModal recipient={u} />
-                      <Button variant="ghost" size="sm" className={`rounded-lg gap-1 text-xs ${u.isDisabled ? "text-green-600 hover:bg-green-50" : "text-orange-600 hover:bg-orange-50"}`} onClick={() => disableUser.mutate({ id: u.id, disabled: !u.isDisabled })}>{u.isDisabled ? <><UserCheck size={13} /> Enable</> : <><UserX size={13} /> Disable</>}</Button>
-                      <Button variant="ghost" size="sm" className="rounded-lg gap-1 text-xs text-destructive hover:bg-destructive/5" onClick={() => { if (confirm(`Delete account for ${u.name || u.email}? This cannot be undone.`)) deleteUser.mutate(u.id); }}><Trash2 size={13} /> Delete</Button>
-                    </div>
-                  </div>
-                ))}</div>
+                  );
+                })}
               </div>
-            ) : <div className="bg-white rounded-2xl border border-border p-12 text-center"><Users size={40} className="mx-auto text-muted-foreground/30 mb-3" /><p className="text-muted-foreground">No accounts yet.</p></div>}
+            ) : (
+              <div className="bg-white rounded-2xl border border-border p-12 text-center">
+                <Users size={40} className="mx-auto text-muted-foreground/30 mb-3" />
+                <p className="text-muted-foreground">No accounts yet.</p>
+              </div>
+            )}
           </TabsContent>
 
           {/* EMAILS */}

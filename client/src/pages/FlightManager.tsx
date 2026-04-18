@@ -942,7 +942,6 @@ export default function FlightManager() {
     countdownRef.current = setInterval(() => {
       setRefreshCountdown((prev) => {
         if (prev <= 1) {
-          handleRefreshAll();
           return REFRESH_INTERVAL;
         }
         return prev - 1;
@@ -1067,7 +1066,7 @@ export default function FlightManager() {
               Live Flight Intelligence
             </h1>
             <p style={{ margin: 0, color: "#64748b", fontSize: 15, letterSpacing: 0.3 }}>
-              Real-time tracking for your clients' journeys
+              Live flight tracking for your clients
             </p>
           </div>
 
@@ -1190,7 +1189,7 @@ export default function FlightManager() {
             </div>
             <div style={{ fontSize: 14, color: "#334155", lineHeight: 1.7 }}>
               Search for a flight number above to get live gate info,<br />
-              delays, terminal assignments and real-time status.
+              delays, terminal assignments and live status.
             </div>
             <div style={{ marginTop: 24, fontSize: 12, color: "#1e3a5f" }}>
               Try: <span style={{ color: GOLD, fontFamily: "monospace" }}>BA2490</span> · <span style={{ color: GOLD, fontFamily: "monospace" }}>VS401</span> · <span style={{ color: GOLD, fontFamily: "monospace" }}>EZY8432</span>

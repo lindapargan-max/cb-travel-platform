@@ -1007,6 +1007,62 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
         }
         return { success: true };
       }),
+    sendPaymentReminder: adminMiddleware
+      .input(z.object({
+        bookingId: z.number(),
+        previewOnly: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { getAllBookings } = await import("./db");
+        const allBookings = await getAllBookings();
+        const booking = allBookings.find((b: any) => b.id === input.bookingId);
+        if (!booking) throw new Error("Booking not found");
+
+        const to = booking.leadPassengerEmail || "";
+        const clientName = booking.leadPassengerName || "Valued Client";
+        const bookingRef = booking.bookingReference || String(booking.id);
+        const destination = booking.destination || "your booking";
+        const totalPrice = booking.totalPrice ? `£${parseFloat(booking.totalPrice).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null;
+        const amountPaid = booking.amountPaid ? `£${parseFloat(booking.amountPaid).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null;
+        const outstanding = (booking.totalPrice && booking.amountPaid)
+          ? `£${(parseFloat(booking.totalPrice) - parseFloat(booking.amountPaid)).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+          : null;
+
+        if (input.previewOnly) {
+          return {
+            preview: {
+              to,
+              subject: `Payment Reminder — ${destination} | CB Travel`,
+              clientName,
+              bookingRef,
+              destination,
+              totalPrice,
+              amountPaid,
+              outstanding,
+            }
+          };
+        }
+
+        if (!to) throw new Error("No email address for this booking");
+
+        const { sendPaymentReminderEmail } = await import("./emails");
+        const result = await sendPaymentReminderEmail(to, clientName, bookingRef, destination, totalPrice, amountPaid, outstanding);
+        return { success: result.success, error: result.error };
+      }),
+    updateUserProfile: adminMiddleware
+      .input(z.object({
+        id: z.number(),
+        name: z.string().optional(),
+        email: z.string().email().optional(),
+        phone: z.string().nullable().optional(),
+        dateOfBirth: z.string().nullable().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { updateUserAdmin } = await import("./db");
+        const { id, ...data } = input;
+        await updateUserAdmin(id, data);
+        return { success: true };
+      }),
   }),
 
   emergency: router({
@@ -2106,6 +2162,286 @@ ${faqContext}`;
   }),
 
   activities: activitiesRouter,
+
+  adminQuotes: router({
+    // ─── Admin: list all quotes ───────────────────────────────────────────
+    list: adminMiddleware.query(async () => {
+      const { getAllAdminQuotes } = await import("./db");
+      return getAllAdminQuotes();
+    }),
+
+    // ─── Admin: get single quote ─────────────────────────────────────────
+    getById: adminMiddleware
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const { getAdminQuoteById } = await import("./db");
+        return getAdminQuoteById(input.id);
+      }),
+
+    // ─── Admin: create quote (draft) ─────────────────────────────────────
+    create: adminMiddleware
+      .input(z.object({
+        clientName: z.string().min(1),
+        clientEmail: z.string().email(),
+        clientPhone: z.string().optional().nullable(),
+        userId: z.number().optional().nullable(),
+        destination: z.string().optional().nullable(),
+        departureDate: z.string().optional().nullable(),
+        returnDate: z.string().optional().nullable(),
+        numberOfTravelers: z.number().optional().nullable(),
+        hotels: z.string().optional().nullable(),
+        flightDetails: z.string().optional().nullable(),
+        keyInclusions: z.string().optional().nullable(),
+        totalPrice: z.string().optional().nullable(),
+        pricePerPerson: z.string().optional().nullable(),
+        priceBreakdown: z.string().optional().nullable(),
+        notes: z.string().optional().nullable(),
+        documentUrl: z.string().optional().nullable(),
+        documentKey: z.string().optional().nullable(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const { createAdminQuote } = await import("./db");
+        const result = await createAdminQuote({
+          ...input,
+          createdBy: (ctx.user as any).id,
+        });
+        return result;
+      }),
+
+    // ─── Admin: update quote ──────────────────────────────────────────────
+    update: adminMiddleware
+      .input(z.object({
+        id: z.number(),
+        clientName: z.string().optional(),
+        clientEmail: z.string().email().optional(),
+        clientPhone: z.string().nullable().optional(),
+        userId: z.number().nullable().optional(),
+        destination: z.string().nullable().optional(),
+        departureDate: z.string().nullable().optional(),
+        returnDate: z.string().nullable().optional(),
+        numberOfTravelers: z.number().nullable().optional(),
+        hotels: z.string().nullable().optional(),
+        flightDetails: z.string().nullable().optional(),
+        keyInclusions: z.string().nullable().optional(),
+        totalPrice: z.string().nullable().optional(),
+        pricePerPerson: z.string().nullable().optional(),
+        priceBreakdown: z.string().nullable().optional(),
+        notes: z.string().nullable().optional(),
+        status: z.enum(["draft","sent","viewed","accepted","expired"]).optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { updateAdminQuote } = await import("./db");
+        const { id, ...rest } = input;
+        await updateAdminQuote(id, rest as any);
+        return { success: true };
+      }),
+
+    // ─── Admin: send quote (email + mark as sent) ─────────────────────────
+    send: adminMiddleware
+      .input(z.object({
+        id: z.number(),
+        previewOnly: z.boolean().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { getAdminQuoteById, updateAdminQuote } = await import("./db");
+        const quote = await getAdminQuoteById(input.id);
+        if (!quote) throw new Error("Quote not found");
+
+        const quoteLink = `${process.env.SITE_URL || "https://www.travelcb.co.uk"}/quote/${quote.quoteRef}`;
+        const firstName = (quote.clientName || "").split(" ")[0] || "Valued Client";
+
+        if (input.previewOnly) {
+          return {
+            preview: {
+              to: quote.clientEmail,
+              subject: `Your Tailored Travel Quote – ${quote.destination || "Your Journey"} | CB Travel`,
+              firstName,
+              destination: quote.destination,
+              totalPrice: quote.totalPrice,
+              quoteRef: quote.quoteRef,
+              quoteLink,
+              departureDate: quote.departureDate,
+              returnDate: quote.returnDate,
+              expiresAt: quote.expiresAt,
+            }
+          };
+        }
+
+        const { sendAdminQuoteEmail } = await import("./emails");
+        const result = await sendAdminQuoteEmail(
+          quote.clientEmail,
+          firstName,
+          quote.destination || "Your Destination",
+          quote.quoteRef,
+          quote.totalPrice ? `£${parseFloat(quote.totalPrice).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
+          quoteLink,
+          quote.departureDate,
+          quote.returnDate,
+          quote.expiresAt,
+        );
+
+        if (result.success) {
+          const sentAt = new Date();
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 30);
+          await updateAdminQuote(input.id, { status: "sent", sentAt, expiresAt });
+        }
+
+        return { success: result.success, error: result.error };
+      }),
+
+    // ─── Admin: resend quote ──────────────────────────────────────────────
+    resend: adminMiddleware
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const { getAdminQuoteById, updateAdminQuote } = await import("./db");
+        const quote = await getAdminQuoteById(input.id);
+        if (!quote) throw new Error("Quote not found");
+
+        const quoteLink = `${process.env.SITE_URL || "https://www.travelcb.co.uk"}/quote/${quote.quoteRef}`;
+        const firstName = (quote.clientName || "").split(" ")[0] || "Valued Client";
+
+        const { sendAdminQuoteEmail } = await import("./emails");
+        const result = await sendAdminQuoteEmail(
+          quote.clientEmail, firstName,
+          quote.destination || "Your Destination",
+          quote.quoteRef,
+          quote.totalPrice ? `£${parseFloat(quote.totalPrice).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : null,
+          quoteLink, quote.departureDate, quote.returnDate, quote.expiresAt,
+        );
+
+        if (result.success) {
+          const sentAt = new Date();
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 30);
+          await updateAdminQuote(input.id, { status: "sent", sentAt, expiresAt });
+        }
+
+        return { success: result.success, error: result.error };
+      }),
+
+    // ─── Admin: duplicate quote ───────────────────────────────────────────
+    duplicate: adminMiddleware
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const { getAdminQuoteById, createAdminQuote } = await import("./db");
+        const quote = await getAdminQuoteById(input.id);
+        if (!quote) throw new Error("Quote not found");
+        return createAdminQuote({
+          clientName: quote.clientName,
+          clientEmail: quote.clientEmail,
+          clientPhone: quote.clientPhone,
+          userId: quote.userId,
+          destination: quote.destination,
+          departureDate: quote.departureDate,
+          returnDate: quote.returnDate,
+          numberOfTravelers: quote.numberOfTravelers,
+          hotels: quote.hotels,
+          flightDetails: quote.flightDetails,
+          keyInclusions: quote.keyInclusions,
+          totalPrice: quote.totalPrice,
+          pricePerPerson: quote.pricePerPerson,
+          priceBreakdown: quote.priceBreakdown,
+          notes: quote.notes,
+          createdBy: (ctx.user as any).id,
+        });
+      }),
+
+    // ─── Admin: delete quote ──────────────────────────────────────────────
+    delete: adminMiddleware
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const { deleteAdminQuote } = await import("./db");
+        await deleteAdminQuote(input.id);
+        return { success: true };
+      }),
+
+    // ─── Public: get quote by reference (for portal page) ─────────────────
+    getByRef: publicProcedure
+      .input(z.object({ ref: z.string() }))
+      .query(async ({ input }) => {
+        const { getAdminQuoteByRef } = await import("./db");
+        const quote = await getAdminQuoteByRef(input.ref);
+        if (!quote) return null;
+        // Return limited data for public access (no internal notes etc)
+        return {
+          id: quote.id,
+          quoteRef: quote.quoteRef,
+          clientName: quote.clientName,
+          clientEmail: quote.clientEmail,
+          destination: quote.destination,
+          departureDate: quote.departureDate,
+          returnDate: quote.returnDate,
+          numberOfTravelers: quote.numberOfTravelers,
+          hotels: quote.hotels,
+          flightDetails: quote.flightDetails,
+          keyInclusions: quote.keyInclusions,
+          totalPrice: quote.totalPrice,
+          pricePerPerson: quote.pricePerPerson,
+          priceBreakdown: quote.priceBreakdown,
+          status: quote.status,
+          viewCount: quote.viewCount,
+          lastViewedAt: quote.lastViewedAt,
+          sentAt: quote.sentAt,
+          acceptedAt: quote.acceptedAt,
+          expiresAt: quote.expiresAt,
+          createdAt: quote.createdAt,
+        };
+      }),
+
+    // ─── Public: track quote view ──────────────────────────────────────────
+    trackView: publicProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const { incrementAdminQuoteView } = await import("./db");
+        await incrementAdminQuoteView(input.id);
+        return { success: true };
+      }),
+
+    // ─── Protected: accept quote ──────────────────────────────────────────
+    accept: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const { getAdminQuoteById, updateAdminQuote } = await import("./db");
+        const quote = await getAdminQuoteById(input.id);
+        if (!quote) throw new Error("Quote not found");
+        if (quote.status === "expired") throw new Error("This quote has expired");
+        if (quote.status === "accepted") return { success: true };
+        await updateAdminQuote(input.id, { status: "accepted", acceptedAt: new Date() });
+        return { success: true };
+      }),
+
+    // ─── Protected: get my quotes (client dashboard) ──────────────────────
+    myAdminQuotes: protectedProcedure.query(async ({ ctx }) => {
+      const { getAdminQuotesByEmail, getAdminQuotesByUserId } = await import("./db");
+      const user = ctx.user as any;
+      // Get by userId first, then also by email (in case userId wasn't linked at send time)
+      const byUserId = user.id ? await getAdminQuotesByUserId(user.id) : [];
+      const byEmail = user.email ? await getAdminQuotesByEmail(user.email) : [];
+      // Merge, deduplicate by id
+      const seen = new Set<number>();
+      const all = [...byUserId, ...byEmail].filter(q => {
+        if (seen.has(q.id)) return false;
+        seen.add(q.id);
+        return true;
+      });
+      // Sort by createdAt desc
+      return all.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }),
+
+    // ─── Admin: get stats for command centre ─────────────────────────────
+    stats: adminMiddleware.query(async () => {
+      const { getAllAdminQuotes } = await import("./db");
+      const all = await getAllAdminQuotes();
+      const sent = all.filter((q: any) => q.status === "sent").length;
+      const viewed = all.filter((q: any) => q.status === "viewed").length;
+      const accepted = all.filter((q: any) => q.status === "accepted").length;
+      const total = all.length;
+      const conversionRate = total > 0 ? Math.round((accepted / total) * 100) : 0;
+      const awaitingResponse = all.filter((q: any) => ["sent","viewed"].includes(q.status)).length;
+      return { total, sent, viewed, accepted, conversionRate, awaitingResponse };
+    }),
+  }),
 
   // ─── App Settings ─────────────────────────────────────────────────────────
   gdpr: gdprRouter,

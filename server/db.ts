@@ -28,6 +28,9 @@ import {
   InsertBookingPhoto,
   loyaltyRules,
   bookedDestinations,
+  adminQuotes,
+  AdminQuote,
+  InsertAdminQuote,
 } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 import crypto from "crypto";
@@ -158,6 +161,25 @@ export async function deleteUser(id: number) {
   if (!db) throw new Error("Database not available");
   await db.delete(users).where(eq(users.id, id));
   return { success: true };
+}
+
+export async function updateUserAdmin(id: number, data: {
+  name?: string;
+  email?: string;
+  phone?: string | null;
+  dateOfBirth?: string | null;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updates: Record<string, any> = {};
+  if (data.name !== undefined) updates.name = data.name;
+  if (data.email !== undefined) updates.email = data.email;
+  if (data.phone !== undefined) updates.phone = data.phone;
+  if (data.dateOfBirth !== undefined) {
+    updates.dateOfBirth = data.dateOfBirth ? new Date(data.dateOfBirth) : null;
+  }
+  if (Object.keys(updates).length === 0) return;
+  await db.update(users).set(updates).where(eq(users.id, id));
 }
 
 export async function changeUserPassword(id: number, newPassword: string) {
@@ -1887,4 +1909,216 @@ export async function updateBookingPassport(id: number, data: {
   if (data.passportIssuingCountry !== undefined) updates.passportIssuingCountry = data.passportIssuingCountry;
   if (Object.keys(updates).length === 0) return;
   await db.update(bookings).set(updates).where(eq(bookings.id, id));
+}
+
+// ─── Admin Quotes (Quotes Portal) ─────────────────────────────────────────────
+
+export async function ensureAdminQuotesTable(): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    // Use raw SQL to ensure the table exists - handles cold-start with new schema
+    const conn = (db as any).session?.client || (db as any)._client;
+    if (conn) {
+      await conn.execute(`
+        CREATE TABLE IF NOT EXISTS adminQuotes (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          quoteRef VARCHAR(50) UNIQUE NOT NULL,
+          clientName VARCHAR(255) NOT NULL,
+          clientEmail VARCHAR(320) NOT NULL,
+          clientPhone VARCHAR(30),
+          userId INT,
+          destination VARCHAR(255),
+          departureDate VARCHAR(50),
+          returnDate VARCHAR(50),
+          numberOfTravelers INT,
+          hotels TEXT,
+          flightDetails TEXT,
+          keyInclusions TEXT,
+          totalPrice DECIMAL(10,2),
+          pricePerPerson DECIMAL(10,2),
+          priceBreakdown TEXT,
+          notes TEXT,
+          documentUrl TEXT,
+          documentKey TEXT,
+          status ENUM('draft','sent','viewed','accepted','expired') DEFAULT 'draft' NOT NULL,
+          viewCount INT DEFAULT 0 NOT NULL,
+          lastViewedAt TIMESTAMP NULL,
+          sentAt TIMESTAMP NULL,
+          acceptedAt TIMESTAMP NULL,
+          expiresAt TIMESTAMP NULL,
+          createdBy INT,
+          createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+          updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL
+        )
+      `);
+    }
+  } catch (_e) {
+    // Ignore - table may already exist or raw access not available
+  }
+}
+
+function generateQuoteRef(): string {
+  const year = new Date().getFullYear();
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `CBQ-${year}-${rand}`;
+}
+
+export async function createAdminQuote(data: {
+  clientName: string;
+  clientEmail: string;
+  clientPhone?: string | null;
+  userId?: number | null;
+  destination?: string | null;
+  departureDate?: string | null;
+  returnDate?: string | null;
+  numberOfTravelers?: number | null;
+  hotels?: string | null;
+  flightDetails?: string | null;
+  keyInclusions?: string | null;
+  totalPrice?: string | null;
+  pricePerPerson?: string | null;
+  priceBreakdown?: string | null;
+  notes?: string | null;
+  documentUrl?: string | null;
+  documentKey?: string | null;
+  createdBy?: number | null;
+}): Promise<{ id: number; quoteRef: string }> {
+  await ensureAdminQuotesTable();
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  let quoteRef = generateQuoteRef();
+  // Ensure uniqueness
+  for (let i = 0; i < 5; i++) {
+    const existing = await db.select({ id: adminQuotes.id }).from(adminQuotes).where(eq(adminQuotes.quoteRef, quoteRef)).limit(1);
+    if (existing.length === 0) break;
+    quoteRef = generateQuoteRef();
+  }
+
+  // Set expiry 30 days from now
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 30);
+
+  await db.insert(adminQuotes).values({
+    quoteRef,
+    clientName: data.clientName,
+    clientEmail: data.clientEmail,
+    clientPhone: data.clientPhone ?? null,
+    userId: data.userId ?? null,
+    destination: data.destination ?? null,
+    departureDate: data.departureDate ?? null,
+    returnDate: data.returnDate ?? null,
+    numberOfTravelers: data.numberOfTravelers ?? null,
+    hotels: data.hotels ?? null,
+    flightDetails: data.flightDetails ?? null,
+    keyInclusions: data.keyInclusions ?? null,
+    totalPrice: data.totalPrice ?? null,
+    pricePerPerson: data.pricePerPerson ?? null,
+    priceBreakdown: data.priceBreakdown ?? null,
+    notes: data.notes ?? null,
+    documentUrl: data.documentUrl ?? null,
+    documentKey: data.documentKey ?? null,
+    status: "draft",
+    expiresAt,
+    createdBy: data.createdBy ?? null,
+  });
+
+  const created = await db.select({ id: adminQuotes.id, quoteRef: adminQuotes.quoteRef })
+    .from(adminQuotes)
+    .where(eq(adminQuotes.quoteRef, quoteRef))
+    .limit(1);
+  
+  return created[0] || { id: 0, quoteRef };
+}
+
+export async function updateAdminQuote(id: number, data: Partial<{
+  clientName: string;
+  clientEmail: string;
+  clientPhone: string | null;
+  userId: number | null;
+  destination: string | null;
+  departureDate: string | null;
+  returnDate: string | null;
+  numberOfTravelers: number | null;
+  hotels: string | null;
+  flightDetails: string | null;
+  keyInclusions: string | null;
+  totalPrice: string | null;
+  pricePerPerson: string | null;
+  priceBreakdown: string | null;
+  notes: string | null;
+  documentUrl: string | null;
+  documentKey: string | null;
+  status: "draft" | "sent" | "viewed" | "accepted" | "expired";
+  sentAt: Date | null;
+  acceptedAt: Date | null;
+  expiresAt: Date | null;
+}>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const updates: Record<string, any> = {};
+  for (const [k, v] of Object.entries(data)) {
+    if (v !== undefined) updates[k] = v;
+  }
+  if (Object.keys(updates).length === 0) return;
+  await db.update(adminQuotes).set(updates).where(eq(adminQuotes.id, id));
+}
+
+export async function getAllAdminQuotes(): Promise<any[]> {
+  await ensureAdminQuotesTable();
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(adminQuotes).orderBy(desc(adminQuotes.createdAt));
+}
+
+export async function getAdminQuoteById(id: number): Promise<any | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(adminQuotes).where(eq(adminQuotes.id, id)).limit(1);
+  return rows[0] || null;
+}
+
+export async function getAdminQuoteByRef(quoteRef: string): Promise<any | null> {
+  await ensureAdminQuotesTable();
+  const db = await getDb();
+  if (!db) return null;
+  const rows = await db.select().from(adminQuotes).where(eq(adminQuotes.quoteRef, quoteRef)).limit(1);
+  return rows[0] || null;
+}
+
+export async function getAdminQuotesByUserId(userId: number): Promise<any[]> {
+  await ensureAdminQuotesTable();
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(adminQuotes)
+    .where(eq(adminQuotes.userId, userId))
+    .orderBy(desc(adminQuotes.createdAt));
+}
+
+export async function getAdminQuotesByEmail(email: string): Promise<any[]> {
+  await ensureAdminQuotesTable();
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(adminQuotes)
+    .where(eq(adminQuotes.clientEmail, email))
+    .orderBy(desc(adminQuotes.createdAt));
+}
+
+export async function incrementAdminQuoteView(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(adminQuotes)
+    .set({ 
+      viewCount: sql`viewCount + 1`,
+      lastViewedAt: new Date(),
+      status: sql`CASE WHEN status = 'sent' THEN 'viewed' ELSE status END`,
+    })
+    .where(eq(adminQuotes.id, id));
+}
+
+export async function deleteAdminQuote(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.delete(adminQuotes).where(eq(adminQuotes.id, id));
 }

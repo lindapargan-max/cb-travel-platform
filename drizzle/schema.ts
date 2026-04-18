@@ -597,3 +597,39 @@ export const deletionLogs = mysqlTable("deletionLogs", {
 });
 
 export type DeletionLog = typeof deletionLogs.$inferSelect;
+
+// ─── V11: Admin-Created Quotes (Quotes Portal) ────────────────────────────────
+
+export const adminQuotes = mysqlTable("adminQuotes", {
+  id: int("id").autoincrement().primaryKey(),
+  quoteRef: varchar("quoteRef", { length: 50 }).unique().notNull(),
+  clientName: varchar("clientName", { length: 255 }).notNull(),
+  clientEmail: varchar("clientEmail", { length: 320 }).notNull(),
+  clientPhone: varchar("clientPhone", { length: 30 }),
+  userId: int("userId"), // nullable - linked if client has an account
+  destination: varchar("destination", { length: 255 }),
+  departureDate: varchar("departureDate", { length: 50 }),
+  returnDate: varchar("returnDate", { length: 50 }),
+  numberOfTravelers: int("numberOfTravelers"),
+  hotels: text("hotels"), // JSON string: [{name, destination, checkIn, checkOut, roomType, confirmationNumber}]
+  flightDetails: text("flightDetails"), // JSON string: [{airline, flightNumber, departure, arrival, departureTime, arrivalTime, type}]
+  keyInclusions: text("keyInclusions"), // Comma-separated or free text
+  totalPrice: decimal("totalPrice", { precision: 10, scale: 2 }),
+  pricePerPerson: decimal("pricePerPerson", { precision: 10, scale: 2 }),
+  priceBreakdown: text("priceBreakdown"), // JSON string: [{label, amount}]
+  notes: text("notes"), // Internal admin notes
+  documentUrl: text("documentUrl"), // Uploaded PDF URL
+  documentKey: text("documentKey"),
+  status: mysqlEnum("status", ["draft", "sent", "viewed", "accepted", "expired"]).default("draft").notNull(),
+  viewCount: int("viewCount").default(0).notNull(),
+  lastViewedAt: timestamp("lastViewedAt"),
+  sentAt: timestamp("sentAt"),
+  acceptedAt: timestamp("acceptedAt"),
+  expiresAt: timestamp("expiresAt"),
+  createdBy: int("createdBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type AdminQuote = typeof adminQuotes.$inferSelect;
+export type InsertAdminQuote = typeof adminQuotes.$inferInsert;

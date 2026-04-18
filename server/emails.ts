@@ -1067,3 +1067,178 @@ export async function sendPassportReminderEmail(
   `);
   return send(to, subject, html, 'passport_reminder', undefined, bookingId);
 }
+
+// ─── Admin Quote Email (Luxury Travel Version) ────────────────────────────────
+
+export async function sendAdminQuoteEmail(
+  to: string,
+  firstName: string,
+  destination: string,
+  quoteRef: string,
+  totalPrice: string | null,
+  quoteLink: string,
+  departureDate?: string | null,
+  returnDate?: string | null,
+  expiresAt?: Date | null,
+): Promise<{ success: boolean; error?: string }> {
+  const daysUntilExpiry = expiresAt
+    ? Math.max(0, Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 30;
+
+  const departureLine = departureDate
+    ? `<tr><td style="padding:6px 0;color:#64748b;font-size:14px;">Departure</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#1e293b;">${departureDate}</td></tr>`
+    : "";
+  const returnLine = returnDate
+    ? `<tr><td style="padding:6px 0;color:#64748b;font-size:14px;">Return</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#1e293b;">${returnDate}</td></tr>`
+    : "";
+  const priceLine = totalPrice
+    ? `<tr><td style="padding:6px 0;color:#64748b;font-size:14px;">Total Investment</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1e40af;">${totalPrice}</td></tr>`
+    : "";
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Your Tailored Travel Quote | CB Travel</title></head>
+<body style="margin:0;padding:0;background-color:#f8fafc;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+        <!-- Header -->
+        <tr><td style="background:linear-gradient(135deg,#1e3a5f 0%,#0f2a4a 100%);border-radius:16px 16px 0 0;padding:40px 40px 32px;text-align:center;">
+          <p style="margin:0 0 8px;color:#d4af37;font-size:12px;letter-spacing:3px;text-transform:uppercase;font-weight:600;">CB Travel · Luxury Concierge</p>
+          <h1 style="margin:0 0 8px;color:#ffffff;font-size:28px;font-weight:300;letter-spacing:1px;">Your Tailored Quote</h1>
+          <p style="margin:0;color:#93c5fd;font-size:18px;font-weight:600;">${destination}</p>
+        </td></tr>
+
+        <!-- Gold divider -->
+        <tr><td style="background:#1e3a5f;padding:0 40px;">
+          <div style="height:2px;background:linear-gradient(90deg,transparent,#d4af37,transparent);"></div>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="background:#ffffff;padding:40px;">
+          <p style="margin:0 0 24px;font-size:16px;color:#334155;line-height:1.7;">Dear ${firstName},</p>
+          <p style="margin:0 0 24px;font-size:15px;color:#475569;line-height:1.8;">Thank you for allowing us to design your upcoming journey. We are delighted to present your personalised travel quotation, carefully tailored to your requirements.</p>
+
+          <!-- Quote summary box -->
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin:0 0 28px;">
+            <p style="margin:0 0 16px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#94a3b8;font-weight:600;">Quote Summary</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:6px 0;color:#64748b;font-size:14px;">Reference</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1e3a5f;font-family:monospace;">${quoteRef}</td></tr>
+              ${departureLine}
+              ${returnLine}
+              ${priceLine}
+              <tr><td style="padding:6px 0;color:#64748b;font-size:14px;">Valid For</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#1e293b;">${daysUntilExpiry} days</td></tr>
+            </table>
+          </div>
+
+          <!-- CTA -->
+          <p style="margin:0 0 16px;font-size:15px;color:#475569;line-height:1.8;">You can view your full quotation at any time via your private client portal:</p>
+          <div style="text-align:center;margin:28px 0;">
+            <a href="${quoteLink}" style="display:inline-block;background:linear-gradient(135deg,#1e3a5f,#2d5a8a);color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:16px 36px;border-radius:50px;letter-spacing:0.5px;">View Your Quote →</a>
+          </div>
+
+          <!-- Features list -->
+          <div style="background:#fafaf7;border-left:3px solid #d4af37;border-radius:0 8px 8px 0;padding:20px 24px;margin:0 0 28px;">
+            <p style="margin:0 0 12px;font-size:13px;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:1px;">Within your portal, you'll be able to:</p>
+            <ul style="margin:0;padding:0 0 0 16px;color:#475569;font-size:14px;line-height:2;">
+              <li>Review your full itinerary and pricing</li>
+              <li>Accept your quote instantly</li>
+              <li>Begin your booking process seamlessly</li>
+            </ul>
+          </div>
+
+          <!-- Important info -->
+          <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:16px 20px;margin:0 0 28px;">
+            <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#c2410c;text-transform:uppercase;letter-spacing:1px;">⚠️ Important Information</p>
+            <ul style="margin:0;padding:0 0 0 16px;color:#7c2d12;font-size:13px;line-height:1.9;">
+              <li>Your quotation is valid for <strong>${daysUntilExpiry} days</strong></li>
+              <li>Pricing is <strong>live and subject to change</strong> until your booking is confirmed</li>
+              <li>No arrangements are secured until your booking is confirmed with us</li>
+            </ul>
+          </div>
+
+          <p style="margin:0 0 24px;font-size:15px;color:#475569;line-height:1.8;">If you have any questions or would like us to refine any part of your trip, we would be delighted to assist.</p>
+          <p style="margin:0 0 8px;font-size:15px;color:#475569;">We look forward to creating something unforgettable for you.</p>
+          <p style="margin:0;font-size:14px;color:#64748b;font-style:italic;">Warm regards,<br/><strong style="color:#1e3a5f;font-style:normal;">CB Travel Concierge Team</strong></p>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background:#1e3a5f;border-radius:0 0 16px 16px;padding:24px 40px;text-align:center;">
+          <p style="margin:0 0 8px;color:#93c5fd;font-size:13px;">📞 07495 823953 &nbsp;·&nbsp; 🌐 <a href="https://www.travelcb.co.uk" style="color:#d4af37;text-decoration:none;">www.travelcb.co.uk</a></p>
+          <p style="margin:0;color:#475569;font-size:11px;">CB Travel · Luxury Travel Concierge</p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  return send(to, `Your Tailored Travel Quote – ${destination} | CB Travel`, html, 'admin_quote');
+}
+
+// ─── Payment Reminder Email ────────────────────────────────────────────────────
+
+export async function sendPaymentReminderEmail(
+  to: string,
+  clientName: string,
+  bookingRef: string,
+  destination: string,
+  totalPrice: string | null,
+  amountPaid: string | null,
+  outstanding: string | null,
+): Promise<{ success: boolean; error?: string }> {
+  const firstName = clientName.split(" ")[0] || "Valued Client";
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Payment Reminder | CB Travel</title></head>
+<body style="margin:0;padding:0;background:#f8fafc;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:32px 16px;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+
+        <tr><td style="background:linear-gradient(135deg,#1e3a5f,#0f2a4a);border-radius:16px 16px 0 0;padding:36px 40px;text-align:center;">
+          <p style="margin:0 0 8px;color:#d4af37;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:600;">CB Travel · Payment Reminder</p>
+          <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:300;">Balance Due</h1>
+        </td></tr>
+
+        <tr><td style="background:#1e3a5f;padding:0 40px;"><div style="height:2px;background:linear-gradient(90deg,transparent,#d4af37,transparent);"></div></td></tr>
+
+        <tr><td style="background:#ffffff;padding:40px;">
+          <p style="margin:0 0 20px;font-size:16px;color:#334155;line-height:1.7;">Dear ${firstName},</p>
+          <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.8;">We hope you're looking forward to your upcoming trip. This is a friendly reminder that there is a balance outstanding on your booking.</p>
+
+          <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:24px;margin:0 0 24px;">
+            <p style="margin:0 0 16px;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:#94a3b8;font-weight:600;">Booking Summary</p>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr><td style="padding:6px 0;color:#64748b;font-size:14px;">Reference</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#1e3a5f;font-family:monospace;">${bookingRef}</td></tr>
+              <tr><td style="padding:6px 0;color:#64748b;font-size:14px;">Destination</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#1e293b;">${destination}</td></tr>
+              ${totalPrice ? `<tr><td style="padding:6px 0;color:#64748b;font-size:14px;">Total</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#1e293b;">${totalPrice}</td></tr>` : ""}
+              ${amountPaid ? `<tr><td style="padding:6px 0;color:#64748b;font-size:14px;">Paid</td><td style="padding:6px 0;font-size:14px;font-weight:600;color:#16a34a;">${amountPaid}</td></tr>` : ""}
+              ${outstanding ? `<tr><td style="padding:6px 0;color:#64748b;font-size:14px;">Outstanding</td><td style="padding:6px 0;font-size:14px;font-weight:700;color:#dc2626;">${outstanding}</td></tr>` : ""}
+            </table>
+          </div>
+
+          <p style="margin:0 0 20px;font-size:15px;color:#475569;line-height:1.8;">If you'd like to make a payment or have any questions about your balance, please don't hesitate to contact us. We're here to help make your travel experience as seamless as possible.</p>
+
+          <div style="text-align:center;margin:24px 0;">
+            <a href="https://www.travelcb.co.uk/dashboard" style="display:inline-block;background:linear-gradient(135deg,#1e3a5f,#2d5a8a);color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:14px 32px;border-radius:50px;">View My Booking &rarr;</a>
+          </div>
+
+          <p style="margin:0;font-size:14px;color:#64748b;font-style:italic;">Warm regards,<br/><strong style="color:#1e3a5f;font-style:normal;">CB Travel Concierge Team</strong></p>
+        </td></tr>
+
+        <tr><td style="background:#1e3a5f;border-radius:0 0 16px 16px;padding:20px 40px;text-align:center;">
+          <p style="margin:0;color:#93c5fd;font-size:13px;">📞 07495 823953 &nbsp;·&nbsp; 🌐 <a href="https://www.travelcb.co.uk" style="color:#d4af37;text-decoration:none;">www.travelcb.co.uk</a></p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+  return send(to, `Payment Reminder — ${destination} | CB Travel`, html, 'payment_reminder');
+}

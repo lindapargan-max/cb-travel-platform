@@ -417,6 +417,7 @@ export default function Dashboard() {
   const { data: bookings, isLoading } = trpc.bookings.myBookings.useQuery();
   const { data: sharedBookings } = trpc.travelParty.mySharedBookings.useQuery();
   const { data: myQuotes } = trpc.quotes.myQuotes.useQuery();
+  const { data: myAdminQuotes } = trpc.adminQuotes.myAdminQuotes.useQuery();
   const [expandedQuoteId, setExpandedQuoteId] = useState<number | null>(null);
 
   // Compute stats
@@ -507,6 +508,86 @@ export default function Dashboard() {
           <h2 className="font-serif text-3xl font-bold text-foreground">My Bookings</h2>
           <p className="text-muted-foreground text-sm mt-1">Manage your travel plans and stay organized</p>
         </div>
+
+        {/* My Tailored Quotes — from admin-created quotes portal */}
+        {myAdminQuotes && myAdminQuotes.length > 0 && (
+          <div className="mb-8">
+            <div className="flex items-center gap-2 mb-4">
+              <Star size={20} className="text-amber-500" />
+              <h3 className="font-serif text-xl font-bold text-foreground">My Tailored Quotes</h3>
+              <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-semibold ml-1">{myAdminQuotes.length}</span>
+            </div>
+            <div className="space-y-3">
+              {myAdminQuotes.map((q: any) => {
+                const statusMap: Record<string, { label: string; className: string }> = {
+                  draft: { label: "Draft", className: "bg-slate-100 text-slate-600 border-slate-200" },
+                  sent: { label: "Sent", className: "bg-blue-100 text-blue-700 border-blue-200" },
+                  viewed: { label: "Viewed", className: "bg-amber-100 text-amber-700 border-amber-200" },
+                  accepted: { label: "Accepted ✓", className: "bg-emerald-100 text-emerald-700 border-emerald-200" },
+                  expired: { label: "Expired", className: "bg-red-100 text-red-500 border-red-200" },
+                };
+                const badge = statusMap[q.status] || statusMap.draft;
+                const daysLeft = q.expiresAt
+                  ? Math.ceil((new Date(q.expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                  : null;
+                const isExpired = q.status === "expired" || (daysLeft !== null && daysLeft <= 0);
+
+                return (
+                  <div key={q.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden ${isExpired ? "opacity-70" : "border-border"}`}>
+                    <div className="p-5">
+                      <div className="flex items-start justify-between gap-4 flex-wrap">
+                        <div className="flex items-start gap-4 flex-1 min-w-0">
+                          <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <span className="text-lg">✈️</span>
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 flex-wrap mb-1">
+                              {q.destination && (
+                                <span className="font-bold text-foreground text-sm">{q.destination}</span>
+                              )}
+                              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold border ${badge.className}`}>
+                                {badge.label}
+                              </span>
+                              <span className="text-xs font-mono text-muted-foreground">{q.quoteRef}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                              {q.departureDate && <span>✈ {q.departureDate}</span>}
+                              {q.returnDate && <span>↩ {q.returnDate}</span>}
+                              {q.totalPrice && <span className="font-semibold text-foreground">£{parseFloat(q.totalPrice).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>}
+                            </div>
+                            {daysLeft !== null && !isExpired && q.status !== "accepted" && (
+                              <p className={`text-xs mt-1 font-medium ${daysLeft <= 5 ? "text-red-500" : "text-amber-600"}`}>
+                                {daysLeft <= 0 ? "Expired" : `Expires in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {q.status !== "expired" && q.status !== "accepted" && (
+                            <a
+                              href={`/quote/${q.quoteRef}`}
+                              className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-white rounded-xl text-xs font-semibold hover:bg-primary/90 transition-colors"
+                            >
+                              View Quote <ArrowRight size={12} />
+                            </a>
+                          )}
+                          {q.status === "accepted" && (
+                            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-semibold border border-emerald-200">
+                              ✓ Accepted
+                            </span>
+                          )}
+                          {isExpired && q.status !== "accepted" && (
+                            <a href="/quote-request" className="text-xs text-primary underline">Request New Quote</a>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* My Quote Requests Section */}
         {myQuotes && myQuotes.length > 0 && (

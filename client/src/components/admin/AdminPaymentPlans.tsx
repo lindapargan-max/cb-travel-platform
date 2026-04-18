@@ -2,6 +2,7 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { TrendingUp, AlertTriangle, CreditCard, Send, Layers } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 type SortKey = "outstanding" | "progress" | "name" | "departure";
 type SortDir = "asc" | "desc";
@@ -55,6 +56,8 @@ function getBookingTags(row: PaymentRow): Array<{ label: string; className: stri
 export default function AdminPaymentPlans() {
   const [sortKey, setSortKey] = useState<SortKey>("outstanding");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [reminderModal, setReminderModal] = useState<{ bookingId: number; preview: any | null; row: any } | null>(null);
+  const [sendingReminder, setSendingReminder] = useState(false);
 
   const bookingsQuery = trpc.bookings.getAllAdmin.useQuery();
   const bookings = bookingsQuery.data ?? [];
@@ -130,7 +133,35 @@ export default function AdminPaymentPlans() {
     }
   };
 
-  const handleReminder = (name: string) => toast.success(`Reminder sent to ${name}`);
+  const sendReminderMutation = trpc.admin.sendPaymentReminder.useMutation({
+    onSuccess: (data) => {
+      if (data?.preview) {
+        setReminderModal(prev => prev ? { ...prev, preview: data.preview } : null);
+      } else if (data?.success) {
+        toast.success("Payment reminder sent successfully!");
+        setReminderModal(null);
+        setSendingReminder(false);
+      } else {
+        toast.error("Failed to send reminder: " + (data?.error || "Unknown error"));
+        setSendingReminder(false);
+      }
+    },
+    onError: (e) => {
+      toast.error("Failed to send: " + e.message);
+      setSendingReminder(false);
+    }
+  });
+
+  const handleReminder = (row: PaymentRow) => {
+    setReminderModal({ bookingId: row.id, preview: null, row });
+    sendReminderMutation.mutate({ bookingId: row.id, previewOnly: true });
+  };
+
+  const handleConfirmSend = () => {
+    if (!reminderModal) return;
+    setSendingReminder(true);
+    sendReminderMutation.mutate({ bookingId: reminderModal.bookingId, previewOnly: false });
+  };
   const handleSplitPayment = (name: string) => toast.success(`Split payment offer sent to ${name}`);
 
   return (
@@ -281,7 +312,7 @@ export default function AdminPaymentPlans() {
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
                   <button
-                    onClick={() => handleReminder(r.clientName)}
+                    onClick={() => handleReminder(r)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 hover:bg-amber-100 text-xs font-semibold transition-all duration-200"
                   >
                     <Send className="w-3 h-3" />
@@ -380,7 +411,7 @@ export default function AdminPaymentPlans() {
                   {r.status !== "cancelled" && r.outstanding > 0 && (
                     <div className="flex flex-col gap-2 flex-shrink-0">
                       <button
-                        onClick={() => handleReminder(r.clientName)}
+                        onClick={() => handleReminder(r)}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-border hover:bg-amber-50 hover:border-amber-200 text-xs font-semibold text-foreground hover:text-amber-700 transition-all duration-200 whitespace-nowrap"
                       >
                         <Send className="w-3 h-3" />
@@ -401,6 +432,40 @@ export default function AdminPaymentPlans() {
           </div>
         )}
       </div>
+      {/* Send Reminder Modal */}
+      {reminderModal && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => !sendingReminder && setReminderModal(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+            <h3 className="font-serif text-lg font-semibold mb-4">Send Payment Reminder</h3>
+
+            {!reminderModal.preview ? (
+              <div className="space-y-3">
+                <div className="h-4 bg-slate-100 rounded animate-pulse" />
+                <div className="h-4 bg-slate-100 rounded animate-pulse w-3/4" />
+                <p className="text-sm text-muted-foreground">Loading preview…</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="bg-slate-50 rounded-xl p-4 text-sm space-y-2">
+                  <div className="flex gap-2"><span className="text-muted-foreground w-20 shrink-0">To:</span><span className="font-medium">{reminderModal.preview.to}</span></div>
+                  <div className="flex gap-2"><span className="text-muted-foreground w-20 shrink-0">Subject:</span><span className="font-medium">{reminderModal.preview.subject}</span></div>
+                  <div className="flex gap-2"><span className="text-muted-foreground w-20 shrink-0">Booking:</span><span className="font-mono font-bold text-primary">{reminderModal.preview.bookingRef}</span></div>
+                  {reminderModal.preview.outstanding && (
+                    <div className="flex gap-2"><span className="text-muted-foreground w-20 shrink-0">Balance:</span><span className="font-bold text-red-600">{reminderModal.preview.outstanding}</span></div>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">This will send a payment reminder email to {reminderModal.preview.clientName}.</p>
+                <div className="flex gap-3 justify-end">
+                  <Button variant="ghost" onClick={() => setReminderModal(null)} disabled={sendingReminder} className="rounded-xl">Cancel</Button>
+                  <Button onClick={handleConfirmSend} disabled={sendingReminder} className="rounded-xl gap-2">
+                    {sendingReminder ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />Sending…</> : <><Send size={14} />Send Reminder</>}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
