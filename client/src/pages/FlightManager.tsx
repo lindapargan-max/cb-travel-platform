@@ -1024,13 +1024,14 @@ export default function FlightManager() {
       color: "#f1f5f9",
       fontFamily: "'Inter', 'Segoe UI', sans-serif",
       padding: "0 0 80px",
+      paddingTop: "72px",
     }}>
 
       {/* Premium Header */}
       <div style={{
         background: "linear-gradient(135deg, #050d1f 0%, #0a1530 40%, #0f1f40 70%, #05090f 100%)",
         borderBottom: `1px solid ${GOLD}30`,
-        padding: "80px 24px 40px",
+        padding: "100px 24px 40px",
         position: "relative",
         overflow: "hidden",
       }}>
