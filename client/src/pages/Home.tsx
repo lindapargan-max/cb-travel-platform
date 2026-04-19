@@ -700,7 +700,7 @@ export default function Home() {
                       {post.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{post.description}</p>}
                       {post.amountRaised && (
                         <div className="mt-2 inline-flex items-center gap-1 bg-[#d4af37]/12 border border-[#d4af37]/25 text-[#9a7c1e] text-[10px] font-bold px-2 py-1 rounded-full">
-                          ✦ Given Back: {post.amountRaised}
+                          ✦ Given Back: £{post.amountRaised}
                         </div>
                       )}
                     </div>
