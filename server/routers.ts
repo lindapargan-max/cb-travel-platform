@@ -1763,6 +1763,13 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
         if (newUser?.email) sendReferralWelcomeEmail(newUser.email, newUser.name || 'Valued Client', newPromo).catch(console.error);
         return { success: true };
       }),
+
+    // Client can see who they referred
+    getMyReferrals: protectedProcedure.query(async ({ ctx }) => {
+      const userId = (ctx as any).user?.id;
+      if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+      return getClientReferrals(userId);
+    }),
   }),
 
   // ─── V6: Audit Logs ──────────────────────────────────────────────────────────

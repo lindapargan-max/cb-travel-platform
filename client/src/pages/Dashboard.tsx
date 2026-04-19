@@ -38,7 +38,34 @@ import { useSEO } from '@/hooks/useSEO';
 function ProfileSection({ user }: { user: any }) {
   const utils = trpc.useUtils();
 
-  const [activeTab, setActiveTab] = useState<'personal' | 'passport'>('personal');
+  const [activeTab, setActiveTab] = useState<'personal' | 'passport' | 'referrals'>('personal');
+  const [referralCodeInput, setReferralCodeInput] = useState('');
+  const [referralCodeApplied, setReferralCodeApplied] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  const { data: myReferralCode } = trpc.referral.getMyCode.useQuery();
+  const { data: myReferrals } = trpc.referral.getMyReferrals.useQuery(undefined, { enabled: activeTab === 'referrals' });
+
+  const applyReferralCode = trpc.referral.complete.useMutation({
+    onSuccess: (r: any) => {
+      if (r.success) {
+        setReferralCodeApplied(true);
+        toast.success('Referral code applied! Loyalty points added 🎉');
+      } else {
+        toast.error('That referral code wasn\'t found. Please check and try again.');
+      }
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const copyReferralLink = () => {
+    if (myReferralCode?.link) {
+      navigator.clipboard.writeText(myReferralCode.link);
+      setCopiedLink(true);
+      toast.success('Referral link copied!');
+      setTimeout(() => setCopiedLink(false), 3000);
+    }
+  };
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [editingPassport, setEditingPassport] = useState(false);
   const [personalForm, setPersonalForm] = useState({ name: '', phone: '', dateOfBirth: '' });
@@ -158,6 +185,12 @@ function ProfileSection({ user }: { user: any }) {
           className={`flex-1 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${activeTab === 'passport' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}
         >
           <Shield size={14} /> Passport &amp; Travel
+        </button>
+        <button
+          onClick={() => setActiveTab('referrals')}
+          className={`flex-1 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${activeTab === 'referrals' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          🎁 Referrals
         </button>
       </div>
 
@@ -406,6 +439,102 @@ function ProfileSection({ user }: { user: any }) {
     </div>
   );
 }
+
+
+        {/* Referrals Tab */}
+        {activeTab === 'referrals' && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-[#1e3a5f] to-[#2d5986] rounded-2xl p-5 text-white">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-3xl">🎁</span>
+                <div>
+                  <h3 className="font-bold text-lg">Your Referral Link</h3>
+                  <p className="text-blue-200 text-sm">Share with friends — earn loyalty points for every signup</p>
+                </div>
+              </div>
+              <div className="bg-white/10 border border-white/20 rounded-xl p-3 mb-3 flex gap-2 items-center">
+                <input
+                  readOnly
+                  value={myReferralCode?.link || ''}
+                  className="flex-1 bg-transparent text-sm text-white focus:outline-none truncate"
+                />
+                <button
+                  onClick={copyReferralLink}
+                  className={`flex-shrink-0 px-4 py-1.5 rounded-lg text-sm font-semibold transition-all ${copiedLink ? 'bg-green-500 text-white' : 'bg-white text-[#1e3a5f] hover:bg-blue-50'}`}
+                >
+                  {copiedLink ? '\u2705 Copied!' : '\U0001F4CB Copy'}
+                </button>
+              </div>
+              <p className="text-blue-200 text-xs text-center">Your code: <span className="font-mono font-bold text-white">{myReferralCode?.code}</span></p>
+              <div className="grid grid-cols-2 gap-3 mt-4">
+                <div className="bg-white/10 rounded-xl p-3 text-center">
+                  <p className="text-xl font-extrabold">150 pts</p>
+                  <p className="text-blue-200 text-xs mt-0.5">You earn per referral</p>
+                </div>
+                <div className="bg-white/10 rounded-xl p-3 text-center">
+                  <p className="text-xl font-extrabold">50 pts</p>
+                  <p className="text-blue-200 text-xs mt-0.5">Your friend receives</p>
+                </div>
+              </div>
+            </div>
+
+            {!referralCodeApplied ? (
+              <div className="border border-border rounded-2xl p-5 bg-muted/20">
+                <h4 className="font-semibold text-foreground mb-1">Have a friend&#39;s referral code?</h4>
+                <p className="text-xs text-muted-foreground mb-3">Enter it below to claim your welcome bonus points.</p>
+                <div className="flex gap-2">
+                  <input
+                    value={referralCodeInput}
+                    onChange={e => setReferralCodeInput(e.target.value.toUpperCase())}
+                    placeholder="e.g. ABC123"
+                    className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  <Button
+                    onClick={() => referralCodeInput && applyReferralCode.mutate({ referralCode: referralCodeInput })}
+                    disabled={!referralCodeInput || applyReferralCode.isPending}
+                    className="rounded-xl btn-gold border-0 text-foreground text-sm"
+                  >
+                    {applyReferralCode.isPending ? 'Applying\u2026' : 'Apply Code'}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="border border-green-200 rounded-2xl p-4 bg-green-50 text-green-800 text-sm flex items-center gap-2">
+                \u2705 Referral code applied \u2014 your bonus points have been added!
+              </div>
+            )}
+
+            <div>
+              <h4 className="font-semibold text-foreground mb-3">People you&#39;ve referred ({myReferrals?.length ?? 0})</h4>
+              {!myReferrals || myReferrals.length === 0 ? (
+                <div className="border border-dashed border-border rounded-2xl p-6 text-center text-muted-foreground text-sm">
+                  <p className="text-2xl mb-2">\U0001F44B</p>
+                  <p>No referrals yet \u2014 share your link and start earning!</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {myReferrals.map((r: any) => (
+                    <div key={r.id} className="flex items-center justify-between border border-border rounded-xl px-4 py-3 bg-background">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-bold text-primary">
+                          {(r.name || '?')[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{r.name || 'Client'}</p>
+                          <p className="text-xs text-muted-foreground">{r.email || ''}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-amber-600">+{r.pointsEarned || 150} pts</p>
+                        <p className="text-xs text-muted-foreground">earned</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
 // ─── V7: Support Tickets Section ─────────────────────────────────────────────
 function SupportSection() {
