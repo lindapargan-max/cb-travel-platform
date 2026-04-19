@@ -435,10 +435,6 @@ function ProfileSection({ user }: { user: any }) {
             )}
           </>
         )}
-      </div>
-    </div>
-  );
-}
 
 
         {/* Referrals Tab */}
@@ -535,6 +531,11 @@ function ProfileSection({ user }: { user: any }) {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
 
 // ─── V7: Support Tickets Section ─────────────────────────────────────────────
 function SupportSection() {
