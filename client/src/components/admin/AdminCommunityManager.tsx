@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Plus, Edit2, Trash2, Eye, EyeOff, Star, StarOff, Globe, Heart, Handshake, Gift, Users } from "lucide-react";
+import { Plus, Edit2, Trash2, Eye, EyeOff, Star, StarOff, Globe, Heart, Handshake, Gift, Users, Upload, X, Link } from "lucide-react";
 
 type PostType = "charity" | "partnership" | "giveaway" | "community";
 
@@ -37,6 +37,8 @@ export default function AdminCommunityManager() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState({ ...emptyForm });
   const [filter, setFilter] = useState<PostType | "all">("all");
+  const [imageMode, setImageMode] = useState<"upload" | "url">("upload");
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const setField = (k: string, v: any) => setForm(f => ({ ...f, [k]: v }));
 
@@ -65,6 +67,18 @@ export default function AdminCommunityManager() {
     setForm({ ...emptyForm });
     setEditingId(null);
     setShowForm(false);
+    setImageMode("upload");
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setField("imageUrl", ev.target?.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleEdit = (post: any) => {
@@ -199,11 +213,42 @@ export default function AdminCommunityManager() {
               />
             </div>
             <div className="sm:col-span-2">
-              <label className={labelCls}>Image URL</label>
-              <input type="url" value={form.imageUrl} onChange={e => setField("imageUrl", e.target.value)} placeholder="https://..." className={inputCls} />
+              <label className={labelCls}>Image</label>
+              {/* Mode toggle */}
+              <div className="flex gap-2 mb-2">
+                <button type="button" onClick={() => setImageMode("upload")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${imageMode === "upload" ? "bg-[#1e3a5f] text-white border-[#1e3a5f]" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}>
+                  <Upload size={12} /> Upload Image
+                </button>
+                <button type="button" onClick={() => setImageMode("url")}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${imageMode === "url" ? "bg-[#1e3a5f] text-white border-[#1e3a5f]" : "bg-white text-slate-600 border-slate-200 hover:bg-slate-50"}`}>
+                  <Link size={12} /> Image URL
+                </button>
+              </div>
+
+              {imageMode === "upload" ? (
+                <div>
+                  <input ref={imageInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                  <button type="button" onClick={() => imageInputRef.current?.click()}
+                    className="w-full border-2 border-dashed border-slate-200 rounded-xl py-6 flex flex-col items-center gap-2 text-slate-500 hover:border-[#c9a96e] hover:text-[#c9a96e] transition-colors cursor-pointer bg-slate-50/50">
+                    <Upload size={20} />
+                    <span className="text-sm font-medium">Click to upload image</span>
+                    <span className="text-xs">JPG, PNG, WebP — max 5MB</span>
+                  </button>
+                </div>
+              ) : (
+                <input type="url" value={form.imageUrl.startsWith("data:") ? "" : form.imageUrl}
+                  onChange={e => setField("imageUrl", e.target.value)}
+                  placeholder="https://..." className={inputCls} />
+              )}
+
               {form.imageUrl && (
-                <div className="mt-2 rounded-xl overflow-hidden h-32 bg-slate-100">
+                <div className="mt-2 rounded-xl overflow-hidden h-32 bg-slate-100 relative group">
                   <img src={form.imageUrl} alt="Preview" className="w-full h-full object-cover" onError={e => (e.currentTarget.style.display = "none")} />
+                  <button type="button" onClick={() => setField("imageUrl", "")}
+                    className="absolute top-1.5 right-1.5 bg-black/50 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500">
+                    <X size={14} />
+                  </button>
                 </div>
               )}
             </div>

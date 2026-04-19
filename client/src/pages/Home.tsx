@@ -419,6 +419,106 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ─── COMMUNITY & IMPACT TEASER ─────────────────────────────────────── */}
+      <section className="py-20 px-4 bg-gradient-to-b from-white to-slate-50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <p className="text-xs tracking-[4px] uppercase font-semibold text-[#d4af37] mb-3">Community & Impact</p>
+            <h2 className="font-serif text-3xl sm:text-4xl font-light text-[#1e3a5f] mb-4">
+              Travelling with <span className="font-semibold">Heart</span>
+            </h2>
+            <p className="text-slate-500 max-w-xl mx-auto leading-relaxed">
+              We believe in more than just holidays. From local charity partnerships to meaningful giveaways,
+              every booking supports something bigger.
+            </p>
+          </div>
+
+          {/* Total Given Back stat */}
+          {(() => {
+            const total = (allCommunityPosts as any[]).reduce((sum: number, p: any) => {
+              const n = parseFloat((p.amountRaised || "").replace(/[^0-9.]/g, ""));
+              return sum + (isNaN(n) ? 0 : n);
+            }, 0);
+            if (total <= 0) return null;
+            return (
+              <div className="flex justify-center mb-10">
+                <div className="inline-flex items-center gap-4 bg-gradient-to-r from-[#1e3a5f] to-[#0f2a4a] text-white rounded-2xl px-8 py-5 shadow-lg">
+                  <span className="text-2xl">✦</span>
+                  <div className="text-left">
+                    <p className="text-[10px] tracking-[3px] uppercase text-[#d4af37]/80 font-semibold">Total Given Back</p>
+                    <p className="font-serif text-2xl font-bold text-[#d4af37] leading-tight">
+                      {total >= 1000 ? `£${(total / 1000).toFixed(total % 1000 === 0 ? 0 : 1)}k` : `£${total.toLocaleString("en-GB")}`}
+                    </p>
+                  </div>
+                  <div className="w-px h-10 bg-white/20" />
+                  <p className="text-blue-200 text-xs max-w-[120px] leading-relaxed">Returned to communities &amp; causes</p>
+                </div>
+              </div>
+            );
+          })()}
+
+          {communityFeatured.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
+              {(communityFeatured as any[]).slice(0, 3).map((post: any) => {
+                const typeIcons: Record<string, string> = { charity: "❤️", partnership: "🤝", giveaway: "🎁", community: "🌍" };
+                const typeColors: Record<string, string> = {
+                  charity: "bg-rose-50 text-rose-700 border-rose-100",
+                  partnership: "bg-blue-50 text-blue-700 border-blue-100",
+                  giveaway: "bg-amber-50 text-amber-700 border-amber-100",
+                  community: "bg-emerald-50 text-emerald-700 border-emerald-100",
+                };
+                const typeLabels: Record<string, string> = { charity: "Charity", partnership: "Partnership", giveaway: "Giveaway", community: "Community" };
+                return (
+                  <a key={post.id} href="/community" className="bg-white rounded-2xl border border-border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden group block">
+                    {post.imageUrl ? (
+                      <div className="aspect-video overflow-hidden">
+                        <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      </div>
+                    ) : (
+                      <div className="aspect-video bg-slate-100 flex items-center justify-center text-4xl">
+                        {typeIcons[post.type] || "🌍"}
+                      </div>
+                    )}
+                    <div className="p-4">
+                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${typeColors[post.type] || typeColors.community}`}>
+                        {typeIcons[post.type]} {typeLabels[post.type] || post.type}
+                      </span>
+                      <h3 className="font-serif text-sm font-semibold text-foreground mt-2 leading-snug">{post.title}</h3>
+                      {post.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{post.description}</p>}
+                      {post.amountRaised && (
+                        <div className="mt-2 inline-flex items-center gap-1 bg-[#d4af37]/12 border border-[#d4af37]/25 text-[#9a7c1e] text-[10px] font-bold px-2 py-1 rounded-full">
+                          ✦ Given Back: £{post.amountRaised}
+                        </div>
+                      )}
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
+              {[
+                { icon: "❤️", title: "Charity Support", desc: "A portion of every booking supports causes close to our hearts" },
+                { icon: "🤝", title: "Local Partnerships", desc: "We work with local businesses and communities at every destination" },
+                { icon: "🎁", title: "Client Giveaways", desc: "Regular surprises and prizes for our valued clients" },
+              ].map((item, i) => (
+                <div key={i} className="bg-white rounded-2xl border border-border p-6 text-center shadow-sm">
+                  <div className="text-3xl mb-3">{item.icon}</div>
+                  <h3 className="font-serif text-sm font-semibold text-foreground mb-1.5">{item.title}</h3>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="text-center">
+            <a href="/community" className="inline-flex items-center gap-2 text-[#1e3a5f] font-semibold text-sm border border-[#1e3a5f] px-6 py-3 rounded-xl hover:bg-[#1e3a5f] hover:text-white transition-all">
+              See All Our Community Stories →
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ─── WHY CHOOSE US ─────────────────────────────────────────────────── */}
 
       {/* ─── FACEBOOK FEED ─────────────────────────────────────────────── */}
@@ -633,106 +733,6 @@ export default function Home() {
                 <span className="text-yellow-400/60 hover:text-yellow-400 cursor-pointer underline">Privacy Policy</span>
               </Link>.
             </p>
-          </div>
-        </div>
-      </section>
-
-      {/* ─── COMMUNITY & IMPACT TEASER ─────────────────────────────────────── */}
-      <section className="py-20 px-4 bg-gradient-to-b from-white to-slate-50">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-10">
-            <p className="text-xs tracking-[4px] uppercase font-semibold text-[#d4af37] mb-3">Community & Impact</p>
-            <h2 className="font-serif text-3xl sm:text-4xl font-light text-[#1e3a5f] mb-4">
-              Travelling with <span className="font-semibold">Heart</span>
-            </h2>
-            <p className="text-slate-500 max-w-xl mx-auto leading-relaxed">
-              We believe in more than just holidays. From local charity partnerships to meaningful giveaways,
-              every booking supports something bigger.
-            </p>
-          </div>
-
-          {/* Total Given Back stat */}
-          {(() => {
-            const total = (allCommunityPosts as any[]).reduce((sum: number, p: any) => {
-              const n = parseFloat((p.amountRaised || "").replace(/[^0-9.]/g, ""));
-              return sum + (isNaN(n) ? 0 : n);
-            }, 0);
-            if (total <= 0) return null;
-            return (
-              <div className="flex justify-center mb-10">
-                <div className="inline-flex items-center gap-4 bg-gradient-to-r from-[#1e3a5f] to-[#0f2a4a] text-white rounded-2xl px-8 py-5 shadow-lg">
-                  <span className="text-2xl">✦</span>
-                  <div className="text-left">
-                    <p className="text-[10px] tracking-[3px] uppercase text-[#d4af37]/80 font-semibold">Total Given Back</p>
-                    <p className="font-serif text-2xl font-bold text-[#d4af37] leading-tight">
-                      {total >= 1000 ? `£${(total / 1000).toFixed(total % 1000 === 0 ? 0 : 1)}k` : `£${total.toLocaleString("en-GB")}`}
-                    </p>
-                  </div>
-                  <div className="w-px h-10 bg-white/20" />
-                  <p className="text-blue-200 text-xs max-w-[120px] leading-relaxed">Returned to communities &amp; causes</p>
-                </div>
-              </div>
-            );
-          })()}
-
-          {communityFeatured.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-10">
-              {(communityFeatured as any[]).slice(0, 3).map((post: any) => {
-                const typeIcons: Record<string, string> = { charity: "❤️", partnership: "🤝", giveaway: "🎁", community: "🌍" };
-                const typeColors: Record<string, string> = {
-                  charity: "bg-rose-50 text-rose-700 border-rose-100",
-                  partnership: "bg-blue-50 text-blue-700 border-blue-100",
-                  giveaway: "bg-amber-50 text-amber-700 border-amber-100",
-                  community: "bg-emerald-50 text-emerald-700 border-emerald-100",
-                };
-                const typeLabels: Record<string, string> = { charity: "Charity", partnership: "Partnership", giveaway: "Giveaway", community: "Community" };
-                return (
-                  <a key={post.id} href="/community" className="bg-white rounded-2xl border border-border shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 overflow-hidden group block">
-                    {post.imageUrl ? (
-                      <div className="aspect-video overflow-hidden">
-                        <img src={post.imageUrl} alt={post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                      </div>
-                    ) : (
-                      <div className="aspect-video bg-slate-100 flex items-center justify-center text-4xl">
-                        {typeIcons[post.type] || "🌍"}
-                      </div>
-                    )}
-                    <div className="p-4">
-                      <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${typeColors[post.type] || typeColors.community}`}>
-                        {typeIcons[post.type]} {typeLabels[post.type] || post.type}
-                      </span>
-                      <h3 className="font-serif text-sm font-semibold text-foreground mt-2 leading-snug">{post.title}</h3>
-                      {post.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{post.description}</p>}
-                      {post.amountRaised && (
-                        <div className="mt-2 inline-flex items-center gap-1 bg-[#d4af37]/12 border border-[#d4af37]/25 text-[#9a7c1e] text-[10px] font-bold px-2 py-1 rounded-full">
-                          ✦ Given Back: £{post.amountRaised}
-                        </div>
-                      )}
-                    </div>
-                  </a>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10">
-              {[
-                { icon: "❤️", title: "Charity Support", desc: "A portion of every booking supports causes close to our hearts" },
-                { icon: "🤝", title: "Local Partnerships", desc: "We work with local businesses and communities at every destination" },
-                { icon: "🎁", title: "Client Giveaways", desc: "Regular surprises and prizes for our valued clients" },
-              ].map((item, i) => (
-                <div key={i} className="bg-white rounded-2xl border border-border p-6 text-center shadow-sm">
-                  <div className="text-3xl mb-3">{item.icon}</div>
-                  <h3 className="font-serif text-sm font-semibold text-foreground mb-1.5">{item.title}</h3>
-                  <p className="text-xs text-muted-foreground leading-relaxed">{item.desc}</p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="text-center">
-            <a href="/community" className="inline-flex items-center gap-2 text-[#1e3a5f] font-semibold text-sm border border-[#1e3a5f] px-6 py-3 rounded-xl hover:bg-[#1e3a5f] hover:text-white transition-all">
-              See All Our Community Stories →
-            </a>
           </div>
         </div>
       </section>

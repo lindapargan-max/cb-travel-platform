@@ -27,7 +27,7 @@ import {
   AlertCircle, RefreshCw, Shield, Lock, UserX, UserCheck, HelpCircle,
   KeyRound, UserPlus, Tag, Copy, Percent, ClipboardList, ExternalLink, ArrowRight,
   ChevronDown, ChevronRight, ChevronLeft, Send, MessageSquare, MailCheck, Ticket, Users2, UserMinus, UserRound,
-  Settings, Info, Check, User, CopyPlus, LayoutDashboard, Heart, Bell, Search, SlidersHorizontal
+  Settings, Info, Check, User, CopyPlus, LayoutDashboard, Heart, Bell, Search, SlidersHorizontal, Monitor, MapPinned
 } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
@@ -3018,6 +3018,7 @@ export default function AdminDashboard() {
   // V6 queries
   const { data: bookedDestinations, refetch: refetchDestinations } = trpc.destinations.getAll.useQuery();
   const { data: auditLogs } = trpc.auditLogs.get.useQuery({ limit: 200 });
+  const { data: itineraryLogs } = trpc.itinerary.getItineraryAccessLogs.useQuery();
   const { data: campaigns, refetch: refetchCampaigns } = trpc.newsletterV6.getCampaigns.useQuery();
   const { data: allSettings, refetch: refetchSettings } = trpc.settings.getAll.useQuery();
   const { data: allTickets, refetch: refetchTickets } = trpc.support.adminGetAll.useQuery();
@@ -3104,6 +3105,7 @@ export default function AdminDashboard() {
     { value: 'promos', label: 'Promo Codes' }, { value: 'faq', label: 'FAQ' },
     { value: 'testimonials', label: 'Reviews' }, { value: 'destinations', label: 'Destinations' },
     { value: 'loyalty-admin', label: 'Loyalty Programme' }, { value: 'gdpr', label: 'GDPR Requests' }, { value: 'audit', label: 'Audit Log' },
+    { value: 'itinerary-logs', label: 'Itinerary Tool Logs' },
     { value: 'settings', label: 'Settings' },
     { value: 'command', label: 'Command Centre' },
     { value: 'passports', label: 'Passport Manager' },
@@ -3163,6 +3165,7 @@ export default function AdminDashboard() {
         { value: 'payments', label: 'Payments', icon: CreditCard },
         { value: 'gdpr', label: 'GDPR', icon: Lock },
         { value: 'audit', label: 'Audit Log', icon: BarChart3 },
+        { value: 'itinerary-logs', label: 'Itinerary Logs', icon: Monitor },
         { value: 'settings', label: 'Settings', icon: RefreshCw },
       ]
     },
@@ -4200,6 +4203,90 @@ export default function AdminDashboard() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ITINERARY TOOL LOGS */}
+          <TabsContent value="itinerary-logs">
+            <div className="space-y-5">
+              {/* Header */}
+              <div className="bg-white rounded-2xl border border-border p-6">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                      <Monitor size={18} className="text-indigo-600" />
+                    </div>
+                    <div>
+                      <h2 className="font-serif text-xl font-semibold text-[#1e3a5f]">Itinerary Generator Logs</h2>
+                      <p className="text-sm text-muted-foreground">Every login and generation at <code className="bg-muted px-1 rounded text-xs">travelcb.co.uk/itinerarygenerator</code></p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="text-center px-4 py-2 bg-indigo-50 rounded-xl">
+                      <div className="text-2xl font-bold text-indigo-700">{(itineraryLogs || []).length}</div>
+                      <div className="text-xs text-muted-foreground">Total Events</div>
+                    </div>
+                    <div className="text-center px-4 py-2 bg-green-50 rounded-xl">
+                      <div className="text-2xl font-bold text-green-700">{new Set((itineraryLogs || []).map((l:any) => l.agencyName).filter(Boolean)).size}</div>
+                      <div className="text-xs text-muted-foreground">Agencies</div>
+                    </div>
+                    <div className="text-center px-4 py-2 bg-amber-50 rounded-xl">
+                      <div className="text-2xl font-bold text-amber-700">{(itineraryLogs || []).filter((l:any) => l.eventType === 'generation').length}</div>
+                      <div className="text-xs text-muted-foreground">Itineraries Generated</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Logs table */}
+              <div className="bg-white rounded-2xl border border-border overflow-hidden">
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-slate-50 border-b border-border">
+                      <tr>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Time</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Event</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Agency</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Agent Name</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Destination</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">IP Address</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(itineraryLogs || []).length === 0 ? (
+                        <tr><td colSpan={6} className="text-center py-12 text-muted-foreground">No access logs yet. They'll appear here once someone uses the tool.</td></tr>
+                      ) : (itineraryLogs || []).map((l: any, i: number) => (
+                        <tr key={l.id || i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                          <td className="py-3 px-4 whitespace-nowrap text-muted-foreground text-xs">
+                            {new Date(l.accessedAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                              l.eventType === 'generation' ? 'bg-green-100 text-green-700' :
+                              l.eventType === 'login' ? 'bg-blue-100 text-blue-700' :
+                              'bg-slate-100 text-slate-600'
+                            }`}>
+                              {l.eventType === 'generation' ? '✨' : l.eventType === 'login' ? '🔑' : '👁️'}
+                              {l.eventType || 'visit'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-medium text-[#1e3a5f]">{l.agencyName || '—'}</td>
+                          <td className="py-3 px-4 text-muted-foreground">{l.agentName || '—'}</td>
+                          <td className="py-3 px-4">
+                            {l.destination ? (
+                              <span className="flex items-center gap-1.5 text-sm">
+                                <MapPinned size={13} className="text-muted-foreground" />
+                                {l.destination}
+                              </span>
+                            ) : <span className="text-muted-foreground">—</span>}
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground font-mono text-xs">{l.ipAddress || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </TabsContent>
