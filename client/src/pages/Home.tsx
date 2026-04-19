@@ -41,7 +41,7 @@ const TRUST_STATS = [
 const FAQ_ITEMS = [
   {
     q: "How do I book a holiday with CB Travel?",
-    a: "Simply fill out our Request a Quote form or call us on 07495 823953. One of our travel specialists will be in touch within 24 hours to discuss your perfect holiday.",
+    a: "Simply fill out our Request a Quote form or call us on 07495 823953. One of our travel specialists will be in touch within 24 hours during business hours (Monday–Friday, 9am–6pm GMT). Weekend requests will be responded to by the next working day.",
   },
   {
     q: "What types of holidays do you specialise in?",
@@ -570,7 +570,7 @@ export default function Home() {
                   "Personalised service from dedicated travel specialists",
                   "Competitive pricing with no hidden fees",
                   "24/7 support throughout your journey",
-                  "ATOL protected bookings",
+                  "ATOL protected holidays via JLT Group (ATOL No. 12564)",
                 ].map((point) => (
                   <div key={point} className="flex items-start gap-3">
                     <CheckCircle2 size={18} className="text-yellow-400 mt-0.5 flex-shrink-0" />
@@ -594,7 +594,7 @@ export default function Home() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               {[
-                { icon: Shield, title: "Fully Protected", desc: "ATOL protected for your complete peace of mind" },
+                { icon: Shield, title: "Fully Protected", desc: "ATOL protected holidays via JLT Group (ATOL No. 12564) for your complete peace of mind" },
                 { icon: Shield, title: "Trusted Agency", desc: "Independently owned with years of expertise and a personal approach" },
                 { icon: HeartHandshake, title: "Personal Service", desc: "Dedicated specialists who know you by name" },
                 { icon: Globe, title: "Global Reach", desc: "Destinations across all 7 continents" },

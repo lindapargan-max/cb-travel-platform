@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Mail, Phone, MapPin, Facebook, Instagram, Twitter, MessageCircle } from "lucide-react";
+import { Mail, Phone, MapPin, Facebook, Instagram, Twitter, MessageCircle, Shield } from "lucide-react";
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663464925361/dPHKGynvhLRtUrGZhYEBQ4/CBTravel_BlackTransparent_35c2ad4d.png";
 
@@ -103,17 +103,48 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Bottom bar */}
-        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-white/40 text-xs font-light">
-            © {currentYear} CB Travel. All rights reserved. Registered in England & Wales.
+        {/* Agent & Protection Disclosure */}
+        <div className="border-t border-white/10 pt-8 mb-6">
+          <div className="flex flex-wrap items-start gap-x-8 gap-y-3">
+            <div className="flex items-start gap-2">
+              <Shield size={14} className="text-yellow-400 mt-0.5 flex-shrink-0" />
+              <p className="text-white/50 text-xs font-light leading-relaxed max-w-xl">
+                <span className="text-white/70 font-medium">CB Travel (Corron Barnes)</span> acts as an authorised independent travel agent operating under{" "}
+                <span className="text-white/70 font-medium">JLT Group (Janine Loves Travel)</span>. Your contract for travel services is directly with the travel supplier.{" "}
+                ATOL protected holidays via JLT Group — <span className="text-yellow-400 font-medium">ATOL No. 12564</span>.
+              </p>
+            </div>
+          </div>
+          <p className="text-white/35 text-xs font-light mt-3">
+            Enquiries via WhatsApp are handled in accordance with our{" "}
+            <Link href="/privacy-policy">
+              <span className="text-white/50 hover:text-yellow-400 transition-colors cursor-pointer underline">Privacy Policy</span>
+            </Link>. We never ask for card details via WhatsApp, SMS or email — payments are processed securely via Protected Trust Services using a secure payment link.
           </p>
-          <div className="flex items-center gap-6">
+        </div>
+
+        {/* Bottom bar */}
+        <div className="border-t border-white/10 pt-6 flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-white/40 text-xs font-light">
+            © {currentYear} CB Travel (Corron Barnes T/A CB Travel). All rights reserved. United Kingdom.
+          </p>
+          <div className="flex flex-wrap items-center gap-4 md:gap-6">
             <Link href="/privacy-policy">
               <span className="text-white/40 hover:text-yellow-400 text-xs font-light transition-colors cursor-pointer">
                 Privacy Policy
               </span>
             </Link>
+            <Link href="/cookie-policy">
+              <span className="text-white/40 hover:text-yellow-400 text-xs font-light transition-colors cursor-pointer">
+                Cookie Policy
+              </span>
+            </Link>
+            <button
+              onClick={() => { localStorage.removeItem("cb_cookie_consent"); window.location.reload(); }}
+              className="text-white/40 hover:text-yellow-400 text-xs font-light transition-colors bg-transparent border-0 p-0 cursor-pointer"
+            >
+              Cookie Preferences
+            </button>
             <Link href="/terms-conditions">
               <span className="text-white/40 hover:text-yellow-400 text-xs font-light transition-colors cursor-pointer">
                 Terms &amp; Conditions

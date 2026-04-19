@@ -15,8 +15,9 @@ export default function WhatsAppChatButton() {
   return (
     <div className={`fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2 transition-all duration-500 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
       {tooltip && (
-        <div className="bg-[#1e3a5f] text-white text-sm px-3 py-2 rounded-xl shadow-lg mr-1 animate-fade-in whitespace-nowrap">
-          💬 Chat with CB Travel
+        <div className="bg-[#1e3a5f] text-white text-sm px-3 py-2 rounded-xl shadow-lg mr-1 animate-fade-in max-w-[200px]">
+          <p className="font-medium whitespace-nowrap">💬 Chat with CB Travel</p>
+          <p className="text-white/60 text-xs mt-0.5 leading-tight">Messages handled per our <a href="/privacy-policy" className="underline text-white/80">Privacy Policy</a></p>
         </div>
       )}
       <a href={waUrl} target="_blank" rel="noopener noreferrer"

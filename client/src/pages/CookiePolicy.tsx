@@ -53,7 +53,8 @@ export default function CookiePolicy() {
             </h2>
             <p className="text-gray-700 leading-relaxed">
               This website, <strong>travelcb.co.uk</strong>, is operated by{" "}
-              <strong>CB Travel</strong> (Coby Phuila), a sole trader travel agency.
+              <strong>CB Travel (Corron Barnes T/A CB Travel)</strong>, a sole trader travel agency
+              operating under JLT Group (Janine Loves Travel) as an authorised independent travel agent.
               If you have any questions about our use of cookies, please contact us
               at{" "}
               <a
@@ -243,13 +244,25 @@ export default function CookiePolicy() {
               cookies, or manage your preferences individually.
             </p>
             <p className="text-gray-700 leading-relaxed mb-3">
-              You can change your preferences at any time by clearing your browser's
-              local storage for travelcb.co.uk or by deleting the{" "}
+              You can reset your cookie preferences at any time — simply click the button below and
+              the consent banner will reappear so you can update your choices:
+            </p>
+            <button
+              onClick={() => {
+                localStorage.removeItem("cb_cookie_consent");
+                window.location.reload();
+              }}
+              className="mb-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors"
+              style={{ backgroundColor: "#1e3a5f" }}
+            >
+              Reset Cookie Preferences
+            </button>
+            <p className="text-gray-700 leading-relaxed mb-3">
+              Alternatively, you can clear the{" "}
               <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
                 cb_cookie_consent
               </code>{" "}
-              entry, which will cause the consent banner to reappear on your next
-              visit.
+              entry from your browser's local storage for travelcb.co.uk, which will have the same effect.
             </p>
             <p className="text-gray-700 leading-relaxed">
               You can also control and delete cookies through your browser settings.
@@ -367,7 +380,7 @@ export default function CookiePolicy() {
               style={{ borderColor: "#1e3a5f", backgroundColor: "#f0f4f8" }}
             >
               <p className="font-semibold" style={{ color: "#1e3a5f" }}>
-                CB Travel (Coby Phuila)
+                CB Travel (Corron Barnes T/A CB Travel)
               </p>
               <p className="text-gray-700 text-sm">
                 Email:{" "}

@@ -21,7 +21,7 @@ export default function PrivacyPolicy() {
               Privacy Policy
             </h1>
           </div>
-          <p className="text-gray-300 text-sm">Last updated: March 2026</p>
+          <p className="text-gray-300 text-sm">Last updated: April 2026</p>
         </div>
       </div>
 
@@ -93,8 +93,9 @@ export default function PrivacyPolicy() {
               </p>
               <p className="text-gray-700">
                 <strong>ICO Registration Number:</strong>{" "}
-                <span className="font-mono bg-yellow-100 px-2 py-0.5 rounded text-sm">
-                  [ADD YOUR ICO NUMBER HERE]
+                <span className="text-gray-600">
+                  Registration pending — number to be added upon completion of ICO registration at{" "}
+                  <a href="https://ico.org.uk/registration" target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "#d4af37" }}>ico.org.uk/registration</a>.
                 </span>
               </p>
             </div>
@@ -136,7 +137,7 @@ export default function PrivacyPolicy() {
                       numbers, dates of birth, addresses, dietary requirements,
                       special assistance needs
                     </td>
-                    <td className="px-3 py-2">Booking intake form</td>
+                    <td className="px-3 py-2">Booking intake form, secure client portal</td>
                   </tr>
                   <tr className="border-b border-gray-200 bg-white">
                     <td className="px-3 py-2 font-medium">Enquiry Data</td>
@@ -144,7 +145,7 @@ export default function PrivacyPolicy() {
                       Name, email, phone, travel preferences, destination
                       interests, budget
                     </td>
-                    <td className="px-3 py-2">Quote request / contact form</td>
+                    <td className="px-3 py-2">Quote request / contact form, email correspondence, WhatsApp messaging</td>
                   </tr>
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <td className="px-3 py-2 font-medium">Marketing Data</td>
@@ -320,8 +321,8 @@ export default function PrivacyPolicy() {
                     <td className="px-3 py-2">
                       Passport / travel document data
                     </td>
-                    <td className="px-3 py-2">7 years after travel date</td>
-                    <td className="px-3 py-2">Deleted</td>
+                    <td className="px-3 py-2">6 months after travel completion (12 months maximum where required for dispute resolution). Booking reference and financial records are retained for 7 years for HMRC compliance — passport numbers are deleted at 6 months post-travel.</td>
+                    <td className="px-3 py-2">Passport data deleted; booking record anonymised</td>
                   </tr>
                   <tr className="border-b border-gray-200 bg-gray-50">
                     <td className="px-3 py-2">
@@ -384,10 +385,20 @@ export default function PrivacyPolicy() {
                 </thead>
                 <tbody>
                   <tr className="border-b border-gray-200 bg-white">
+                    <td className="px-3 py-2 font-medium">JLT Group (Janine Loves Travel)</td>
+                    <td className="px-3 py-2">Independent Data Controller / Host Consortium</td>
+                    <td className="px-3 py-2">
+                      CB Travel operates as an authorised agent under JLT Group's host consortium. Booking data is managed through JLT Group's Integrated Reservation System (IRS), to which CB Travel has authorised access. JLT Group acts as an independent data controller for booking data within their IRS.
+                    </td>
+                    <td className="px-3 py-2">
+                      Booking details, passenger names, travel dates, contact information, passport data (as required for travel bookings)
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-200 bg-gray-50">
                     <td className="px-3 py-2 font-medium">Topdog IRS</td>
                     <td className="px-3 py-2">Data Processor</td>
                     <td className="px-3 py-2">
-                      Booking management system
+                      Booking management system (operated on behalf of JLT Group)
                     </td>
                     <td className="px-3 py-2">
                       Booking details, passenger names, travel dates, contact
@@ -426,7 +437,25 @@ export default function PrivacyPolicy() {
                       Browsing data via cookies (only when consented)
                     </td>
                   </tr>
-                  <tr className="bg-white">
+                  <tr className="border-b border-gray-200 bg-gray-50">
+                    <td className="px-3 py-2 font-medium">Protected Trust Services (PTS)</td>
+                    <td className="px-3 py-2">Data Processor</td>
+                    <td className="px-3 py-2">Secure client fund management and payment processing</td>
+                    <td className="px-3 py-2">
+                      Booking values, client names, payment transaction data
+                    </td>
+                  </tr>
+                  <tr className="border-b border-gray-200 bg-white">
+                    <td className="px-3 py-2 font-medium">Groq Inc.</td>
+                    <td className="px-3 py-2">Data Processor (US-based)</td>
+                    <td className="px-3 py-2">
+                      AI inference provider — powers the Travel Itinerary Generator tool. Groq processes itinerary generation prompts (destination preferences, trip details) via their API. Appropriate safeguards are in place for this international transfer (Standard Contractual Clauses).
+                    </td>
+                    <td className="px-3 py-2">
+                      Itinerary prompts (destination, travel dates, preferences). No passport data or contact details are sent to Groq.
+                    </td>
+                  </tr>
+                  <tr className="bg-gray-50">
                     <td className="px-3 py-2 font-medium">Open-Meteo</td>
                     <td className="px-3 py-2">N/A</td>
                     <td className="px-3 py-2">Weather data API</td>
@@ -495,9 +524,14 @@ export default function PrivacyPolicy() {
               </li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-2">
-              Specifically, Railway (our hosting provider) and Cloudflare may
-              process data in the United States. Both provide appropriate
-              safeguards for international transfers.
+              Specifically, Railway (our hosting provider), Cloudflare, and Groq Inc. (AI itinerary
+              generation) may process data in the United States. All three provide appropriate
+              safeguards for international transfers, including Standard Contractual Clauses where applicable.
+            </p>
+            <p className="text-gray-700 leading-relaxed mt-2">
+              By using our services, you acknowledge that your data may be processed in countries
+              outside the UK. Where this occurs, we ensure equivalent protections apply as required
+              by UK GDPR Article 46.
             </p>
           </section>
 

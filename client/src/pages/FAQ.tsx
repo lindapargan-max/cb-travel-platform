@@ -14,7 +14,7 @@ const FAQ_CATEGORIES = [
     items: [
       {
         q: "How do I book a holiday with CB Travel?",
-        a: "Simply fill out our Request a Quote form online or call us directly on 07495 823953. One of our dedicated travel specialists will be in touch within 24 hours to discuss your requirements and begin crafting your perfect holiday.",
+        a: "Simply fill out our Request a Quote form online or call us directly on 07495 823953. One of our dedicated travel specialists will be in touch within 24 hours during business hours (Monday–Friday, 9am–6pm GMT) to discuss your requirements and begin crafting your perfect holiday. Weekend requests will be responded to by the next working day.",
       },
       {
         q: "Is there a fee for using CB Travel's services?",
@@ -89,7 +89,7 @@ const FAQ_CATEGORIES = [
       },
       {
         q: "Do you offer ATOL protection?",
-        a: "Yes, many of our package holidays are ATOL protected, giving you financial protection should anything go wrong. Your specialist will confirm the protection applicable to your specific booking.",
+        a: "Yes. CB Travel operates as an authorised agent under JLT Group (Janine Loves Travel), and ATOL-protected package holidays are covered under JLT Group's ATOL licence (ATOL No. 12564). This means your money is financially protected if an ATOL holder fails. Your specialist will confirm whether ATOL protection applies to your specific booking and provide you with an ATOL certificate where applicable.",
       },
     ],
   },

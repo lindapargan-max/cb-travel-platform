@@ -604,8 +604,14 @@ export default function BookingIntakeForm() {
           </div>
         </div>
 
+        {/* Privacy notice */}
+        <p className="text-center text-white/60 text-xs mt-4 leading-relaxed max-w-lg mx-auto">
+          🔒 For your security, please submit passport and personal data via this secure portal only — not via WhatsApp or email. By submitting this form you agree to your personal data being processed by CB Travel to arrange your booking. View our{" "}
+          <a href="/privacy-policy" className="underline text-white/80 hover:text-white">Privacy Policy</a>.
+        </p>
+
         {/* Footer note */}
-        <p className="text-center text-white/50 text-xs mt-6">
+        <p className="text-center text-white/50 text-xs mt-4">
           Questions? Email us at{" "}
           <a href="mailto:info@travelcb.co.uk" className="text-white/80 hover:text-white underline">
             info@travelcb.co.uk
