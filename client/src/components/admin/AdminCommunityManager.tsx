@@ -227,7 +227,16 @@ export default function AdminCommunityManager() {
             )}
             <div>
               <label className={labelCls}>Amount Given Back</label>
-              <input type="text" value={form.amountRaised} onChange={e => setField("amountRaised", e.target.value)} placeholder="e.g. £2,500 (optional)" className={inputCls} />
+              <div className="flex items-center border border-input rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-ring bg-background">
+                <span className="px-3 py-2 bg-muted text-muted-foreground text-sm font-bold border-r border-input select-none">£</span>
+                <input
+                  type="text"
+                  value={form.amountRaised.replace(/^£/, "")}
+                  onChange={e => setField("amountRaised", e.target.value ? `£${e.target.value.replace(/^£/, "")}` : "")}
+                  placeholder="2,500 (optional)"
+                  className="flex-1 px-3 py-2 bg-transparent outline-none text-sm"
+                />
+              </div>
             </div>
             <div>
               <label className={labelCls}>Location</label>

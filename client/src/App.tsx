@@ -28,7 +28,7 @@ import QuotePage from "./pages/QuotePage";
 import CommunityPage from "./pages/CommunityPage";
 import WhatsAppChatButton from "./components/WhatsAppChatButton";
 import AIChatbot from "./components/AIChatbot";
-import EasterGiveawayModal from "./components/EasterGiveawayModal";
+
 import { trpc } from "./lib/trpc";
 
 // GDPR imports
@@ -117,8 +117,7 @@ function App() {
           <AIChatbot />
           {/* GDPR cookie consent banner */}
           <CookieBanner />
-          {/* Easter Giveaway Popup */}
-          <EasterGiveawayModal />
+
         </SessionTimeoutWrapper>
       </TooltipProvider>
     </ThemeProvider>
