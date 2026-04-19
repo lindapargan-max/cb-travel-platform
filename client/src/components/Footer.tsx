@@ -119,8 +119,9 @@ export default function Footer() {
             Enquiries via WhatsApp are handled in accordance with our{" "}
             <Link href="/privacy-policy">
               <span className="text-white/50 hover:text-yellow-400 transition-colors cursor-pointer underline">Privacy Policy</span>
-            </Link>. We never ask for card details via WhatsApp, SMS or email — payments are processed securely via Protected Trust Services using a secure payment link.
+            </Link>.
           </p>
+
         </div>
 
         {/* Bottom bar */}
