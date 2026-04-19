@@ -122,14 +122,30 @@ export default function AIItineraryGenerator({ destination: initDest, agencyName
 </body>
 </html>`;
 
+    // Wrap html with an action bar so the user can choose to save or print
+    const wrappedHtml = html.replace(
+      '<body>',
+      `<body>
+  <div id="pdf-toolbar" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#020917;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-between;padding:12px 24px;gap:12px;box-shadow:0 2px 20px rgba(0,0,0,0.5);">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:28px;height:28px;background:linear-gradient(135deg,#d4af37,#c9a030);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;color:#020917;">CB</div>
+      <span style="color:rgba(255,255,255,0.6);font-size:13px;font-family:'Inter',sans-serif;">AI Itinerary Studio</span>
+      <span style="color:rgba(255,255,255,0.2);font-size:13px;">·</span>
+      <span style="color:rgba(255,255,255,0.4);font-size:13px;font-family:'Inter',sans-serif;">${agencyName || 'CB Travel'}</span>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="window.print()" style="background:linear-gradient(135deg,#d4af37,#c9a030);color:#020917;border:none;padding:9px 20px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:0.01em;box-shadow:0 2px 12px rgba(212,175,55,0.3);">⬇ Save as PDF</button>
+      <button onclick="window.close()" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.12);padding:9px 16px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;">✕ Close</button>
+    </div>
+  </div>
+  <div style="height:60px;"></div>`
+    );
+
     const printWindow = window.open('', '_blank');
     if (printWindow) {
-      printWindow.document.write(html);
+      printWindow.document.write(wrappedHtml);
       printWindow.document.close();
       printWindow.focus();
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
     }
   };
 
@@ -209,7 +225,7 @@ export default function AIItineraryGenerator({ destination: initDest, agencyName
             {/* Header */}
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 className="text-3xl font-bold text-white font-serif">{result.destination}</h2>
+                <h2 className="text-3xl font-bold text-white">{result.destination}</h2>
                 <p className="text-white/60 mt-1">{result.summary}</p>
               </div>
               <button onClick={() => setResult(null)} className="shrink-0 text-white/40 hover:text-white text-sm border border-white/20 px-3 py-1.5 rounded-lg hover:border-white/40 transition-colors">

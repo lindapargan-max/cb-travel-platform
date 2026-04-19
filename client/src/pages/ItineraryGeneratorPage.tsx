@@ -10,6 +10,7 @@ export default function ItineraryGeneratorPage() {
   const [shake, setShake] = useState(false);
   const [error, setError] = useState('');
   const [fadeIn, setFadeIn] = useState(false);
+  const [showPass, setShowPass] = useState(false);
 
   // Agency setup fields
   const [agencyName, setAgencyName] = useState('');
@@ -17,11 +18,10 @@ export default function ItineraryGeneratorPage() {
   const [tagline, setTagline] = useState('');
 
   const inputRef = useRef<HTMLInputElement>(null);
-
   const logAccessMutation = trpc.ai.logItineraryAccess.useMutation();
 
   useEffect(() => {
-    document.title = "Travel Agent Itinerary Studio | CB Travel";
+    document.title = "AI Itinerary Studio | CB Travel";
     setTimeout(() => setFadeIn(true), 50);
     if (inputRef.current) inputRef.current.focus();
   }, []);
@@ -32,7 +32,7 @@ export default function ItineraryGeneratorPage() {
       setError('');
       setStep('setup');
     } else {
-      setError('Incorrect password. Please try again.');
+      setError('Incorrect access code. Please try again.');
       setShake(true);
       setPassword('');
       setTimeout(() => setShake(false), 600);
@@ -42,7 +42,6 @@ export default function ItineraryGeneratorPage() {
   const handleSetupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!agencyName.trim()) return;
-    // Log access
     logAccessMutation.mutate({
       agencyName: agencyName + (yourName ? ` (${yourName})` : ''),
       agencyTagline: tagline || undefined,
@@ -58,94 +57,122 @@ export default function ItineraryGeneratorPage() {
     });
   };
 
-  const displayName = yourName
-    ? `${agencyName} · ${yourName}`
-    : agencyName;
+  const displayName = yourName ? `${agencyName} · ${yourName}` : agencyName;
+
+  const inputCls = "w-full bg-white/[0.06] border border-white/[0.12] rounded-2xl px-4 py-3.5 text-white placeholder-white/25 focus:outline-none focus:border-[#d4af37]/70 focus:ring-2 focus:ring-[#d4af37]/20 transition-all text-[15px]";
+  const labelCls = "text-[11px] font-semibold text-[#d4af37]/80 uppercase tracking-[0.15em] mb-2 block";
 
   return (
     <div
-      className="min-h-screen"
+      className="min-h-screen flex flex-col"
       style={{
-        background: 'linear-gradient(135deg, #020917 0%, #0a1628 50%, #1e3a5f 100%)',
+        background: 'linear-gradient(160deg, #020b18 0%, #071525 40%, #0d2040 100%)',
         opacity: fadeIn ? 1 : 0,
-        transition: 'opacity 0.4s ease',
+        transition: 'opacity 0.5s ease',
       }}
     >
-      {/* Header bar */}
-      <div className="border-b border-white/10 px-6 py-4 flex items-center justify-between">
+      <style>{`
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          20% { transform: translateX(-8px); }
+          40% { transform: translateX(8px); }
+          60% { transform: translateX(-5px); }
+          80% { transform: translateX(5px); }
+        }
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up { animation: fadeUp 0.4s ease forwards; }
+        .shake { animation: shake 0.5s ease; }
+      `}</style>
+
+      {/* Top bar */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-white/[0.07]">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-[#d4af37] rounded-lg flex items-center justify-center text-[#020917] font-bold text-sm">CB</div>
-          <span className="text-white/60 text-sm">CB Travel · Travel Agent Portal</span>
+          <div className="w-8 h-8 bg-gradient-to-br from-[#d4af37] to-[#b8963a] rounded-lg flex items-center justify-center text-[#020b18] font-black text-[13px] shadow-lg">
+            CB
+          </div>
+          <span className="text-white/40 text-sm font-medium">CB Travel</span>
+          <span className="text-white/20 text-sm">·</span>
+          <span className="text-white/30 text-[13px]">Travel Agent Portal</span>
         </div>
         {step === 'generator' && (
           <div className="text-right">
-            <p className="text-white text-sm font-semibold">{displayName}</p>
-            {tagline && <p className="text-white/40 text-xs">{tagline}</p>}
+            <p className="text-white/80 text-sm font-semibold">{displayName}</p>
+            {tagline && <p className="text-white/30 text-xs mt-0.5">{tagline}</p>}
           </div>
         )}
-      </div>
+      </header>
 
-      <div className="flex flex-col items-center justify-center px-4 py-12">
+      {/* Main content */}
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
 
         {/* ─── STEP 1: Password Gate ─── */}
         {step === 'password' && (
-          <div
-            className={`w-full max-w-md ${shake ? 'animate-shake' : ''}`}
-            style={{ animation: shake ? 'shake 0.5s ease' : undefined }}
-          >
-            <style>{`
-              @keyframes shake {
-                0%, 100% { transform: translateX(0); }
-                20% { transform: translateX(-10px); }
-                40% { transform: translateX(10px); }
-                60% { transform: translateX(-6px); }
-                80% { transform: translateX(6px); }
-              }
-              .animate-shake { animation: shake 0.5s ease; }
-            `}</style>
+          <div className={`w-full max-w-[420px] fade-up ${shake ? 'shake' : ''}`}>
+            {/* Branding */}
             <div className="text-center mb-10">
-              <div className="w-20 h-20 bg-[#d4af37] rounded-2xl flex items-center justify-center text-[#020917] font-bold text-3xl mx-auto mb-6 shadow-lg shadow-[#d4af37]/30">
-                CB
+              <div className="relative inline-flex mb-7">
+                <div className="w-[72px] h-[72px] bg-gradient-to-br from-[#d4af37] to-[#b8963a] rounded-[20px] flex items-center justify-center text-[#020b18] font-black text-2xl shadow-2xl shadow-[#d4af37]/20">
+                  CB
+                </div>
+                <div className="absolute -inset-1 bg-[#d4af37]/20 rounded-[22px] -z-10 blur-md" />
               </div>
-              <h1 className="text-3xl font-bold text-white mb-2" style={{ fontFamily: 'Georgia, serif' }}>
-                Travel Agent Itinerary Studio
+              <h1 className="text-[28px] font-bold text-white tracking-tight leading-tight mb-2">
+                AI Itinerary Studio
               </h1>
-              <p className="text-white/50 text-sm">
+              <p className="text-white/40 text-[14px]">
                 Exclusive access for travel industry professionals
               </p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-sm">
-              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            {/* Card */}
+            <div className="bg-white/[0.04] border border-white/[0.1] rounded-3xl p-8 backdrop-blur-xl shadow-2xl">
+              <form onSubmit={handlePasswordSubmit} className="space-y-5">
                 <div>
-                  <label className="text-xs font-semibold text-[#d4af37] uppercase tracking-widest mb-2 block">
-                    Access Password
-                  </label>
-                  <input
-                    ref={inputRef}
-                    type="password"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    placeholder="Enter your access code"
-                    className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-colors text-center text-lg tracking-widest"
-                    autoComplete="current-password"
-                  />
+                  <label className={labelCls}>Access Code</label>
+                  <div className="relative">
+                    <input
+                      ref={inputRef}
+                      type={showPass ? 'text' : 'password'}
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      placeholder="Enter your access code"
+                      className={`${inputCls} pr-12 text-center tracking-[0.2em]`}
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPass(v => !v)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors p-1"
+                      tabIndex={-1}
+                    >
+                      {showPass ? (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" /></svg>
+                      ) : (
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                      )}
+                    </button>
+                  </div>
                   {error && (
-                    <p className="text-red-400 text-xs mt-2 text-center">{error}</p>
+                    <p className="text-red-400 text-[12px] mt-2 text-center font-medium">{error}</p>
                   )}
                 </div>
                 <button
                   type="submit"
                   disabled={!password}
-                  className="w-full bg-[#d4af37] text-[#020917] py-3 rounded-xl font-bold text-base hover:bg-[#e8c84b] transition-colors disabled:opacity-40 shadow-lg shadow-[#d4af37]/20"
+                  className="w-full bg-gradient-to-r from-[#d4af37] to-[#c9a030] text-[#020b18] py-3.5 rounded-2xl font-bold text-[15px] hover:from-[#e0bc44] hover:to-[#d4af37] transition-all disabled:opacity-35 shadow-lg shadow-[#d4af37]/20 active:scale-[0.98]"
                 >
-                  Enter →
+                  Unlock Access →
                 </button>
               </form>
 
-              <p className="text-center text-white/30 text-xs mt-6">
-                Don't have access? Contact us at{' '}
-                <a href="mailto:hello@travelcb.co.uk" className="text-[#d4af37] hover:underline">hello@travelcb.co.uk</a>
+              <p className="text-center text-white/25 text-[12px] mt-6 leading-relaxed">
+                Don't have access?{' '}
+                <a href="mailto:hello@travelcb.co.uk" className="text-[#d4af37]/60 hover:text-[#d4af37] transition-colors">
+                  hello@travelcb.co.uk
+                </a>
               </p>
             </div>
           </div>
@@ -153,60 +180,68 @@ export default function ItineraryGeneratorPage() {
 
         {/* ─── STEP 2: Agency Setup ─── */}
         {step === 'setup' && (
-          <div className="w-full max-w-md">
-            <div className="text-center mb-8">
-              <div className="w-14 h-14 bg-[#d4af37] rounded-2xl flex items-center justify-center text-[#020917] font-bold text-2xl mx-auto mb-4 shadow-lg shadow-[#d4af37]/30">
-                ✓
+          <div className="w-full max-w-[440px] fade-up">
+            <div className="text-center mb-10">
+              <div className="relative inline-flex mb-6">
+                <div className="w-[64px] h-[64px] bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-[18px] flex items-center justify-center text-white text-2xl shadow-xl">
+                  ✓
+                </div>
+                <div className="absolute -inset-1 bg-emerald-400/20 rounded-[20px] -z-10 blur-md" />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-1" style={{ fontFamily: 'Georgia, serif' }}>
-                Welcome!
+              <h2 className="text-[26px] font-bold text-white tracking-tight mb-2">
+                Access Granted
               </h2>
-              <p className="text-white/50 text-sm">Set up your agency branding before generating itineraries</p>
+              <p className="text-white/40 text-[14px]">
+                Set up your agency branding to personalise itineraries
+              </p>
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-sm">
+            <div className="bg-white/[0.04] border border-white/[0.1] rounded-3xl p-8 backdrop-blur-xl shadow-2xl">
               <form onSubmit={handleSetupSubmit} className="space-y-5">
                 <div>
-                  <label className="text-xs font-semibold text-[#d4af37] uppercase tracking-widest mb-2 block">
-                    Agency Name <span className="text-red-400">*</span>
+                  <label className={labelCls}>
+                    Agency Name <span className="text-red-400 normal-case">*</span>
                   </label>
                   <input
                     type="text"
                     value={agencyName}
                     onChange={e => setAgencyName(e.target.value)}
                     placeholder="e.g. Sunshine Travels"
-                    className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-colors"
+                    className={inputCls}
                     required
+                    autoFocus
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-[#d4af37] uppercase tracking-widest mb-2 block">
-                    Your Name <span className="text-white/30 font-normal normal-case">(optional)</span>
+                  <label className={labelCls}>
+                    Your Name{' '}
+                    <span className="text-white/25 normal-case font-normal tracking-normal">— optional</span>
                   </label>
                   <input
                     type="text"
                     value={yourName}
                     onChange={e => setYourName(e.target.value)}
-                    placeholder="e.g. James"
-                    className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-colors"
+                    placeholder="e.g. Sarah"
+                    className={inputCls}
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-[#d4af37] uppercase tracking-widest mb-2 block">
-                    Tagline <span className="text-white/30 font-normal normal-case">(optional)</span>
+                  <label className={labelCls}>
+                    Tagline{' '}
+                    <span className="text-white/25 normal-case font-normal tracking-normal">— optional</span>
                   </label>
                   <input
                     type="text"
                     value={tagline}
                     onChange={e => setTagline(e.target.value)}
                     placeholder="e.g. Your Dream Holiday Awaits"
-                    className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-colors"
+                    className={inputCls}
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={!agencyName.trim()}
-                  className="w-full bg-[#d4af37] text-[#020917] py-4 rounded-xl font-bold text-base hover:bg-[#e8c84b] transition-colors disabled:opacity-40 shadow-lg shadow-[#d4af37]/20"
+                  className="w-full bg-gradient-to-r from-[#d4af37] to-[#c9a030] text-[#020b18] py-3.5 rounded-2xl font-bold text-[15px] hover:from-[#e0bc44] hover:to-[#d4af37] transition-all disabled:opacity-35 shadow-lg shadow-[#d4af37]/20 active:scale-[0.98] mt-2"
                 >
                   Start Creating ✨
                 </button>
@@ -217,16 +252,20 @@ export default function ItineraryGeneratorPage() {
 
         {/* ─── STEP 3: Generator ─── */}
         {step === 'generator' && (
-          <div className="w-full max-w-3xl">
+          <div className="w-full max-w-3xl fade-up">
             <div className="text-center mb-10">
-              <p className="text-[#d4af37] text-xs font-semibold uppercase tracking-widest mb-2">{displayName}</p>
-              <h1 className="text-4xl font-bold text-white mb-2" style={{ fontFamily: 'Georgia, serif' }}>
+              <p className="text-[#d4af37]/70 text-[11px] font-semibold uppercase tracking-[0.2em] mb-3">
+                {displayName}
+              </p>
+              <h1 className="text-[38px] font-bold text-white tracking-tight leading-none mb-3">
                 AI Itinerary Studio
               </h1>
-              {tagline && <p className="text-white/50 text-base">{tagline}</p>}
+              {tagline && (
+                <p className="text-white/40 text-[15px]">{tagline}</p>
+              )}
             </div>
 
-            <div className="bg-white/5 border border-white/10 rounded-3xl p-8 backdrop-blur-sm">
+            <div className="bg-white/[0.04] border border-white/[0.1] rounded-3xl p-8 backdrop-blur-xl shadow-2xl">
               <AIItineraryGenerator
                 agencyName={displayName}
                 agencyTagline={tagline}
@@ -239,14 +278,19 @@ export default function ItineraryGeneratorPage() {
       </div>
 
       {/* Footer */}
-      <div className="text-center py-6 border-t border-white/5">
-        <p className="text-white/25 text-xs">
+      <footer className="py-5 border-t border-white/[0.05] text-center">
+        <p className="text-white/20 text-[12px]">
           Powered by{' '}
-          <a href="https://travelcb.co.uk" target="_blank" rel="noopener noreferrer" className="text-[#d4af37]/60 hover:text-[#d4af37] transition-colors">
+          <a
+            href="https://travelcb.co.uk"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#d4af37]/50 hover:text-[#d4af37] transition-colors"
+          >
             CB Travel · travelcb.co.uk
           </a>
         </p>
-      </div>
+      </footer>
     </div>
   );
 }
