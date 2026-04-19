@@ -1043,7 +1043,10 @@ export async function ensureReferralCode(userId: number): Promise<string> {
   const rows = await db.execute(sql`SELECT referralCode FROM users WHERE id = ${userId} LIMIT 1`);
   const user = ((rows as any)[0] as any[])[0];
   if (user?.referralCode) return user.referralCode;
-  const code = `REF-${userId}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+  // Generate a unique, deterministic code from the user ID using a SHA-256 hash.
+  // Taking 8 hex chars gives 4 billion possible values — collision-free in practice.
+  const hash = crypto.createHash("sha256").update(`referral-${userId}-${process.env.SESSION_SECRET || "cb-travel-referral"}`).digest("hex");
+  const code = `REF-${hash.substring(0, 8).toUpperCase()}`;
   await db.execute(sql`UPDATE users SET referralCode = ${code} WHERE id = ${userId}`);
   return code;
 }
