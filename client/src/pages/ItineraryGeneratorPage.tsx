@@ -19,6 +19,7 @@ export default function ItineraryGeneratorPage() {
 
   const inputRef = useRef<HTMLInputElement>(null);
   const logAccessMutation = trpc.ai.logItineraryAccess.useMutation();
+  const verifyPasswordMutation = trpc.ai.verifyItineraryPassword.useMutation();
 
   useEffect(() => {
     document.title = "AI Itinerary Studio | CB Travel";
@@ -26,16 +27,21 @@ export default function ItineraryGeneratorPage() {
     if (inputRef.current) inputRef.current.focus();
   }, []);
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'CBTRAVEL2025') {
-      setError('');
-      setStep('setup');
-    } else {
-      setError('Incorrect access code. Please try again.');
-      setShake(true);
-      setPassword('');
-      setTimeout(() => setShake(false), 600);
+    try {
+      const result = await verifyPasswordMutation.mutateAsync({ password });
+      if (result.valid) {
+        setError('');
+        setStep('setup');
+      } else {
+        setError('Incorrect access code. Please try again.');
+        setShake(true);
+        setPassword('');
+        setTimeout(() => setShake(false), 600);
+      }
+    } catch {
+      setError('Unable to verify. Please try again.');
     }
   };
 
@@ -45,6 +51,7 @@ export default function ItineraryGeneratorPage() {
     logAccessMutation.mutate({
       agencyName: agencyName + (yourName ? ` (${yourName})` : ''),
       agencyTagline: tagline || undefined,
+      eventType: 'access',
     });
     setStep('generator');
   };
@@ -54,6 +61,7 @@ export default function ItineraryGeneratorPage() {
       agencyName: agencyName + (yourName ? ` (${yourName})` : ''),
       agencyTagline: tagline || undefined,
       destination,
+      eventType: 'generation',
     });
   };
 

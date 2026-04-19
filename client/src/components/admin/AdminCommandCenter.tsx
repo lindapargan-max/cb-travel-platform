@@ -191,7 +191,7 @@ export default function AdminCommandCenter({ onTabChange }: AdminCommandCenterPr
           </Button>
           <Button
             variant="outline"
-            onClick={() => onTabChange("analytics")}
+            onClick={() => onTabChange("audit")}
             className="h-12 gap-2 font-semibold hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200 transition-colors"
           >
             <BarChart3 className="w-4 h-4" /> View Reports

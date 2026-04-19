@@ -3018,7 +3018,13 @@ export default function AdminDashboard() {
   // V6 queries
   const { data: bookedDestinations, refetch: refetchDestinations } = trpc.destinations.getAll.useQuery();
   const { data: auditLogs } = trpc.auditLogs.get.useQuery({ limit: 200 });
-  const { data: itineraryLogs } = trpc.itinerary.getItineraryAccessLogs.useQuery();
+  const { data: itineraryLogs, refetch: refetchItineraryLogs } = trpc.ai.getItineraryAccessLogs.useQuery();
+  const { data: itineraryPasswordData, refetch: refetchItineraryPassword } = trpc.ai.getItineraryPassword.useQuery();
+  const setItineraryPasswordMutation = trpc.ai.setItineraryPassword.useMutation({
+    onSuccess: () => { toast.success("Access password updated! ✓"); refetchItineraryPassword(); setItineraryPasswordEdit(''); },
+    onError: (e) => toast.error(e.message),
+  });
+  const [itineraryPasswordEdit, setItineraryPasswordEdit] = useState('');
   const { data: campaigns, refetch: refetchCampaigns } = trpc.newsletterV6.getCampaigns.useQuery();
   const { data: allSettings, refetch: refetchSettings } = trpc.settings.getAll.useQuery();
   const { data: allTickets, refetch: refetchTickets } = trpc.support.adminGetAll.useQuery();
@@ -4210,6 +4216,41 @@ export default function AdminDashboard() {
           {/* ITINERARY TOOL LOGS */}
           <TabsContent value="itinerary-logs">
             <div className="space-y-5">
+              {/* Password Management */}
+              <div className="bg-white rounded-2xl border border-amber-200 p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center">
+                    <Lock size={16} className="text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm text-foreground">Access Password</h3>
+                    <p className="text-xs text-muted-foreground">Controls who can enter the AI Itinerary Generator at <code className="bg-muted px-1 rounded text-xs">travelcb.co.uk/itinerarygenerator</code></p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex-1">
+                    <span className="text-xs text-amber-700 font-medium">Current password:</span>
+                    <code className="text-sm font-mono text-amber-900 font-bold">{itineraryPasswordData?.password || 'CBTRAVEL2025'}</code>
+                  </div>
+                  <div className="flex items-center gap-2 flex-1">
+                    <Input
+                      placeholder="New password (min. 6 chars)"
+                      value={itineraryPasswordEdit}
+                      onChange={e => setItineraryPasswordEdit(e.target.value)}
+                      className="rounded-xl text-sm font-mono"
+                    />
+                    <Button
+                      onClick={() => { if (itineraryPasswordEdit.length >= 6) setItineraryPasswordMutation.mutate({ password: itineraryPasswordEdit }); else toast.error("Password must be at least 6 characters"); }}
+                      disabled={setItineraryPasswordMutation.isPending || !itineraryPasswordEdit}
+                      className="rounded-xl btn-gold border-0 text-foreground shrink-0"
+                      size="sm"
+                    >
+                      {setItineraryPasswordMutation.isPending ? 'Saving…' : 'Update'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
               {/* Header */}
               <div className="bg-white rounded-2xl border border-border p-6">
                 <div className="flex items-center justify-between mb-1">

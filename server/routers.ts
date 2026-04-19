@@ -1801,7 +1801,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
     generateItinerary: protectedProcedure
       .input(z.object({
         destination: z.string(),
-        duration: z.number().min(1).max(21),
+        duration: z.number().min(1).max(30),
         travelStyle: z.enum(['relaxing', 'adventurous', 'cultural', 'family']),
         interests: z.array(z.string()),
       }))
@@ -1918,6 +1918,7 @@ ${faqContext}`;
         agencyName: z.string().optional(),
         agencyTagline: z.string().optional(),
         destination: z.string().optional(),
+        eventType: z.string().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         try {
@@ -1925,10 +1926,44 @@ ${faqContext}`;
           const { sql } = await import('drizzle-orm');
           const db = await getDb();
           if (!db) return { success: true };
+          // Ensure table exists
+          await db.execute(sql`CREATE TABLE IF NOT EXISTS itineraryAccessLog (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            ipAddress VARCHAR(45),
+            agencyName VARCHAR(255),
+            agencyTagline VARCHAR(500),
+            destination VARCHAR(255),
+            userAgent TEXT,
+            eventType VARCHAR(50) DEFAULT 'access',
+            accessedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+          )`);
           const ip = (ctx as any).req?.headers['x-forwarded-for'] as string || (ctx as any).req?.socket?.remoteAddress || 'unknown';
           const ua = (ctx as any).req?.headers['user-agent'] as string || '';
-          await db.execute(sql`INSERT INTO itineraryAccessLog (ipAddress, agencyName, agencyTagline, destination, userAgent) VALUES (${ip}, ${input.agencyName || null}, ${input.agencyTagline || null}, ${input.destination || null}, ${ua})`);
+          const evType = input.eventType || 'access';
+          await db.execute(sql`INSERT INTO itineraryAccessLog (ipAddress, agencyName, agencyTagline, destination, userAgent, eventType) VALUES (${ip}, ${input.agencyName || null}, ${input.agencyTagline || null}, ${input.destination || null}, ${ua}, ${evType})`);
         } catch(e) { console.error('Failed to log itinerary access:', e); }
+        return { success: true };
+      }),
+
+    // Public: verify itinerary password
+    verifyItineraryPassword: publicProcedure
+      .input(z.object({ password: z.string() }))
+      .mutation(async ({ input }) => {
+        const storedPassword = (await getAppSetting('itinerary_password')) || 'CBTRAVEL2025';
+        return { valid: input.password === storedPassword };
+      }),
+
+    // Admin: get current itinerary password
+    getItineraryPassword: adminMiddleware.query(async () => {
+      const password = (await getAppSetting('itinerary_password')) || 'CBTRAVEL2025';
+      return { password };
+    }),
+
+    // Admin: set itinerary password
+    setItineraryPassword: adminMiddleware
+      .input(z.object({ password: z.string().min(6) }))
+      .mutation(async ({ input }) => {
+        await setAppSetting('itinerary_password', input.password);
         return { success: true };
       }),
 
@@ -1939,9 +1974,20 @@ ${faqContext}`;
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
         if (!db) return [];
+        // Ensure table exists before querying
+        await db.execute(sql`CREATE TABLE IF NOT EXISTS itineraryAccessLog (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          ipAddress VARCHAR(45),
+          agencyName VARCHAR(255),
+          agencyTagline VARCHAR(500),
+          destination VARCHAR(255),
+          userAgent TEXT,
+          eventType VARCHAR(50) DEFAULT 'access',
+          accessedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+        )`);
         const rows = await db.execute(sql`SELECT * FROM itineraryAccessLog ORDER BY accessedAt DESC LIMIT 500`);
         return (rows as any)[0] || [];
-      } catch { return []; }
+      } catch(e) { console.error('getItineraryAccessLogs error:', e); return []; }
     }),
   }),
 

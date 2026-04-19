@@ -36,12 +36,107 @@ export default function AIItineraryGenerator({ destination: initDest, agencyName
   const downloadPDF = () => {
     if (!result) return;
 
-    const html = `
-<!DOCTYPE html>
+    // Embed the itinerary data as JSON and load jsPDF from CDN for a true PDF download
+    const dataJson = JSON.stringify({
+      destination: result.destination,
+      duration: result.duration,
+      summary: result.summary,
+      days: result.days,
+      practicalTips: result.practicalTips || [],
+      bestTimeToVisit: result.bestTimeToVisit || '',
+      localCurrency: result.localCurrency || '',
+      agencyName: agencyName || 'CB Travel',
+      agencyTagline: agencyTagline || '',
+    }).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+
+    const pdfScript = `
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
+<script>
+var __DATA__ = ${dataJson};
+function savePDF() {
+  var btn = document.getElementById('pdf-btn');
+  if (btn) { btn.textContent = 'Generating...'; btn.disabled = true; }
+  try {
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    var pw = 210, ph = 297, mg = 18, cw = pw - mg * 2;
+    var y = mg;
+    function newPage(need) { if (y + (need||10) > ph - mg) { doc.addPage(); y = mg; } }
+    function wt(text, size, r, g, b, bold) {
+      doc.setFontSize(size); doc.setTextColor(r,g,b);
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      var lines = doc.splitTextToSize(String(text||''), cw);
+      for (var i=0; i<lines.length; i++) { newPage(size*0.5); doc.text(lines[i], mg, y); y += size*0.38; }
+      y += 2;
+    }
+    // Cover
+    doc.setFillColor(2,9,23); doc.rect(0,0,pw,55,'F');
+    doc.setFontSize(9); doc.setTextColor(212,175,55); doc.setFont('helvetica','bold');
+    doc.text((__DATA__.agencyName||'CB TRAVEL').toUpperCase(), mg, 18);
+    doc.setFontSize(24); doc.setTextColor(255,255,255);
+    var dl = doc.splitTextToSize(__DATA__.destination, cw);
+    for (var di=0; di<dl.length; di++) doc.text(dl[di], mg, 30 + di*10);
+    doc.setFontSize(11); doc.setTextColor(180,180,180); doc.setFont('helvetica','normal');
+    doc.text(__DATA__.duration+'-Day Luxury Itinerary', mg, 47);
+    y = 62;
+    // Summary
+    wt('TRIP OVERVIEW', 8, 30,58,95, true); y -= 2;
+    wt(__DATA__.summary||'', 10, 74,85,104); y += 4;
+    // Days
+    for (var di=0; di<__DATA__.days.length; di++) {
+      var day = __DATA__.days[di];
+      newPage(25);
+      doc.setFillColor(30,58,95); doc.roundedRect(mg-2, y-1, cw+4, 9, 1, 1, 'F');
+      doc.setFontSize(9); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+      var dayTitle = doc.splitTextToSize('Day '+day.day+': '+day.title, cw-4);
+      doc.text(dayTitle[0], mg+1, y+5.5); y += 12;
+      if (day.morning) { wt('Morning', 7.5, 212,175,55, true); y -= 2; wt(day.morning, 9.5, 60,70,90); }
+      if (day.afternoon) { wt('Afternoon', 7.5, 212,175,55, true); y -= 2; wt(day.afternoon, 9.5, 60,70,90); }
+      if (day.evening) { wt('Evening', 7.5, 212,175,55, true); y -= 2; wt(day.evening, 9.5, 60,70,90); }
+      if (day.tip) {
+        newPage(14);
+        doc.setFillColor(255,251,235); doc.setDrawColor(212,175,55);
+        var tipLines = doc.splitTextToSize('Tip: '+day.tip, cw-4);
+        var tipH = Math.max(10, tipLines.length*4+5);
+        doc.roundedRect(mg, y, cw, tipH, 1, 1, 'FD');
+        doc.setFontSize(8.5); doc.setTextColor(120,53,15); doc.setFont('helvetica','italic');
+        for (var ti=0; ti<tipLines.length; ti++) doc.text(tipLines[ti], mg+2, y+4+ti*4);
+        y += tipH + 2;
+      }
+      y += 5;
+    }
+    // Practical tips
+    if (__DATA__.practicalTips && __DATA__.practicalTips.length > 0) {
+      newPage(20); wt('PRACTICAL TIPS', 8, 30,58,95, true);
+      for (var pi=0; pi<__DATA__.practicalTips.length; pi++) wt('  - '+__DATA__.practicalTips[pi], 9.5, 60,70,90);
+    }
+    // Footers
+    var np = doc.internal.getNumberOfPages();
+    for (var pg=1; pg<=np; pg++) {
+      doc.setPage(pg); doc.setFontSize(7.5); doc.setTextColor(160,160,160); doc.setFont('helvetica','normal');
+      doc.setDrawColor(220,220,220); doc.line(mg, ph-10, pw-mg, ph-10);
+      doc.text((__DATA__.agencyName||'CB Travel')+' — '+__DATA__.destination+' Itinerary', mg, ph-6);
+      doc.text('Page '+pg+' of '+np, pw-mg-18, ph-6);
+    }
+    var fname = __DATA__.destination.replace(/[^a-z0-9]/gi,'-')+'-'+__DATA__.duration+'day-itinerary.pdf';
+    doc.save(fname);
+  } catch(e) { alert('PDF generation failed. Please try again.'); console.error(e); }
+  finally { if (btn) { btn.textContent = 'Save as PDF'; btn.disabled = false; } }
+}
+window.addEventListener('load', function() {
+  var s = document.createElement('script');
+  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  s.onload = function() { /* ready */ };
+  document.head.appendChild(s);
+});
+<\/script>`;
+
+    const html = `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
   <title>${agencyName || 'CB Travel'} — ${result.destination} Itinerary</title>
+  ${pdfScript}
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -70,13 +165,22 @@ export default function AIItineraryGenerator({ destination: initDest, agencyName
     .practical-item:before { content: '→ '; color: #d4af37; font-weight: 700; }
     .footer { padding: 20px 50px; text-align: center; font-size: 11px; color: #9ca3af; border-top: 1px solid #e5e7eb; }
     .footer-brand { color: #d4af37; font-weight: 600; }
-    @media print {
-      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-      .day { page-break-inside: avoid; }
-    }
   </style>
 </head>
 <body>
+  <div id="pdf-toolbar" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#020917;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:space-between;padding:12px 24px;gap:12px;box-shadow:0 2px 20px rgba(0,0,0,0.5);">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="width:28px;height:28px;background:linear-gradient(135deg,#d4af37,#c9a030);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;color:#020917;">CB</div>
+      <span style="color:rgba(255,255,255,0.6);font-size:13px;font-family:'Inter',sans-serif;">AI Itinerary Studio</span>
+      <span style="color:rgba(255,255,255,0.2);font-size:13px;">·</span>
+      <span style="color:rgba(255,255,255,0.4);font-size:13px;font-family:'Inter',sans-serif;">${agencyName || 'CB Travel'}</span>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button id="pdf-btn" onclick="savePDF()" style="background:linear-gradient(135deg,#d4af37,#c9a030);color:#020917;border:none;padding:9px 20px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:0.01em;box-shadow:0 2px 12px rgba(212,175,55,0.3);">Save as PDF</button>
+      <button onclick="window.close()" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.12);padding:9px 16px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;">✕ Close</button>
+    </div>
+  </div>
+  <div style="height:60px;"></div>
   <div class="cover">
     <p class="cover-agency">${agencyName || 'CB Travel'}${agencyTagline ? ' — ' + agencyTagline : ''}</p>
     <h1 class="cover-title">${result.destination}</h1>
@@ -97,18 +201,18 @@ export default function AIItineraryGenerator({ destination: initDest, agencyName
       <span class="day-title">${d.title}</span>
     </div>
     <div class="period">
-      <div class="period-label">🌅 Morning</div>
+      <div class="period-label">Morning</div>
       <div class="period-text">${d.morning}</div>
     </div>
     <div class="period">
-      <div class="period-label">☀️ Afternoon</div>
+      <div class="period-label">Afternoon</div>
       <div class="period-text">${d.afternoon}</div>
     </div>
     <div class="period">
-      <div class="period-label">🌙 Evening</div>
+      <div class="period-label">Evening</div>
       <div class="period-text">${d.evening}</div>
     </div>
-    ${d.tip ? `<div class="tip">💡 Local tip: ${d.tip}</div>` : ''}
+    ${d.tip ? `<div class="tip">Local tip: ${d.tip}</div>` : ''}
   </div>`).join('')}
   ${result.practicalTips && result.practicalTips.length > 0 ? `
   <div class="practical">
@@ -122,30 +226,11 @@ export default function AIItineraryGenerator({ destination: initDest, agencyName
 </body>
 </html>`;
 
-    // Wrap html with an action bar so the user can choose to save or print
-    const wrappedHtml = html.replace(
-      '<body>',
-      `<body>
-  <div id="pdf-toolbar" style="position:fixed;top:0;left:0;right:0;z-index:9999;background:#020917;border-bottom:1px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-between;padding:12px 24px;gap:12px;box-shadow:0 2px 20px rgba(0,0,0,0.5);">
-    <div style="display:flex;align-items:center;gap:10px;">
-      <div style="width:28px;height:28px;background:linear-gradient(135deg,#d4af37,#c9a030);border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:11px;color:#020917;">CB</div>
-      <span style="color:rgba(255,255,255,0.6);font-size:13px;font-family:'Inter',sans-serif;">AI Itinerary Studio</span>
-      <span style="color:rgba(255,255,255,0.2);font-size:13px;">·</span>
-      <span style="color:rgba(255,255,255,0.4);font-size:13px;font-family:'Inter',sans-serif;">${agencyName || 'CB Travel'}</span>
-    </div>
-    <div style="display:flex;gap:10px;">
-      <button onclick="window.print()" style="background:linear-gradient(135deg,#d4af37,#c9a030);color:#020917;border:none;padding:9px 20px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:0.01em;box-shadow:0 2px 12px rgba(212,175,55,0.3);">⬇ Save as PDF</button>
-      <button onclick="window.close()" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.6);border:1px solid rgba(255,255,255,0.12);padding:9px 16px;border-radius:10px;font-weight:600;font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;">✕ Close</button>
-    </div>
-  </div>
-  <div style="height:60px;"></div>`
-    );
-
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(wrappedHtml);
-      printWindow.document.close();
-      printWindow.focus();
+    const previewWindow = window.open('', '_blank');
+    if (previewWindow) {
+      previewWindow.document.write(html);
+      previewWindow.document.close();
+      previewWindow.focus();
     }
   };
 
@@ -173,13 +258,15 @@ export default function AIItineraryGenerator({ destination: initDest, agencyName
               </div>
               <div>
                 <label className="text-xs font-semibold text-[#d4af37] uppercase tracking-widest mb-2 block">Duration</label>
-                <select
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
                   value={duration}
-                  onChange={e => setDuration(Number(e.target.value))}
+                  onChange={e => setDuration(Math.max(1, Math.min(30, parseInt(e.target.value) || 1)))}
                   className="w-full bg-white/5 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-[#d4af37] focus:ring-1 focus:ring-[#d4af37] transition-colors"
-                >
-                  {[3,5,7,10,14,21].map(n => <option key={n} value={n} className="bg-[#020917]">{n} days</option>)}
-                </select>
+                  placeholder="e.g. 7"
+                />
               </div>
             </div>
             <div>
@@ -335,9 +422,15 @@ export default function AIItineraryGenerator({ destination: initDest, agencyName
                 </div>
                 <div>
                   <label className="text-xs font-medium text-slate-600 mb-1 block">Duration (days)</label>
-                  <select value={duration} onChange={e => setDuration(Number(e.target.value))} className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]">
-                    {[3,5,7,10,14,21].map(n => <option key={n} value={n}>{n} days</option>)}
-                  </select>
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={duration}
+                    onChange={e => setDuration(Math.max(1, Math.min(30, parseInt(e.target.value) || 1)))}
+                    placeholder="e.g. 7"
+                    className="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
+                  />
                 </div>
               </div>
               <div>
