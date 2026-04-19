@@ -107,6 +107,11 @@ import {
   updateBookingReference,
   logEmailRecord,
   getEmailLogs,
+  logLoginHistory,
+  getLoginHistoryForUser,
+  getEmailLogsForUser,
+  getUpcomingBirthdays,
+  getClientReferrals,
   createPasswordResetToken,
   createSetPasswordToken,
   verifyPasswordResetToken,
@@ -303,6 +308,9 @@ export const appRouter = router({
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, cookieOptions);
         updateLastSignedIn(user.id).catch(console.error);
+        const loginIp = (ctx.req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || ctx.req.socket?.remoteAddress || null;
+        const loginUa = ctx.req.headers['user-agent'] as string || null;
+        logLoginHistory(user.id, loginIp, loginUa).catch(console.error);
         return { success: true, user };
       }),
     forgotPassword: publicProcedure
@@ -1047,6 +1055,12 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
 
         const { sendPaymentReminderEmail } = await import("./emails");
         const result = await sendPaymentReminderEmail(to, clientName, bookingRef, destination, totalPrice, amountPaid, outstanding);
+        if (result.success) {
+          // Find userId by email for logging
+          const { getUserByEmail } = await import("./db");
+          const recipient = await getUserByEmail(to);
+          logEmailRecord({ toEmail: to, subject: `Payment Reminder — ${destination} | CB Travel`, emailType: 'payment_reminder', status: 'sent', userId: recipient?.id, bookingId: input.bookingId }).catch(console.error);
+        }
         return { success: result.success, error: result.error };
       }),
     updateUserProfile: adminMiddleware
@@ -1086,6 +1100,23 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
         }).catch(console.error);
         return { success: true };
       }),
+
+    // ─── Client detail routes (new) ───────────────────────────────────────
+    getClientEmailLogs: adminMiddleware
+      .input(z.object({ userId: z.number(), limit: z.number().optional() }))
+      .query(async ({ input }) => getEmailLogsForUser(input.userId, input.limit || 50)),
+
+    getClientLoginHistory: adminMiddleware
+      .input(z.object({ userId: z.number(), limit: z.number().optional() }))
+      .query(async ({ input }) => getLoginHistoryForUser(input.userId, input.limit || 20)),
+
+    getUpcomingBirthdays: adminMiddleware
+      .input(z.object({ daysAhead: z.number().optional() }).optional())
+      .query(async ({ input }) => getUpcomingBirthdays(input?.daysAhead || 14)),
+
+    getClientReferrals: adminMiddleware
+      .input(z.object({ userId: z.number() }))
+      .query(async ({ input }) => getClientReferrals(input.userId)),
   }),
 
   emergency: router({

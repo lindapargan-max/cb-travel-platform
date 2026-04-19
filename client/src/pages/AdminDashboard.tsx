@@ -2754,95 +2754,202 @@ function AdminThingsToDo({ destination }: { destination: string }) {
 }
 
 function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userBookings: any[]; onUpdate: () => void }) {
+  const [activeTab, setActiveTab] = useState<'overview'|'personal'|'passport'|'bookings'|'referrals'|'comms'|'logins'>('overview');
   const [editForm, setEditForm] = useState({
-    name: user.name || "",
-    email: user.email || "",
-    phone: user.phone || "",
-    dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split("T")[0] : "",
+    name: user.name || '',
+    email: user.email || '',
+    phone: user.phone || '',
+    dateOfBirth: user.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '',
   });
   const [passportForm, setPassportForm] = useState({
-    passportNumber: user.passportNumber || "",
-    passportExpiry: user.passportExpiry || "",
-    passportIssueDate: user.passportIssueDate || "",
-    passportIssuingCountry: user.passportIssuingCountry || "",
-    passportNationality: user.passportNationality || "",
+    passportNumber: user.passportNumber || '',
+    passportExpiry: user.passportExpiry || '',
+    passportIssueDate: user.passportIssueDate || '',
+    passportIssuingCountry: user.passportIssuingCountry || '',
+    passportNationality: user.passportNationality || '',
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [savingPassport, setSavingPassport] = useState(false);
   const [savedPassport, setSavedPassport] = useState(false);
 
+  const { data: emailLogs, isLoading: emailLogsLoading } = trpc.admin.getClientEmailLogs.useQuery({ userId: user.id }, { enabled: activeTab === 'comms' });
+  const { data: loginHistory, isLoading: loginHistoryLoading } = trpc.admin.getClientLoginHistory.useQuery({ userId: user.id }, { enabled: activeTab === 'logins' });
+  const { data: clientReferrals, isLoading: referralsLoading } = trpc.admin.getClientReferrals.useQuery({ userId: user.id }, { enabled: activeTab === 'referrals' });
+
   const updateProfile = trpc.admin.updateUserProfile.useMutation({
-    onSuccess: () => {
-      setSaved(true);
-      setSaving(false);
-      setTimeout(() => setSaved(false), 2000);
-      onUpdate();
-    },
-    onError: (e) => {
-      toast.error("Failed to update: " + e.message);
-      setSaving(false);
-    }
+    onSuccess: () => { setSaved(true); setSaving(false); setTimeout(() => setSaved(false), 2500); onUpdate(); },
+    onError: (e) => { toast.error('Failed to update: ' + e.message); setSaving(false); }
   });
-
   const updatePassport = trpc.admin.updateUserPassport.useMutation({
-    onSuccess: () => {
-      setSavedPassport(true);
-      setSavingPassport(false);
-      setTimeout(() => setSavedPassport(false), 2000);
-      onUpdate();
-    },
-    onError: (e) => {
-      toast.error("Failed to save passport: " + e.message);
-      setSavingPassport(false);
-    }
+    onSuccess: () => { setSavedPassport(true); setSavingPassport(false); setTimeout(() => setSavedPassport(false), 2500); onUpdate(); },
+    onError: (e) => { toast.error('Failed to save passport: ' + e.message); setSavingPassport(false); }
   });
 
-  const handleSave = () => {
-    setSaving(true);
-    setSaved(false);
-    updateProfile.mutate({
-      id: user.id,
-      name: editForm.name || undefined,
-      email: editForm.email || undefined,
-      phone: editForm.phone || null,
-      dateOfBirth: editForm.dateOfBirth || null,
-    });
-  };
-
-  const handleSavePassport = () => {
-    setSavingPassport(true);
-    setSavedPassport(false);
-    updatePassport.mutate({
-      id: user.id,
-      passportNumber: passportForm.passportNumber || null,
-      passportExpiry: passportForm.passportExpiry || null,
-      passportIssueDate: passportForm.passportIssueDate || null,
-      passportIssuingCountry: passportForm.passportIssuingCountry || null,
-      passportNationality: passportForm.passportNationality || null,
-    });
-  };
-
-  const inputCls = "w-full px-3 py-2 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all";
-  const labelCls = "text-xs text-muted-foreground font-medium block mb-1";
-
-  // Loyalty points from the user object
   const loyaltyPoints = (user as any).loyaltyPoints ?? 0;
-  const loyaltyTier = loyaltyPoints >= 10000 ? "Platinum" : loyaltyPoints >= 5000 ? "Gold" : loyaltyPoints >= 1000 ? "Silver" : "Bronze";
-  const tierColor = loyaltyTier === "Platinum" ? "text-purple-700 bg-purple-50" : loyaltyTier === "Gold" ? "text-amber-700 bg-amber-50" : loyaltyTier === "Silver" ? "text-slate-600 bg-slate-100" : "text-orange-700 bg-orange-50";
+  const loyaltyTier = loyaltyPoints >= 10000 ? 'Platinum' : loyaltyPoints >= 5000 ? 'Gold' : loyaltyPoints >= 1000 ? 'Silver' : 'Bronze';
+  const tierColor = loyaltyTier === 'Platinum' ? 'text-purple-700 bg-purple-50 border-purple-200' : loyaltyTier === 'Gold' ? 'text-amber-700 bg-amber-50 border-amber-200' : loyaltyTier === 'Silver' ? 'text-slate-600 bg-slate-100 border-slate-200' : 'text-orange-700 bg-orange-50 border-orange-200';
+  const tierGradient = loyaltyTier === 'Platinum' ? 'from-purple-500 to-indigo-600' : loyaltyTier === 'Gold' ? 'from-amber-400 to-orange-500' : loyaltyTier === 'Silver' ? 'from-slate-400 to-slate-500' : 'from-orange-400 to-amber-500';
+
+  const totalSpend = userBookings.reduce((sum: number, b: any) => sum + (parseFloat(b.amountPaid) || 0), 0);
+  const memberSince = user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' }) : 'Unknown';
+  const lastSeen = user.lastSignedIn ? new Date(user.lastSignedIn).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Never';
+
+  const inputCls = 'w-full px-3 py-2.5 text-sm border border-border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all';
+  const labelCls = 'text-xs text-muted-foreground font-medium block mb-1.5';
+
+  const tabs = [
+    { id: 'overview', label: 'Overview', icon: '📊' },
+    { id: 'personal', label: 'Personal', icon: '👤' },
+    { id: 'passport', label: 'Passport', icon: '🛂' },
+    { id: 'bookings', label: `Bookings (${userBookings.length})`, icon: '✈️' },
+    { id: 'referrals', label: 'Referrals', icon: '🔗' },
+    { id: 'comms', label: 'Comms Log', icon: '📧' },
+    { id: 'logins', label: 'Login History', icon: '🔐' },
+  ] as const;
+
+  const passportDays = passportForm.passportExpiry ? Math.ceil((new Date(passportForm.passportExpiry).getTime() - Date.now()) / 86400000) : null;
 
   return (
-    <div className="border-t border-border bg-slate-50/60 p-5">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+    <div className="border-t border-border bg-gradient-to-b from-slate-50 to-white animate-in slide-in-from-top-2 duration-200">
+      {/* Hero Header */}
+      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-6 pt-6 pb-0">
+        <div className="flex items-start gap-4 mb-5">
+          {/* Avatar */}
+          <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${tierGradient} flex items-center justify-center text-white font-bold text-xl shadow-lg flex-shrink-0`}>
+            {(user.name || user.email || '?').charAt(0).toUpperCase()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="text-white font-bold text-lg">{user.name || '—'}</h3>
+              {user.role === 'admin' && <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full font-medium border border-primary/30">Admin</span>}
+              {user.isDisabled && <span className="text-xs bg-red-500/20 text-red-300 px-2 py-0.5 rounded-full font-medium">Disabled</span>}
+              <span className={`text-xs px-2 py-0.5 rounded-full font-bold border ${tierColor}`}>{loyaltyTier}</span>
+            </div>
+            <p className="text-slate-400 text-sm mt-0.5">{user.email}</p>
+            {user.phone && <p className="text-slate-500 text-xs mt-0.5">{user.phone}</p>}
+          </div>
+          {/* Quick stats */}
+          <div className="hidden md:flex items-center gap-6 text-center">
+            <div>
+              <p className="text-white font-bold text-lg">{userBookings.length}</p>
+              <p className="text-slate-400 text-xs">Bookings</p>
+            </div>
+            <div className="w-px h-8 bg-slate-700" />
+            <div>
+              <p className="text-white font-bold text-lg">£{totalSpend.toLocaleString('en-GB', {minimumFractionDigits: 0})}</p>
+              <p className="text-slate-400 text-xs">Total Spend</p>
+            </div>
+            <div className="w-px h-8 bg-slate-700" />
+            <div>
+              <p className="text-white font-bold text-lg">{loyaltyPoints.toLocaleString()}</p>
+              <p className="text-slate-400 text-xs">Points</p>
+            </div>
+            <div className="w-px h-8 bg-slate-700" />
+            <div>
+              <p className="text-slate-300 text-sm font-medium">{lastSeen}</p>
+              <p className="text-slate-400 text-xs">Last seen</p>
+            </div>
+          </div>
+        </div>
 
-        {/* ── Profile Edit ── */}
-        <div className="lg:col-span-1 space-y-5">
-          <div className="bg-white rounded-2xl border border-border p-4">
-            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <span className="w-5 h-5 bg-primary/10 rounded-lg flex items-center justify-center text-primary text-xs">✎</span>
-              Profile
-            </h4>
-            <div className="space-y-3">
+        {/* Tabs */}
+        <div className="flex gap-1 overflow-x-auto pb-0 scrollbar-hide">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold rounded-t-xl whitespace-nowrap transition-all border-t border-x ${
+                activeTab === tab.id
+                  ? 'bg-white text-foreground border-border border-b-white -mb-px relative z-10'
+                  : 'text-slate-400 hover:text-slate-200 border-transparent hover:bg-white/10'
+              }`}
+            >
+              <span>{tab.icon}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      <div className="p-5 border-t border-border bg-white">
+
+        {/* ── Overview ── */}
+        {activeTab === 'overview' && (
+          <div className="space-y-5">
+            {/* Stat cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Total Bookings', value: userBookings.length, icon: '✈️', color: 'bg-blue-50 text-blue-700' },
+                { label: 'Total Spend', value: `£${totalSpend.toLocaleString('en-GB', {minimumFractionDigits: 0})}`, icon: '💷', color: 'bg-emerald-50 text-emerald-700' },
+                { label: 'Loyalty Points', value: loyaltyPoints.toLocaleString(), icon: '⭐', color: 'bg-amber-50 text-amber-700' },
+                { label: 'Member Since', value: memberSince, icon: '📅', color: 'bg-purple-50 text-purple-700' },
+              ].map(stat => (
+                <div key={stat.label} className={`rounded-2xl p-4 ${stat.color}`}>
+                  <p className="text-2xl mb-0.5">{stat.icon}</p>
+                  <p className="font-bold text-lg leading-tight">{stat.value}</p>
+                  <p className="text-xs opacity-70 font-medium">{stat.label}</p>
+                </div>
+              ))}
+            </div>
+
+            {/* Passport status */}
+            {passportDays !== null && (
+              <div className={`rounded-2xl p-4 flex items-center gap-3 ${passportDays < 0 ? 'bg-red-50 border border-red-200' : passportDays < 90 ? 'bg-red-50 border border-red-200' : passportDays < 365 ? 'bg-amber-50 border border-amber-200' : 'bg-emerald-50 border border-emerald-200'}`}>
+                <span className="text-2xl">🛂</span>
+                <div>
+                  <p className={`font-semibold text-sm ${passportDays < 0 ? 'text-red-700' : passportDays < 90 ? 'text-red-700' : passportDays < 365 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                    {passportDays < 0 ? `Passport expired ${Math.abs(passportDays)} days ago` : passportDays < 90 ? `Passport expires in ${passportDays} days — needs renewal` : passportDays < 365 ? `Passport expires in ${passportDays} days` : `Passport valid — ${passportDays} days remaining`}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Expiry: {passportForm.passportExpiry}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Upcoming bookings */}
+            {userBookings.filter((b: any) => b.departureDate && new Date(b.departureDate) > new Date()).length > 0 && (
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <span className="w-5 h-5 bg-blue-50 rounded-lg flex items-center justify-center text-xs">✈</span>
+                  Upcoming Trips
+                </h4>
+                <div className="space-y-2">
+                  {userBookings.filter((b: any) => b.departureDate && new Date(b.departureDate) > new Date()).slice(0, 3).map((b: any) => {
+                    const daysUntil = Math.ceil((new Date(b.departureDate).getTime() - Date.now()) / 86400000);
+                    return (
+                      <div key={b.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-border">
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{b.destination || 'Trip'}</p>
+                          <p className="text-xs text-muted-foreground">{b.bookingReference} · {b.departureDate}</p>
+                        </div>
+                        <span className="text-xs font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+                          {daysUntil === 0 ? 'Today!' : `${daysUntil}d away`}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* DOB */}
+            {user.dateOfBirth && (
+              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-border">
+                <span className="text-xl">🎂</span>
+                <div>
+                  <p className="text-sm font-medium text-foreground">Date of Birth</p>
+                  <p className="text-xs text-muted-foreground">{new Date(user.dateOfBirth).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Personal ── */}
+        {activeTab === 'personal' && (
+          <div className="max-w-lg space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className={labelCls}>Full Name</label>
                 <input type="text" value={editForm.name} onChange={e => setEditForm(f => ({...f, name: e.target.value}))} className={inputCls} />
@@ -2861,131 +2968,102 @@ function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userB
               </div>
             </div>
             <button
-              onClick={handleSave}
+              onClick={() => { setSaving(true); updateProfile.mutate({ id: user.id, name: editForm.name || undefined, email: editForm.email || undefined, phone: editForm.phone || null, dateOfBirth: editForm.dateOfBirth || null }); }}
               disabled={saving}
-              className="mt-4 w-full py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-60"
+              className="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              {saving ? "Saving…" : saved ? "✓ Saved" : "Save Profile"}
+              {saving ? <><span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</> : saved ? '✓ Saved Successfully' : 'Save Personal Details'}
             </button>
           </div>
-
-          {/* Loyalty */}
-          <div className="bg-white rounded-2xl border border-border p-4">
-            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <span className="w-5 h-5 bg-amber-100 rounded-lg flex items-center justify-center text-amber-600 text-xs">★</span>
-              Loyalty
-            </h4>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-2xl font-bold text-foreground">{loyaltyPoints.toLocaleString()}</p>
-                <p className="text-xs text-muted-foreground">Total points</p>
-              </div>
-              <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${tierColor}`}>{loyaltyTier}</span>
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* ── Passport ── */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl border border-border p-4">
-            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <span className="w-5 h-5 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 text-xs">🛂</span>
-              Passport Information
-            </h4>
-            <div className="space-y-3">
-              <div>
+        {activeTab === 'passport' && (
+          <div className="max-w-lg space-y-4">
+            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800">
+              🔒 Passport data is sensitive. Only edit when directly confirmed with the client.
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="sm:col-span-2">
                 <label className={labelCls}>Passport Number</label>
-                <input
-                  type="text"
-                  value={passportForm.passportNumber}
-                  onChange={e => setPassportForm(f => ({...f, passportNumber: e.target.value}))}
-                  placeholder="e.g. 123456789"
-                  className={`${inputCls} font-mono`}
-                />
+                <input type="text" value={passportForm.passportNumber} onChange={e => setPassportForm(f => ({...f, passportNumber: e.target.value}))} placeholder="e.g. 123456789" className={`${inputCls} font-mono`} />
               </div>
               <div>
                 <label className={labelCls}>Nationality</label>
-                <input
-                  type="text"
-                  value={passportForm.passportNationality}
-                  onChange={e => setPassportForm(f => ({...f, passportNationality: e.target.value}))}
-                  placeholder="e.g. British"
-                  className={inputCls}
-                />
+                <input type="text" value={passportForm.passportNationality} onChange={e => setPassportForm(f => ({...f, passportNationality: e.target.value}))} placeholder="e.g. British" className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Issuing Country</label>
-                <input
-                  type="text"
-                  value={passportForm.passportIssuingCountry}
-                  onChange={e => setPassportForm(f => ({...f, passportIssuingCountry: e.target.value}))}
-                  placeholder="e.g. United Kingdom"
-                  className={inputCls}
-                />
+                <input type="text" value={passportForm.passportIssuingCountry} onChange={e => setPassportForm(f => ({...f, passportIssuingCountry: e.target.value}))} placeholder="e.g. United Kingdom" className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Issue Date</label>
-                <input
-                  type="date"
-                  value={passportForm.passportIssueDate}
-                  onChange={e => setPassportForm(f => ({...f, passportIssueDate: e.target.value}))}
-                  className={inputCls}
-                />
+                <input type="date" value={passportForm.passportIssueDate} onChange={e => setPassportForm(f => ({...f, passportIssueDate: e.target.value}))} className={inputCls} />
               </div>
               <div>
                 <label className={labelCls}>Expiry Date</label>
-                <input
-                  type="date"
-                  value={passportForm.passportExpiry}
-                  onChange={e => setPassportForm(f => ({...f, passportExpiry: e.target.value}))}
-                  className={inputCls}
-                />
-                {passportForm.passportExpiry && (() => {
-                  const days = Math.ceil((new Date(passportForm.passportExpiry).getTime() - Date.now()) / 86400000);
-                  if (days < 0) return <p className="text-xs text-red-600 mt-1">⚠️ Expired {Math.abs(days)} days ago</p>;
-                  if (days < 180) return <p className="text-xs text-amber-600 mt-1">⚠️ Expires in {days} days — may be invalid for travel</p>;
-                  return <p className="text-xs text-emerald-600 mt-1">✓ Valid ({days} days remaining)</p>;
-                })()}
+                <input type="date" value={passportForm.passportExpiry} onChange={e => setPassportForm(f => ({...f, passportExpiry: e.target.value}))} className={inputCls} />
+                {passportDays !== null && (
+                  <p className={`text-xs mt-1 ${passportDays < 0 ? 'text-red-600' : passportDays < 180 ? 'text-amber-600' : 'text-emerald-600'}`}>
+                    {passportDays < 0 ? `⚠️ Expired ${Math.abs(passportDays)} days ago` : passportDays < 180 ? `⚠️ Expires in ${passportDays} days — may be invalid for travel` : `✓ Valid (${passportDays} days remaining)`}
+                  </p>
+                )}
               </div>
             </div>
             <button
-              onClick={handleSavePassport}
+              onClick={() => { setSavingPassport(true); updatePassport.mutate({ id: user.id, passportNumber: passportForm.passportNumber || null, passportExpiry: passportForm.passportExpiry || null, passportIssueDate: passportForm.passportIssueDate || null, passportIssuingCountry: passportForm.passportIssuingCountry || null, passportNationality: passportForm.passportNationality || null }); }}
               disabled={savingPassport}
-              className="mt-4 w-full py-2 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-60"
+              className="w-full py-2.5 rounded-xl bg-primary text-white text-sm font-semibold hover:bg-primary/90 transition-all disabled:opacity-60 flex items-center justify-center gap-2"
             >
-              {savingPassport ? "Saving…" : savedPassport ? "✓ Saved" : "Save Passport"}
+              {savingPassport ? <><span className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin" />Saving…</> : savedPassport ? '✓ Passport Saved' : 'Save Passport Details'}
             </button>
           </div>
-        </div>
+        )}
 
         {/* ── Bookings ── */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl border border-border p-4">
-            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <span className="w-5 h-5 bg-primary/10 rounded-lg flex items-center justify-center text-primary text-xs">✈</span>
-              Bookings <span className="ml-auto text-xs text-muted-foreground font-normal">{userBookings.length} total</span>
-            </h4>
+        {activeTab === 'bookings' && (
+          <div>
             {userBookings.length === 0 ? (
-              <p className="text-xs text-muted-foreground italic text-center py-4">No bookings yet</p>
+              <div className="py-12 text-center">
+                <p className="text-4xl mb-3">✈️</p>
+                <p className="text-muted-foreground text-sm">No bookings yet for this client</p>
+              </div>
             ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
+              <div className="space-y-3">
                 {userBookings.map((b: any) => {
-                  const total = b.totalPrice ? parseFloat(b.totalPrice) : 0;
-                  const paid = b.amountPaid ? parseFloat(b.amountPaid) : 0;
+                  const total = parseFloat(b.totalPrice) || 0;
+                  const paid = parseFloat(b.amountPaid) || 0;
                   const outstanding = total - paid;
+                  const isPast = b.departureDate && new Date(b.departureDate) < new Date();
                   return (
-                    <div key={b.id} className="rounded-xl border border-border p-3 bg-slate-50/50">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="font-mono text-xs font-bold text-primary">{b.bookingReference}</span>
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${b.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : b.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{b.status}</span>
+                    <div key={b.id} className={`rounded-2xl border p-4 transition-all ${isPast ? 'bg-slate-50 border-slate-200' : 'bg-white border-border shadow-sm'}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap mb-1">
+                            <span className="font-mono text-sm font-bold text-primary">{b.bookingReference}</span>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${b.status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : b.status === 'cancelled' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{b.status}</span>
+                            {isPast && <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 text-slate-500">Past</span>}
+                          </div>
+                          {b.destination && <p className="text-sm font-semibold text-foreground">{b.destination}</p>}
+                          {b.departureDate && <p className="text-xs text-muted-foreground mt-0.5">{b.departureDate}{b.returnDate ? ` → ${b.returnDate}` : ''}</p>}
+                        </div>
+                        {total > 0 && (
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-sm font-bold text-foreground">£{total.toLocaleString('en-GB', {minimumFractionDigits: 2})}</p>
+                            {outstanding > 0.01 ? (
+                              <p className="text-xs text-amber-600 font-medium">£{outstanding.toLocaleString('en-GB', {minimumFractionDigits: 2})} outstanding</p>
+                            ) : (
+                              <p className="text-xs text-emerald-600 font-medium">Fully paid ✓</p>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      {b.destination && <p className="text-xs text-foreground font-medium">{b.destination}</p>}
-                      {b.departureDate && <p className="text-xs text-muted-foreground">{b.departureDate}</p>}
                       {total > 0 && (
-                        <div className="mt-1.5 flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">£{total.toLocaleString()}</span>
-                          {outstanding > 0.01 && <span className="text-amber-600 font-semibold">£{outstanding.toLocaleString()} outstanding</span>}
-                          {outstanding <= 0.01 && <span className="text-emerald-600 font-semibold">Paid ✓</span>}
+                        <div className="mt-3">
+                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${Math.min(100, (paid/total)*100)}%` }} />
+                          </div>
+                          <p className="text-[10px] text-muted-foreground mt-1">{Math.round((paid/total)*100)}% paid</p>
                         </div>
                       )}
                     </div>
@@ -2994,12 +3072,129 @@ function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userB
               </div>
             )}
           </div>
-        </div>
+        )}
+
+        {/* ── Referrals ── */}
+        {activeTab === 'referrals' && (
+          <div className="space-y-4">
+            {/* Referral code */}
+            <div className="bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/20 rounded-2xl p-4">
+              <p className="text-xs text-muted-foreground font-medium mb-1">This client's referral code</p>
+              <div className="flex items-center gap-3">
+                <code className="text-xl font-bold font-mono text-primary tracking-wider">{user.referralCode || 'Not assigned'}</code>
+                {user.referralCode && (
+                  <button
+                    onClick={() => { navigator.clipboard.writeText(`https://www.travelcb.co.uk/?ref=${user.referralCode}`); toast.success('Referral link copied!'); }}
+                    className="text-xs text-primary hover:underline font-medium"
+                  >
+                    Copy link
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {referralsLoading ? (
+              <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />)}</div>
+            ) : clientReferrals && clientReferrals.length > 0 ? (
+              <div>
+                <h4 className="text-sm font-semibold text-foreground mb-3">People referred ({clientReferrals.length})</h4>
+                <div className="space-y-2">
+                  {clientReferrals.map((r: any) => (
+                    <div key={r.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-border">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-sm font-bold">
+                          {(r.name || r.email || '?').charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{r.name || 'Unknown'}</p>
+                          <p className="text-xs text-muted-foreground">{r.email}</p>
+                        </div>
+                      </div>
+                      {r.joinedAt && <p className="text-xs text-muted-foreground">{new Date(r.joinedAt).toLocaleDateString('en-GB')}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="py-8 text-center">
+                <p className="text-3xl mb-2">🔗</p>
+                <p className="text-sm text-muted-foreground">No referrals made yet</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Comms Log ── */}
+        {activeTab === 'comms' && (
+          <div>
+            {emailLogsLoading ? (
+              <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-14 bg-slate-100 rounded-xl animate-pulse" />)}</div>
+            ) : emailLogs && emailLogs.length > 0 ? (
+              <div className="space-y-2">
+                {emailLogs.map((log: any) => (
+                  <div key={log.id} className="flex items-start gap-3 p-3.5 rounded-xl border border-border bg-white hover:bg-slate-50/50 transition-colors">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${log.status === 'sent' ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'}`}>
+                      {log.status === 'sent' ? '✓' : '✗'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{log.subject}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-medium">{log.emailType?.replace(/_/g, ' ')}</span>
+                        <p className="text-xs text-muted-foreground">{new Date(log.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                      {log.errorMessage && <p className="text-xs text-red-600 mt-1">{log.errorMessage}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center">
+                <p className="text-4xl mb-3">📧</p>
+                <p className="text-sm text-muted-foreground">No emails logged for this client yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Emails sent going forward will appear here</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Login History ── */}
+        {activeTab === 'logins' && (
+          <div>
+            {loginHistoryLoading ? (
+              <div className="space-y-2">{[1,2,3,4].map(i => <div key={i} className="h-12 bg-slate-100 rounded-xl animate-pulse" />)}</div>
+            ) : loginHistory && loginHistory.length > 0 ? (
+              <div className="space-y-2">
+                {loginHistory.map((entry: any, i: number) => (
+                  <div key={entry.id} className="flex items-center gap-3 p-3.5 rounded-xl border border-border bg-white">
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs flex-shrink-0 ${i === 0 ? 'bg-emerald-100 text-emerald-600 font-bold' : 'bg-slate-100 text-slate-500'}`}>
+                      {i === 0 ? '●' : i + 1}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-foreground">{new Date(entry.loggedInAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                        {i === 0 && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 font-medium">Most recent</span>}
+                      </div>
+                      {entry.ipAddress && <p className="text-xs text-muted-foreground font-mono mt-0.5">{entry.ipAddress}</p>}
+                      {entry.userAgent && <p className="text-[10px] text-muted-foreground truncate mt-0.5 max-w-md">{entry.userAgent}</p>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="py-12 text-center">
+                <p className="text-4xl mb-3">🔐</p>
+                <p className="text-sm text-muted-foreground">No login history recorded yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Login events going forward will be tracked here</p>
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </div>
   );
 }
+
 
 export default function AdminDashboard() {
   useSEO({ title: 'Admin Dashboard', noIndex: true });
@@ -3010,6 +3205,7 @@ export default function AdminDashboard() {
   const { data: testimonials, isLoading: testimonialsLoading } = trpc.testimonials.getAllAdmin.useQuery();
   const { data: subscribers } = trpc.newsletter.getAll.useQuery();
   const { data: allUsers, isLoading: usersLoading } = trpc.admin.users.useQuery();
+  const { data: upcomingBirthdays } = trpc.admin.getUpcomingBirthdays.useQuery({ daysAhead: 14 });
   const { data: faqItems, isLoading: faqLoading } = trpc.faq.listAdmin.useQuery();
   const { data: promoCodes, isLoading: promoLoading } = trpc.promoCodes.list.useQuery();
   const [promoForm, setPromoForm] = useState({ code: "", description: "", discountAmount: "", expiresAt: "" });

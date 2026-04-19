@@ -2376,6 +2376,140 @@ export async function getAdminNotificationsSent(adminId: number) {
   return result;
 }
 
+// ─── Email Logs Table ──────────────────────────────────────────────────────────
+
+export async function ensureEmailLogsTable() {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS emailLogs (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        toEmail VARCHAR(255) NOT NULL,
+        subject VARCHAR(500) NOT NULL,
+        emailType VARCHAR(100) NOT NULL,
+        status ENUM('sent','failed') NOT NULL DEFAULT 'sent',
+        errorMessage TEXT NULL,
+        userId INT NULL,
+        bookingId INT NULL,
+        sentAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  } catch (e) {
+    console.error('[DB] ensureEmailLogsTable error:', e);
+  }
+}
+
+export async function getEmailLogsForUser(userId: number, limit = 50): Promise<Array<{
+  id: number; toEmail: string; subject: string; emailType: string;
+  status: string; errorMessage: string | null; bookingId: number | null; sentAt: Date;
+}>> {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    const result = await db.execute(sql`SELECT * FROM emailLogs WHERE userId = ${userId} ORDER BY sentAt DESC LIMIT ${limit}`);
+    return (result as any)[0] as any[];
+  } catch { return []; }
+}
+
+// ─── Login History Table ───────────────────────────────────────────────────────
+
+export async function ensureLoginHistoryTable() {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS loginHistory (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL,
+        ipAddress VARCHAR(45) NULL,
+        userAgent VARCHAR(500) NULL,
+        loggedInAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_userId (userId)
+      )
+    `);
+  } catch (e) {
+    console.error('[DB] ensureLoginHistoryTable error:', e);
+  }
+}
+
+export async function logLoginHistory(userId: number, ipAddress: string | null, userAgent: string | null): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.execute(sql`INSERT INTO loginHistory (userId, ipAddress, userAgent) VALUES (${userId}, ${ipAddress}, ${userAgent})`);
+  } catch (e) {
+    console.error('[LoginHistory] Failed to log:', e);
+  }
+}
+
+export async function getLoginHistoryForUser(userId: number, limit = 20): Promise<Array<{
+  id: number; userId: number; ipAddress: string | null; userAgent: string | null; loggedInAt: Date;
+}>> {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    const result = await db.execute(sql`SELECT * FROM loginHistory WHERE userId = ${userId} ORDER BY loggedInAt DESC LIMIT ${limit}`);
+    return (result as any)[0] as any[];
+  } catch { return []; }
+}
+
+// ─── Birthday & Anniversary Helpers ───────────────────────────────────────────
+
+export async function getUpcomingBirthdays(daysAhead = 14): Promise<Array<{
+  id: number; name: string | null; email: string | null; dateOfBirth: string | null; daysUntil: number;
+}>> {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    // Fetch all clients with DOB, then filter in JS (avoids MySQL year-wrap complexity)
+    const result = await db.execute(sql`SELECT id, name, email, dateOfBirth FROM users WHERE dateOfBirth IS NOT NULL AND role != 'admin' AND isDisabled = false LIMIT 500`);
+    const rows = (result as any)[0] as Array<{ id: number; name: string | null; email: string | null; dateOfBirth: string | Date | null }>;
+    const today = new Date();
+    const upcoming: Array<{ id: number; name: string | null; email: string | null; dateOfBirth: string | null; daysUntil: number }> = [];
+    for (const row of rows) {
+      if (!row.dateOfBirth) continue;
+      const dob = new Date(row.dateOfBirth);
+      // Next birthday this year
+      const nextBirthday = new Date(today.getFullYear(), dob.getMonth(), dob.getDate());
+      if (nextBirthday < today) nextBirthday.setFullYear(today.getFullYear() + 1);
+      const msUntil = nextBirthday.getTime() - today.getTime();
+      const daysUntil = Math.ceil(msUntil / 86400000);
+      if (daysUntil >= 0 && daysUntil <= daysAhead) {
+        upcoming.push({ id: row.id, name: row.name, email: row.email, dateOfBirth: row.dateOfBirth ? String(row.dateOfBirth) : null, daysUntil });
+      }
+    }
+    upcoming.sort((a, b) => a.daysUntil - b.daysUntil);
+    return upcoming;
+  } catch { return []; }
+}
+
+export async function getClientReferrals(userId: number): Promise<Array<{
+  id: number; name: string | null; email: string | null; joinedAt: Date | null; pointsEarned: number;
+}>> {
+  const db = await getDb();
+  if (!db) return [];
+  try {
+    // Get users who joined via this user's referral code
+    const userResult = await db.execute(sql`SELECT referralCode FROM users WHERE id = ${userId} LIMIT 1`);
+    const userRow = ((userResult as any)[0] as any[])[0];
+    if (!userRow?.referralCode) return [];
+    const code = userRow.referralCode;
+    const result = await db.execute(sql`
+      SELECT u.id, u.name, u.email, u.lastSignedIn AS joinedAt,
+        COALESCE((SELECT SUM(lt.points) FROM loyaltyTransactions lt WHERE lt.userId = ${userId} AND lt.description LIKE CONCAT('Referral: ', u.name, '%')), 0) AS pointsEarned
+      FROM users u
+      INNER JOIN loyaltyTransactions lt2 ON lt2.userId = u.id AND lt2.description = 'Joined via referral link'
+      WHERE u.id != ${userId}
+      ORDER BY u.lastSignedIn DESC
+      LIMIT 50
+    `);
+    return (result as any)[0] as any[];
+  } catch { return []; }
+}
+
 // Run on module load
 ensureUserPassportColumns().catch(console.error);
 ensureCommunityPostsTable().catch(console.error);
+ensureEmailLogsTable().catch(console.error);
+ensureLoginHistoryTable().catch(console.error);

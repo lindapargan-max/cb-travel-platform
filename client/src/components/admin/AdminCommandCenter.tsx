@@ -31,6 +31,7 @@ export default function AdminCommandCenter({ onTabChange }: AdminCommandCenterPr
 
   const bookingsQuery = trpc.bookings.getAllAdmin.useQuery();
   const quotesQuery = trpc.quotes.getAllQuoteRequests.useQuery();
+  const { data: upcomingBirthdays } = trpc.admin.getUpcomingBirthdays.useQuery({ daysAhead: 14 });
 
   const bookings = bookingsQuery.data ?? [];
   const quotes = quotesQuery.data ?? [];
@@ -107,7 +108,8 @@ export default function AdminCommandCenter({ onTabChange }: AdminCommandCenterPr
   const pendingSparkValues = [3, 5, 2, 8, 6, pendingCount + 2, pendingCount];
   const quotesSparkValues = [2, 4, 3, 6, 5, awaitingQuotes + 1, awaitingQuotes];
 
-  const totalAlerts = outstandingBalance + departingSoon + awaitingQuotes;
+  const birthdayCount = upcomingBirthdays?.length ?? 0;
+  const totalAlerts = outstandingBalance + departingSoon + awaitingQuotes + birthdayCount;
 
   return (
     <div className="space-y-6">
@@ -288,6 +290,40 @@ export default function AdminCommandCenter({ onTabChange }: AdminCommandCenterPr
                   View <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
+
+
+              {/* Upcoming birthdays — rose */}
+              {birthdayCount > 0 && (
+                <div className="flex-1 min-w-[200px] rounded-xl bg-rose-50 border border-rose-200 px-4 py-3 space-y-2">
+                  <div className="flex items-center gap-3">
+                    <div className="relative flex-shrink-0">
+                      <div className="w-8 h-8 rounded-lg bg-rose-100 border border-rose-200 flex items-center justify-center text-base">
+                        🎂
+                      </div>
+                      <span className="absolute -top-1 -right-1 w-2 h-2 bg-rose-500 rounded-full animate-pulse" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-xs font-semibold text-rose-800 leading-tight">Upcoming Birthdays</p>
+                      <p className="text-lg font-extrabold text-rose-900 leading-tight">{birthdayCount}</p>
+                    </div>
+                    <button
+                      onClick={() => onTabChange("accounts")}
+                      className="flex items-center gap-1 text-xs text-rose-700 font-semibold bg-rose-100 hover:bg-rose-200 border border-rose-200 px-2.5 py-1.5 rounded-lg transition-colors flex-shrink-0"
+                    >
+                      View <ArrowRight className="w-3 h-3" />
+                    </button>
+                  </div>
+                  <div className="space-y-1">
+                    {upcomingBirthdays?.slice(0, 3).map((b: any) => (
+                      <p key={b.id} className="text-xs text-rose-700">
+                        <span className="font-semibold">{b.name || 'Client'}</span>
+                        {' — '}{b.daysUntil === 0 ? <span className="font-bold text-rose-600">Today! 🎉</span> : b.daysUntil === 1 ? 'tomorrow' : `in ${b.daysUntil} days`}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
             </div>
           </div>
         )}
