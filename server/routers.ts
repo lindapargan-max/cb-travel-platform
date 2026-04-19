@@ -767,6 +767,32 @@ export const appRouter = router({
           // Send emails (non-blocking)
           sendQuoteRequestAdminEmail({ name: input.name, email: input.email, phone: input.phone, destination: input.destination, travelType: input.travelType || "other", departureDate: input.departureDate, returnDate: input.returnDate, numberOfTravelers: input.numberOfTravelers, budget: input.budget, message: input.message, quoteType: input.quoteType }).catch(console.error);
           sendQuoteConfirmationEmail(input.email, input.name, input.destination).catch(console.error);
+          // Notify all admin users (non-blocking) — updates notification bell + command centre count
+          (async () => {
+            try {
+              const { createNotification } = await import("./db");
+              const db = await import("./db").then(m => m.getDb ? m.getDb() : null);
+              if (db) {
+                const { users: usersTable } = await import("../drizzle/schema");
+                const { eq } = await import("drizzle-orm");
+                const adminUsers = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"));
+                const destination = input.destination ? ` for ${input.destination}` : "";
+                const notifTitle = "New Quote Request";
+                const notifMessage = `${input.name} submitted a quote request${destination}. Travel type: ${input.travelType || "other"}.`;
+                for (const admin of adminUsers) {
+                  await createNotification({
+                    userId: admin.id,
+                    title: notifTitle,
+                    message: notifMessage,
+                    type: "alert",
+                    link: "/admin/quotes",
+                  });
+                }
+              }
+            } catch (e) {
+              console.warn("[Quote notification] Failed to notify admins:", e);
+            }
+          })();
           return quoteResult;
         } catch (dbErr: any) {
           console.error("[Quote create error]", dbErr?.message || dbErr);
