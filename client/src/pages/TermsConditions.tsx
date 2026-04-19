@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { ArrowLeft, FileText, Shield, AlertCircle, RefreshCw } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { useSEO } from '@/hooks/useSEO';
 
 // ---------------------------------------------------------------------------
 // Skeleton placeholder shown while terms are loading
@@ -25,6 +26,10 @@ function SectionSkeleton() {
 // Main component
 // ---------------------------------------------------------------------------
 export default function TermsConditions() {
+  useSEO({
+    title: 'Terms & Conditions',
+    description: 'CB Travel booking terms and conditions — everything you need to know before booking your holiday with us.',
+  });
   const { data, isLoading, isError, refetch, isFetching } = trpc.terms.get.useQuery(undefined, {
     staleTime: 1000 * 60 * 60, // treat as fresh for 1 hour client-side
     retry: 2,

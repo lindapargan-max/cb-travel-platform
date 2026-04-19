@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, Phone, Mail, MapPin, Upload, Tag, FileText } from "lucide-react";
 import { toast } from "sonner";
+import { useSEO } from '@/hooks/useSEO';
 
 const HERO_BG = "https://images.unsplash.com/photo-1488085061387-422e29b40080?w=1200&q=80&auto=format&fit=crop";
 
@@ -43,6 +44,10 @@ const CURRENCY_FLAG: Record<string, string> = {
 };
 
 export default function QuoteRequest() {
+  useSEO({
+    title: 'Request a Quote',
+    description: "Tell us your dream destination and we'll craft a personalised luxury travel quote just for you. No obligation, just inspiration.",
+  });
   const { data: user } = trpc.auth.me.useQuery();
   const [submitted, setSubmitted] = useState(false);
   const [quoteMode, setQuoteMode] = useState<"new_quote" | "price_match">("new_quote");

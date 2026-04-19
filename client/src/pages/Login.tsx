@@ -6,10 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Plane, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { useSEO } from '@/hooks/useSEO';
 
 const HERO_BG = "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1200&q=80&auto=format&fit=crop";
 
 export default function Login() {
+  useSEO({ title: 'Sign In', noIndex: true });
   const [, navigate] = useLocation();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false);

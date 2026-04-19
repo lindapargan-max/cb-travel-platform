@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useSEO } from '@/hooks/useSEO';
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 const STORAGE_KEY = "cb_tracked_flights";
@@ -724,6 +725,10 @@ function RecentPills({ current, onAdd }: { current: string[]; onAdd: (fn: string
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function FlightManager() {
+  useSEO({
+    title: 'Live Flight Tracker',
+    description: "Track any flight live with CB Travel's flight tracker. Real-time status, departure and arrival information at your fingertips.",
+  });
   const [searchInput, setSearchInput] = useState("");
   const [searchFocused, setSearchFocused] = useState(false);
   const [trackedFlights, setTrackedFlights] = useState<TrackedFlight[]>([]);

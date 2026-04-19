@@ -661,3 +661,21 @@ export const communityPosts = mysqlTable("communityPosts", {
 
 export type CommunityPost = typeof communityPosts.$inferSelect;
 export type InsertCommunityPost = typeof communityPosts.$inferInsert;
+
+// ─── Notifications ─────────────────────────────────────────────────────────
+
+export const notifications = mysqlTable("notifications", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  title: varchar("title", { length: 255 }).notNull(),
+  message: text("message").notNull(),
+  type: mysqlEnum("type", ["info", "success", "warning", "alert"]).notNull().default("info"),
+  link: varchar("link", { length: 512 }),
+  isRead: boolean("isRead").notNull().default(false),
+  createdBy: int("createdBy"), // admin userId who sent it
+  isBroadcast: boolean("isBroadcast").notNull().default(false),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = typeof notifications.$inferInsert;

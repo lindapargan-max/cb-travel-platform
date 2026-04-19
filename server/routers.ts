@@ -2639,6 +2639,98 @@ ${faqContext}`;
       }),
   }),
 
+  // ─── Notifications ────────────────────────────────────────────────────────
+  notifications: router({
+    // Get my notifications
+    getMyNotifications: protectedProcedure.query(async ({ ctx }) => {
+      const userId = (ctx as any).user?.id;
+      if (!userId) return [];
+      const { getNotificationsForUser } = await import('./db');
+      return getNotificationsForUser(userId);
+    }),
+
+    // Get unread count
+    getUnreadCount: protectedProcedure.query(async ({ ctx }) => {
+      const userId = (ctx as any).user?.id;
+      if (!userId) return { count: 0 };
+      const { getUnreadCountForUser } = await import('./db');
+      const count = await getUnreadCountForUser(userId);
+      return { count };
+    }),
+
+    // Mark one as read
+    markRead: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const userId = (ctx as any).user?.id;
+        if (!userId) return;
+        const { markNotificationRead } = await import('./db');
+        await markNotificationRead(input.id, userId);
+        return { success: true };
+      }),
+
+    // Mark all as read
+    markAllRead: protectedProcedure.mutation(async ({ ctx }) => {
+      const userId = (ctx as any).user?.id;
+      if (!userId) return;
+      const { markAllNotificationsRead } = await import('./db');
+      await markAllNotificationsRead(userId);
+      return { success: true };
+    }),
+
+    // Admin: broadcast to all users
+    broadcast: adminMiddleware
+      .input(z.object({
+        title: z.string().min(1).max(255),
+        message: z.string().min(1),
+        type: z.enum(['info', 'success', 'warning', 'alert']).default('info'),
+        link: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const adminId = (ctx as any).user?.id;
+        const { getAllUsersForBroadcast, createNotification } = await import('./db');
+        const allUsers = await getAllUsersForBroadcast();
+        let count = 0;
+        for (const user of allUsers) {
+          await createNotification({
+            userId: user.id,
+            title: input.title,
+            message: input.message,
+            type: input.type,
+            link: input.link,
+            createdBy: adminId,
+            isBroadcast: true,
+          });
+          count++;
+        }
+        return { success: true, count };
+      }),
+
+    // Admin: send to specific user
+    sendToUser: adminMiddleware
+      .input(z.object({
+        userId: z.number(),
+        title: z.string().min(1),
+        message: z.string().min(1),
+        type: z.enum(['info', 'success', 'warning', 'alert']).default('info'),
+        link: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const adminId = (ctx as any).user?.id;
+        const { createNotification } = await import('./db');
+        await createNotification({
+          userId: input.userId,
+          title: input.title,
+          message: input.message,
+          type: input.type,
+          link: input.link,
+          createdBy: adminId,
+          isBroadcast: false,
+        });
+        return { success: true };
+      }),
+  }),
+
   // ─── JLT Terms & Conditions (auto-fetched from hub.thejltgroup.co.uk) ────────
   terms: router({
     /**

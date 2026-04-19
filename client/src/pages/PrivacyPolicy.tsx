@@ -1,7 +1,12 @@
 import { Link } from "wouter";
 import { Shield, ExternalLink, Mail, FileText } from "lucide-react";
+import { useSEO } from '@/hooks/useSEO';
 
 export default function PrivacyPolicy() {
+  useSEO({
+    title: 'Privacy Policy',
+    description: "Read CB Travel's privacy policy to understand how we collect, use, and protect your personal data.",
+  });
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#f8f6f0" }}>
       {/* Header */}

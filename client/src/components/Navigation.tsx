@@ -3,6 +3,7 @@ import { Link, useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Phone, ChevronDown, User, LogOut, LayoutDashboard, Shield, Plane } from "lucide-react";
+import NotificationBell from "@/components/NotificationBell";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -98,6 +99,8 @@ export default function Navigation() {
               <span>07495 823953</span>
             </a>
             {user ? (
+              <>
+              <NotificationBell textColor={scrolled || !isHome ? 'text-foreground' : 'text-white'} />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -147,6 +150,7 @@ export default function Navigation() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              </>
             ) : (
               <div className="flex items-center gap-2">
                 <Link href="/login">
@@ -213,6 +217,10 @@ export default function Navigation() {
               </a>
               {user ? (
                 <>
+                  <div className="flex items-center gap-2 px-4 py-2">
+                    <NotificationBell textColor="text-foreground" />
+                    <span className="text-sm text-muted-foreground">Notifications</span>
+                  </div>
                   <Link href="/dashboard">
                     <span className="flex items-center gap-2 px-4 py-3 text-sm font-medium text-foreground hover:bg-muted rounded-lg cursor-pointer" onClick={() => setIsOpen(false)}>
                       <LayoutDashboard size={15} />

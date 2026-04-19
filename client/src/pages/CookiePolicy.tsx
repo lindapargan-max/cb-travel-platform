@@ -1,7 +1,9 @@
 import { Link } from "wouter";
 import { Shield, Cookie, ExternalLink } from "lucide-react";
+import { useSEO } from '@/hooks/useSEO';
 
 export default function CookiePolicy() {
+  useSEO({ title: 'Cookie Policy', noIndex: true });
   return (
     <div className="min-h-screen" style={{ backgroundColor: "#f8f6f0" }}>
       {/* Header */}

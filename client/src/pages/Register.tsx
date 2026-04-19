@@ -6,8 +6,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Eye, EyeOff, Plane, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { useSEO } from '@/hooks/useSEO';
 
 export default function Register() {
+  useSEO({ title: 'Create Account', noIndex: true });
   const [, setLocation] = useLocation();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");

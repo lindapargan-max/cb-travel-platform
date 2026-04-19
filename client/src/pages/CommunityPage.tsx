@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Heart, Handshake, Gift, Users, MapPin, Calendar, X, ArrowRight, Sparkles } from "lucide-react";
+import { useSEO } from '@/hooks/useSEO';
 
 type PostType = "charity" | "partnership" | "giveaway" | "community";
 
@@ -36,6 +37,10 @@ function normaliseAmount(str: string | null | undefined): string | null {
 type FilterType = "all" | PostType;
 
 export default function CommunityPage() {
+  useSEO({
+    title: 'Community & Impact',
+    description: "See how CB Travel gives back — our charity partnerships, community events, and the total we've given back to causes we care about.",
+  });
   const { data: posts = [], isLoading } = trpc.community.getPublished.useQuery();
   const [selectedPost, setSelectedPost] = useState<any>(null);
   const [filter, setFilter] = useState<FilterType>("all");

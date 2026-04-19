@@ -17,6 +17,7 @@ import {
   Shield, HeartHandshake, Sparkles, CheckCircle2, Calendar, Heart
 } from "lucide-react";
 import { toast } from "sonner";
+import { useSEO } from '@/hooks/useSEO';
 
 // To use your own cover photo, place it at: client/public/cover-photo.jpg
 // It will automatically be used as the hero background.
@@ -197,6 +198,10 @@ function TestimonialCard({ t }: { t: any }) {
 }
 
 export default function Home() {
+  useSEO({
+    title: 'CB Travel — Luxury Travel Agency',
+    description: 'CB Travel crafts unforgettable bespoke holidays, cruises, and luxury travel experiences tailored to you. Request your personalised quote today.',
+  });
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [subscribing, setSubscribing] = useState(false);

@@ -27,7 +27,7 @@ import {
   AlertCircle, RefreshCw, Shield, Lock, UserX, UserCheck, HelpCircle,
   KeyRound, UserPlus, Tag, Copy, Percent, ClipboardList, ExternalLink, ArrowRight,
   ChevronDown, ChevronRight, ChevronLeft, Send, MessageSquare, MailCheck, Ticket, Users2, UserMinus, UserRound,
-  Settings, Info, Check, User, CopyPlus, LayoutDashboard, Heart
+  Settings, Info, Check, User, CopyPlus, LayoutDashboard, Heart, Bell
 } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
@@ -37,6 +37,8 @@ import AdminPassportManager from "@/components/admin/AdminPassportManager";
 import AdminPaymentPlans from "@/components/admin/AdminPaymentPlans";
 import AdminQuotesManager from "@/components/admin/AdminQuotesManager";
 import AdminCommunityManager from "@/components/admin/AdminCommunityManager";
+import AdminNotificationsManager from "@/components/admin/AdminNotificationsManager";
+import { useSEO } from '@/hooks/useSEO';
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; className: string }> = {
@@ -3000,6 +3002,7 @@ function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userB
 }
 
 export default function AdminDashboard() {
+  useSEO({ title: 'Admin Dashboard', noIndex: true });
   const utils = trpc.useUtils();
   const { data: bookings, isLoading: bookingsLoading } = trpc.bookings.getAllAdmin.useQuery();
   const { data: deals, isLoading: dealsLoading } = trpc.deals.listAdmin.useQuery();
@@ -3146,6 +3149,7 @@ export default function AdminDashboard() {
         { value: 'testimonials', label: 'Reviews', icon: Star },
         { value: 'destinations', label: 'Destinations', icon: Globe },
         { value: 'community', label: 'Community & Impact', icon: Heart },
+        { value: 'notifications', label: 'Notifications', icon: Bell },
       ]
     },
     {
@@ -4176,6 +4180,10 @@ export default function AdminDashboard() {
 
           <TabsContent value="community">
             <AdminCommunityManager />
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <AdminNotificationsManager />
           </TabsContent>
 
 <TabsContent value="command">

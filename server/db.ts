@@ -2287,6 +2287,95 @@ export async function deleteCommunityPost(id: number): Promise<void> {
   await db.delete(communityPosts).where(eq(communityPosts.id, id));
 }
 
+// ─── Notifications ──────────────────────────────────────────────────────────
+
+export async function createNotification(data: {
+  userId: number;
+  title: string;
+  message: string;
+  type?: 'info' | 'success' | 'warning' | 'alert';
+  link?: string;
+  createdBy?: number;
+  isBroadcast?: boolean;
+}) {
+  const db = await getDb();
+  if (!db) return;
+  const { notifications } = await import('../drizzle/schema');
+  await db.insert(notifications).values({
+    userId: data.userId,
+    title: data.title,
+    message: data.message,
+    type: data.type || 'info',
+    link: data.link || null,
+    createdBy: data.createdBy || null,
+    isBroadcast: data.isBroadcast || false,
+  });
+}
+
+export async function getNotificationsForUser(userId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { notifications } = await import('../drizzle/schema');
+  const result = await db
+    .select()
+    .from(notifications)
+    .where(eq(notifications.userId, userId))
+    .orderBy(desc(notifications.createdAt))
+    .limit(50);
+  return result;
+}
+
+export async function getUnreadCountForUser(userId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  const { notifications } = await import('../drizzle/schema');
+  const result = await db
+    .select({ count: sql<number>`count(*)` })
+    .from(notifications)
+    .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+  return Number((result as any)[0]?.count ?? 0);
+}
+
+export async function markNotificationRead(notificationId: number, userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  const { notifications } = await import('../drizzle/schema');
+  await db
+    .update(notifications)
+    .set({ isRead: true })
+    .where(and(eq(notifications.id, notificationId), eq(notifications.userId, userId)));
+}
+
+export async function markAllNotificationsRead(userId: number) {
+  const db = await getDb();
+  if (!db) return;
+  const { notifications } = await import('../drizzle/schema');
+  await db
+    .update(notifications)
+    .set({ isRead: true })
+    .where(and(eq(notifications.userId, userId), eq(notifications.isRead, false)));
+}
+
+export async function getAllUsersForBroadcast(): Promise<{ id: number }[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const result = await db.select({ id: users.id }).from(users).where(eq(users.isDisabled, false));
+  return result as any;
+}
+
+export async function getAdminNotificationsSent(adminId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const { notifications } = await import('../drizzle/schema');
+  const result = await db
+    .select()
+    .from(notifications)
+    .where(and(eq(notifications.createdBy, adminId), eq(notifications.isBroadcast, true)))
+    .orderBy(desc(notifications.createdAt))
+    .limit(20);
+  return result;
+}
+
 // Run on module load
 ensureUserPassportColumns().catch(console.error);
 ensureCommunityPostsTable().catch(console.error);

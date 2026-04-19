@@ -1,10 +1,15 @@
 import { Link } from "wouter";
 import { MapPin, Mail, Phone, Globe, Heart, Star, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSEO } from '@/hooks/useSEO';
 
 const LOGO_URL = "https://d2xsxph8kpxj0f.cloudfront.net/310519663464925361/dPHKGynvhLRtUrGZhYEBQ4/CBTravel_BlackTransparent_35c2ad4d.png";
 
 export default function AboutUs() {
+  useSEO({
+    title: 'About Us',
+    description: 'Meet the CB Travel team — passionate travel experts dedicated to creating extraordinary, personalised travel experiences for our clients.',
+  });
   return (
     <div className="min-h-screen bg-white">
       {/* Hero */}

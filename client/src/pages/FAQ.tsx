@@ -4,6 +4,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowLeft, Search, Phone, Mail, MessageCircle } from "lucide-react";
+import { useSEO } from '@/hooks/useSEO';
 
 const HERO_BG = "https://images.unsplash.com/photo-1530521954074-e64f6810b32d?w=1200&q=80&auto=format&fit=crop";
 
@@ -112,6 +113,10 @@ const FAQ_CATEGORIES = [
 ];
 
 export default function FAQ() {
+  useSEO({
+    title: 'Frequently Asked Questions',
+    description: 'Got questions about booking with CB Travel? Find answers about our services, payment options, cancellation policies, and more.',
+  });
   const [search, setSearch] = useState("");
 
   const filtered = search.trim()

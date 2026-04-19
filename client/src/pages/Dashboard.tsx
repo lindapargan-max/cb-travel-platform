@@ -18,7 +18,7 @@ import {
   Download, Clock, Plane, ChevronRight, ChevronDown, AlertCircle, CheckCircle2, Lock,
   XCircle, Star, ArrowRight, Package, Hotel, Briefcase, CheckSquare,
   Plus, Trash2, Edit2, Zap, Heart, MapPinIcon, AlertTriangle, MessageSquare,
-  Ticket, Users2, Send, Paperclip, UserMinus, Shield
+  Ticket, Users2, Send, Paperclip, UserMinus, Shield, Bell
 } from "lucide-react";
 import { Link } from "wouter";
 import HolidayCountdownBanner from "@/components/HolidayCountdownBanner";
@@ -32,6 +32,7 @@ import SOSButton from "@/components/SOSButton";
 import AIItineraryGenerator from "@/components/AIItineraryGenerator";
 
 import { BookingCard, StatusBadge, QuoteStatusBadge, getStatusGradient, CountdownTimer, ChecklistSection, TravelPartySection } from "@/components/BookingCard";
+import { useSEO } from '@/hooks/useSEO';
 
 
 function ProfileSection({ user }: { user: any }) {
@@ -412,7 +413,54 @@ function SupportSection() {
 }
 
 
+function NotificationsSection() {
+  const utils = trpc.useUtils();
+  const { data: notifications = [] } = trpc.notifications.getMyNotifications.useQuery();
+  const markAllRead = trpc.notifications.markAllRead.useMutation({
+    onSuccess: () => utils.notifications.getMyNotifications.invalidate(),
+  });
+  const markRead = trpc.notifications.markRead.useMutation({
+    onSuccess: () => utils.notifications.getMyNotifications.invalidate(),
+  });
+
+  const unread = (notifications as any[]).filter((n: any) => !n.isRead);
+  if (notifications.length === 0) return null;
+
+  return (
+    <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden mb-8">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Bell size={16} className="text-primary" />
+          <h2 className="text-sm font-semibold text-foreground">Notifications</h2>
+          {unread.length > 0 && (
+            <span className="bg-[#d4af37] text-[#020917] text-[10px] font-bold px-2 py-0.5 rounded-full">{unread.length} new</span>
+          )}
+        </div>
+        {unread.length > 0 && (
+          <button onClick={() => markAllRead.mutate()} className="text-xs text-primary hover:underline">Mark all read</button>
+        )}
+      </div>
+      <div className="divide-y divide-border max-h-64 overflow-y-auto">
+        {(notifications as any[]).slice(0, 10).map((n: any) => (
+          <div
+            key={n.id}
+            onClick={() => !n.isRead && markRead.mutate({ id: n.id })}
+            className={`px-5 py-3 flex items-start gap-3 cursor-pointer hover:bg-muted/30 transition-colors ${!n.isRead ? 'bg-primary/5' : ''}`}
+          >
+            <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${n.isRead ? 'bg-slate-200' : 'bg-primary'}`} />
+            <div>
+              <p className={`text-sm font-medium ${n.isRead ? 'text-muted-foreground' : 'text-foreground'}`}>{n.title}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{n.message}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
+  useSEO({ title: 'My Account', noIndex: true });
   const { data: user } = trpc.auth.me.useQuery();
   const { data: bookings, isLoading } = trpc.bookings.myBookings.useQuery();
   const { data: sharedBookings } = trpc.travelParty.mySharedBookings.useQuery();
@@ -457,6 +505,9 @@ export default function Dashboard() {
 
         {/* V6: Holiday Countdown Banner */}
         <HolidayCountdownBanner />
+
+        {/* Notifications */}
+        <NotificationsSection />
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10">

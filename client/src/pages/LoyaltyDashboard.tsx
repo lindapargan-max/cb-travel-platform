@@ -2,6 +2,7 @@ import { useState } from "react";
 import { trpc } from "../lib/trpc";
 import { Check, ChevronRight, Copy, Gift, Star, TrendingUp, Zap, Clock, Award } from "lucide-react";
 import { toast } from "sonner";
+import { useSEO } from '@/hooks/useSEO';
 
 // ─── Tier configuration ────────────────────────────────────────────────────
 const TIER_CONFIG: Record<string, {
@@ -244,6 +245,7 @@ function TransactionRow({ tx }: { tx: any }) {
 // ─── Main Component ────────────────────────────────────────────────────────
 
 export default function LoyaltyDashboard() {
+  useSEO({ title: 'My Loyalty Rewards', noIndex: true });
   const [activeTab, setActiveTab] = useState<"rewards" | "history" | "vouchers">("rewards");
   const [claimingId, setClaimingId] = useState<number | null>(null);
 
