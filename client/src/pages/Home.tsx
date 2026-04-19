@@ -41,7 +41,7 @@ const TRUST_STATS = [
 const FAQ_ITEMS = [
   {
     q: "How do I book a holiday with CB Travel?",
-    a: "Simply fill out our Request a Quote form or call us on 07495 823953. One of our travel specialists will be in touch within 24 hours during business hours (Monday–Friday, 9am–6pm GMT). Weekend requests will be responded to by the next working day.",
+    a: "Simply fill out our Request a Quote form or call us on 07495 823953. One of our travel specialists will be in touch within 24 hours to discuss your requirements and start planning your perfect trip.",
   },
   {
     q: "What types of holidays do you specialise in?",

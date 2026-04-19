@@ -107,7 +107,7 @@ export default function QuoteRequest() {
   const createMutation = trpc.quotes.create.useMutation({
     onSuccess: () => {
       setSubmitted(true);
-      toast.success("Quote request submitted! We'll be in touch within 24 hours during business hours (Mon–Fri, 9am–6pm GMT).");
+      toast.success("Quote request submitted! We'll be in touch within 24 hours.");
     },
     onError: (e) => toast.error(e.message || "Failed to submit. Please try again."),
   });
@@ -411,7 +411,7 @@ export default function QuoteRequest() {
                       <Button type="submit" className="w-full h-12 rounded-xl btn-gold border-0 text-foreground font-semibold text-base" disabled={createMutation.isPending}>
                         {createMutation.isPending ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />Submitting...</span> : "Submit Quote Request"}
                       </Button>
-                      <p className="text-xs text-muted-foreground text-center">This service is completely free. We aim to respond within 24 hours during business hours (Mon–Fri, 9am–6pm GMT).</p>
+                      <p className="text-xs text-muted-foreground text-center">This service is completely free. We aim to respond to all enquiries within 24 hours.</p>
                       <p className="text-xs text-muted-foreground text-center leading-relaxed">By submitting this form you agree to your data being processed by CB Travel to respond to your enquiry. View our <a href="/privacy-policy" className="underline hover:text-primary">Privacy Policy</a>.</p>
                     </form>
                   </>
@@ -483,7 +483,7 @@ export default function QuoteRequest() {
                       <Button type="submit" className="w-full h-12 rounded-xl btn-gold border-0 text-foreground font-semibold text-base" disabled={createMutation.isPending}>
                         {createMutation.isPending ? <span className="flex items-center gap-2"><div className="w-4 h-4 border-2 border-foreground/30 border-t-foreground rounded-full animate-spin" />Submitting...</span> : "Submit Price Match Request"}
                       </Button>
-                      <p className="text-xs text-muted-foreground text-center">Completely free — we aim to respond within 24 hours during business hours (Mon–Fri, 9am–6pm GMT).</p>
+                      <p className="text-xs text-muted-foreground text-center">Completely free — we aim to respond to all enquiries within 24 hours.</p>
                       <p className="text-xs text-muted-foreground text-center leading-relaxed">By submitting this form you agree to your data being processed by CB Travel to respond to your enquiry. View our <a href="/privacy-policy" className="underline hover:text-primary">Privacy Policy</a>.</p>
                     </form>
                   </>

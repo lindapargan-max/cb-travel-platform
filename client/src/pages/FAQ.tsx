@@ -14,7 +14,7 @@ const FAQ_CATEGORIES = [
     items: [
       {
         q: "How do I book a holiday with CB Travel?",
-        a: "Simply fill out our Request a Quote form online or call us directly on 07495 823953. One of our dedicated travel specialists will be in touch within 24 hours during business hours (Monday–Friday, 9am–6pm GMT) to discuss your requirements and begin crafting your perfect holiday. Weekend requests will be responded to by the next working day.",
+        a: "Simply fill out our Request a Quote form online or call us directly on 07495 823953. One of our dedicated travel specialists will be in touch within 24 hours to discuss your requirements and begin crafting your perfect holiday.",
       },
       {
         q: "Is there a fee for using CB Travel's services?",
