@@ -27,7 +27,7 @@ import {
   AlertCircle, RefreshCw, Shield, Lock, UserX, UserCheck, HelpCircle,
   KeyRound, UserPlus, Tag, Copy, Percent, ClipboardList, ExternalLink, ArrowRight,
   ChevronDown, ChevronRight, ChevronLeft, Send, MessageSquare, MailCheck, Ticket, Users2, UserMinus, UserRound,
-  Settings, Info, Check, User, CopyPlus, LayoutDashboard, Heart, Bell
+  Settings, Info, Check, User, CopyPlus, LayoutDashboard, Heart, Bell, Search, SlidersHorizontal
 } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
@@ -3071,6 +3071,8 @@ export default function AdminDashboard() {
   const [selectedIntake, setSelectedIntake] = useState<any>(null);
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [intakeAdminNotes, setIntakeAdminNotes] = useState("");
+  const [bookingSearch, setBookingSearch] = useState('');
+  const [bookingStatusFilter, setBookingStatusFilter] = useState<string>('all');
 
   const approveTestimonial = trpc.testimonials.approve.useMutation({ onSuccess: () => { toast.success("Testimonial approved!"); utils.testimonials.getAllAdmin.invalidate(); } });
   const deleteTestimonial = trpc.testimonials.delete.useMutation({ onSuccess: () => { toast.success("Testimonial deleted."); utils.testimonials.getAllAdmin.invalidate(); } });
@@ -3322,39 +3324,146 @@ export default function AdminDashboard() {
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="hidden" />
           <TabsContent value="bookings">
-            <div className="flex items-center justify-between mb-5"><h2 className="font-serif text-xl font-semibold">All Bookings</h2><AddBookingModal onSuccess={() => utils.bookings.getAllAdmin.invalidate()} /></div>
-            {bookingsLoading ? <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-24 animate-pulse border border-border" />)}</div> : bookings && bookings.length > 0 ? (
-              <div className="space-y-3">{bookings.map((b: any) => { const total = b.totalPrice ? parseFloat(b.totalPrice) : 0; const paid = b.amountPaid ? parseFloat(b.amountPaid) : 0; return (
-                <div key={b.id} className="bg-white rounded-2xl border border-border shadow-sm p-5 cursor-pointer hover:border-primary/40 hover:shadow-md transition-all group" onClick={() => setSelectedBooking(b)}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex items-start gap-4 flex-1 min-w-0">
-                      <div className="w-10 h-10 bg-primary/8 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-primary/15 transition-colors"><Plane size={16} className="text-primary" /></div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2 flex-wrap mb-1"><span className="font-mono font-bold text-primary text-sm">{b.bookingReference}</span><StatusBadge status={b.status} /><span className="text-xs text-muted-foreground ml-auto group-hover:text-primary transition-colors flex items-center gap-1">View details <ArrowRight size={11} /></span></div>
-                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                          {b.destination && <span className="flex items-center gap-1"><MapPin size={11} />{b.destination}</span>}
-                          {b.leadPassengerName && <span className="flex items-center gap-1"><Users size={11} />{b.leadPassengerName}</span>}
-                          {b.departureDate && <span className="flex items-center gap-1"><Calendar size={11} />{b.departureDate}</span>}
-                          {total > 0 && <span className="flex items-center gap-1"><CreditCard size={11} />£{total.toFixed(2)}{paid > 0 && ` (£${paid.toFixed(2)} paid)`}</span>}
-                        </div>
-                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground/60 mt-1.5 pt-1.5 border-t border-border/40">
-                          {b.createdAt && <span className="flex items-center gap-1"><Clock size={10} />Added {new Date(b.createdAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
-                          {b.updatedAt && b.updatedAt !== b.createdAt && <span className="flex items-center gap-1"><RefreshCw size={10} />Updated {new Date(b.updatedAt).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0" onClick={e => e.stopPropagation()}>
-                      <EditBookingModal booking={b} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
-                      <FlightHotelModal booking={b} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
-                      <UploadDocumentModal booking={b} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
-                      <BookingDocumentsModal booking={b} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
-                      <SendPostcardButton bookingId={b.id} booking={b} postcardSent={!!b.postcardSent} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
-                    </div>
-                    <AdminBookingGroupBadge bookingId={b.id} />
+            {/* Bookings mini stats */}
+            {bookings && bookings.length > 0 && (() => {
+              const totalVal = (bookings as any[]).reduce((s: number, b: any) => s + (parseFloat(b.totalPrice) || 0), 0);
+              const confirmedCount = (bookings as any[]).filter((b: any) => b.status === 'confirmed').length;
+              const pendingBCount = (bookings as any[]).filter((b: any) => b.status === 'pending').length;
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                  <div className="bg-white rounded-2xl border border-border p-4 shadow-sm">
+                    <p className="text-xs text-muted-foreground mb-1">Total Bookings</p>
+                    <p className="text-2xl font-bold text-foreground">{(bookings as any[]).length}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-4 shadow-sm">
+                    <p className="text-xs text-emerald-700/70 mb-1">Confirmed</p>
+                    <p className="text-2xl font-bold text-emerald-800">{confirmedCount}</p>
+                  </div>
+                  <div className="bg-amber-50 rounded-2xl border border-amber-100 p-4 shadow-sm">
+                    <p className="text-xs text-amber-700/70 mb-1">Pending</p>
+                    <p className="text-2xl font-bold text-amber-800">{pendingBCount}</p>
+                  </div>
+                  <div className="bg-primary/5 rounded-2xl border border-primary/10 p-4 shadow-sm">
+                    <p className="text-xs text-primary/70 mb-1">Total Value</p>
+                    <p className="text-2xl font-bold text-primary">£{totalVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                   </div>
                 </div>
-              ); })}</div>
-            ) : <div className="bg-white rounded-2xl border border-border p-12 text-center"><Package size={40} className="mx-auto text-muted-foreground/30 mb-3" /><p className="text-muted-foreground">No bookings yet.</p></div>}
+              );
+            })()}
+
+            {/* Search + Filter bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-5">
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search bookings by reference, name, destination…"
+                  value={bookingSearch}
+                  onChange={e => setBookingSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all placeholder:text-muted-foreground/60"
+                />
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setBookingStatusFilter(s)}
+                    className={`px-3 py-2 text-xs font-semibold rounded-xl border transition-all capitalize ${bookingStatusFilter === s ? 'bg-primary text-primary-foreground border-primary shadow-sm' : 'bg-white border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'}`}
+                  >
+                    {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <AddBookingModal onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
+            </div>
+
+            {bookingsLoading ? (
+              <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-24 animate-pulse border border-border" />)}</div>
+            ) : (() => {
+              const filteredBookings = (bookings as any[] || []).filter((b: any) => {
+                const matchSearch = !bookingSearch ||
+                  b.bookingReference?.toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                  b.leadPassengerName?.toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                  b.destination?.toLowerCase().includes(bookingSearch.toLowerCase());
+                const matchStatus = bookingStatusFilter === 'all' || b.status === bookingStatusFilter;
+                return matchSearch && matchStatus;
+              });
+
+              if (filteredBookings.length === 0) {
+                return (
+                  <div className="bg-white rounded-2xl border border-border p-12 text-center">
+                    <Package size={40} className="mx-auto text-muted-foreground/30 mb-3" />
+                    <p className="text-muted-foreground font-medium">{bookingSearch || bookingStatusFilter !== 'all' ? 'No bookings match your filters.' : 'No bookings yet.'}</p>
+                    {(bookingSearch || bookingStatusFilter !== 'all') && (
+                      <button onClick={() => { setBookingSearch(''); setBookingStatusFilter('all'); }} className="mt-3 text-xs text-primary hover:underline font-semibold">Clear filters</button>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-3">
+                  {filteredBookings.map((b: any) => {
+                    const total = b.totalPrice ? parseFloat(b.totalPrice) : 0;
+                    const paid = b.amountPaid ? parseFloat(b.amountPaid) : 0;
+                    const outstanding = total - paid;
+                    const isFullyPaid = outstanding <= 0.01;
+                    return (
+                      <div
+                        key={b.id}
+                        className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md hover:border-primary/30 transition-all group cursor-pointer"
+                        onClick={() => setSelectedBooking(b)}
+                      >
+                        {/* Top row: reference, destination, status */}
+                        <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/15 transition-colors">
+                              <Plane size={16} className="text-primary" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                <span className="font-mono font-bold text-primary text-sm">{b.bookingReference || `#${b.id}`}</span>
+                                <StatusBadge status={b.status} />
+                                {!isFullyPaid && outstanding > 0 && (
+                                  <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-semibold">
+                                    £{outstanding.toFixed(0)} outstanding
+                                  </span>
+                                )}
+                                <span className="text-xs text-muted-foreground ml-auto group-hover:text-primary transition-colors flex items-center gap-1 hidden sm:flex">View details <ArrowRight size={11} /></span>
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1 font-medium text-foreground">{b.destination || 'No destination'}</span>
+                                {b.leadPassengerName && <span className="flex items-center gap-1"><User size={10} />{b.leadPassengerName}</span>}
+                                {b.departureDate && <span className="flex items-center gap-1"><Calendar size={10} />{b.departureDate}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          {/* Price */}
+                          <div className="text-right flex-shrink-0">
+                            {total > 0 && <p className="font-bold text-foreground text-sm">£{total.toLocaleString()}</p>}
+                            {paid > 0 && <p className="text-xs text-muted-foreground">£{paid.toLocaleString()} paid</p>}
+                          </div>
+                          <AdminBookingGroupBadge bookingId={b.id} />
+                        </div>
+                        {/* Bottom row: date + actions */}
+                        <div className="px-5 pb-3 flex items-center justify-between border-t border-border/50 pt-2.5" onClick={e => e.stopPropagation()}>
+                          <p className="text-xs text-muted-foreground">
+                            {b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            <EditBookingModal booking={b} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
+                            <FlightHotelModal booking={b} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
+                            <UploadDocumentModal booking={b} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
+                            <BookingDocumentsModal booking={b} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
+                            <SendPostcardButton bookingId={b.id} booking={b} postcardSent={!!b.postcardSent} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </TabsContent>
 
           {/* DEALS */}

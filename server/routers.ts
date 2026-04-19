@@ -1911,6 +1911,38 @@ ${faqContext}`;
         const answer = data.choices?.[0]?.message?.content || "Please contact us at hello@travelcb.co.uk";
         return { answer, canAnswer: true };
       }),
+
+    // Public itinerary tool — log access
+    logItineraryAccess: publicProcedure
+      .input(z.object({
+        agencyName: z.string().optional(),
+        agencyTagline: z.string().optional(),
+        destination: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const { getDb } = await import('./db');
+          const { sql } = await import('drizzle-orm');
+          const db = await getDb();
+          if (!db) return { success: true };
+          const ip = (ctx as any).req?.headers['x-forwarded-for'] as string || (ctx as any).req?.socket?.remoteAddress || 'unknown';
+          const ua = (ctx as any).req?.headers['user-agent'] as string || '';
+          await db.execute(sql`INSERT INTO itineraryAccessLog (ipAddress, agencyName, agencyTagline, destination, userAgent) VALUES (${ip}, ${input.agencyName || null}, ${input.agencyTagline || null}, ${input.destination || null}, ${ua})`);
+        } catch(e) { console.error('Failed to log itinerary access:', e); }
+        return { success: true };
+      }),
+
+    // Admin: get access logs
+    getItineraryAccessLogs: adminMiddleware.query(async () => {
+      try {
+        const { getDb } = await import('./db');
+        const { sql } = await import('drizzle-orm');
+        const db = await getDb();
+        if (!db) return [];
+        const rows = await db.execute(sql`SELECT * FROM itineraryAccessLog ORDER BY accessedAt DESC LIMIT 500`);
+        return (rows as any)[0] || [];
+      } catch { return []; }
+    }),
   }),
 
   // ─── V6: QR Codes ────────────────────────────────────────────────────────────
@@ -2004,6 +2036,38 @@ ${faqContext}`;
         if (input.dateOfBirth !== undefined) {
           await setUserDateOfBirth(userId, input.dateOfBirth);
         }
+        // Audit log
+        try {
+          const fields = Object.keys(input).filter(k => (input as any)[k] !== undefined).join(', ');
+          writeAuditLog({ actorId: userId, actorType: 'client', action: 'profile_updated', entityType: 'user', entityId: userId, newValue: { fields } });
+        } catch {}
+        return { success: true };
+      }),
+    updateMyPassport: protectedProcedure
+      .input(z.object({
+        passportNumber: z.string().nullable().optional(),
+        passportExpiry: z.string().nullable().optional(),
+        passportIssueDate: z.string().nullable().optional(),
+        passportIssuingCountry: z.string().nullable().optional(),
+        passportNationality: z.string().nullable().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const userId = (ctx as any).user?.id;
+        if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
+        const { getDb } = await import('./db');
+        const { sql } = await import('drizzle-orm');
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        await db.execute(sql`UPDATE users SET 
+          passportNumber = ${input.passportNumber ?? null},
+          passportExpiry = ${input.passportExpiry ?? null},
+          passportIssueDate = ${input.passportIssueDate ?? null},
+          passportIssuingCountry = ${input.passportIssuingCountry ?? null},
+          passportNationality = ${input.passportNationality ?? null}
+          WHERE id = ${userId}`);
+        try {
+          writeAuditLog({ actorId: userId, actorType: 'client', action: 'passport_updated', entityType: 'user', entityId: userId, newValue: { updated: true } });
+        } catch {}
         return { success: true };
       }),
   }),

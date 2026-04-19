@@ -37,26 +37,59 @@ import { useSEO } from '@/hooks/useSEO';
 
 function ProfileSection({ user }: { user: any }) {
   const utils = trpc.useUtils();
-  const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ name: '', phone: '', dateOfBirth: '' });
+
+  const [activeTab, setActiveTab] = useState<'personal' | 'passport'>('personal');
+  const [editingPersonal, setEditingPersonal] = useState(false);
+  const [editingPassport, setEditingPassport] = useState(false);
+  const [personalForm, setPersonalForm] = useState({ name: '', phone: '', dateOfBirth: '' });
+  const [passportForm, setPassportForm] = useState({
+    passportNumber: '',
+    passportExpiry: '',
+    passportIssueDate: '',
+    passportIssuingCountry: '',
+    passportNationality: '',
+  });
+
+  const { data: fullProfile } = trpc.profileV6.getMyProfile.useQuery();
 
   const updateProfile = trpc.profileV6.updateProfile.useMutation({
     onSuccess: () => {
       toast.success('Profile updated!');
-      setEditing(false);
+      setEditingPersonal(false);
       utils.auth.me.invalidate();
       utils.profileV6.getMyProfile.invalidate();
     },
     onError: (e) => toast.error(e.message),
   });
 
-  const startEdit = () => {
-    setForm({
+  const updatePassport = (trpc.profileV6 as any).updateMyPassport.useMutation({
+    onSuccess: () => {
+      toast.success('Passport details saved securely!');
+      setEditingPassport(false);
+      utils.profileV6.getMyProfile.invalidate();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const startEditPersonal = () => {
+    setPersonalForm({
       name: user?.name || '',
       phone: user?.phone || '',
       dateOfBirth: user?.dateOfBirth ? new Date(user.dateOfBirth).toISOString().split('T')[0] : '',
     });
-    setEditing(true);
+    setEditingPersonal(true);
+  };
+
+  const startEditPassport = () => {
+    const p = fullProfile as any;
+    setPassportForm({
+      passportNumber: p?.passportNumber || '',
+      passportExpiry: p?.passportExpiry ? new Date(p.passportExpiry).toISOString().split('T')[0] : '',
+      passportIssueDate: p?.passportIssueDate ? new Date(p.passportIssueDate).toISOString().split('T')[0] : '',
+      passportIssuingCountry: p?.passportIssuingCountry || '',
+      passportNationality: p?.passportNationality || '',
+    });
+    setEditingPassport(true);
   };
 
   const formatDob = (dob: any) => {
@@ -73,110 +106,303 @@ function ProfileSection({ user }: { user: any }) {
     return d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
   };
 
+  const maskPassportNumber = (num: string | null | undefined) => {
+    if (!num) return '—';
+    if (num.length <= 4) return num;
+    return '•••• ' + num.slice(-4);
+  };
+
+  const getExpiryStatus = (expiry: string | null | undefined) => {
+    if (!expiry) return null;
+    const d = new Date(expiry);
+    const now = new Date();
+    const monthsLeft = (d.getTime() - now.getTime()) / (1000 * 60 * 60 * 24 * 30.44);
+    if (monthsLeft < 0) return { color: 'text-red-600', icon: '🔴', label: 'Expired' };
+    if (monthsLeft < 3) return { color: 'text-red-500', icon: '🔴', label: 'Expires very soon!' };
+    if (monthsLeft < 12) return { color: 'text-amber-500', icon: '🟡', label: 'Expires within 12 months' };
+    return { color: 'text-green-600', icon: '🟢', label: 'Valid' };
+  };
+
+  const formatDate = (val: string | null | undefined) => {
+    if (!val) return '—';
+    const d = new Date(val);
+    if (isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  };
+
+  const p = fullProfile as any;
+
   return (
-    <div className="bg-white rounded-2xl border border-border shadow-sm p-6 mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-            <User size={18} className="text-primary" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground">My Profile</h3>
-            <p className="text-xs text-muted-foreground">Your personal details</p>
-          </div>
+    <div className="bg-white rounded-2xl border border-border shadow-sm mb-8 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-3 px-6 pt-6 pb-4 border-b border-border">
+        <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+          <User size={18} className="text-primary" />
         </div>
-        {!editing && (
-          <button
-            onClick={startEdit}
-            className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/5"
-          >
-            <Edit2 size={12} /> Edit
-          </button>
-        )}
+        <div>
+          <h3 className="font-semibold text-foreground">My Profile</h3>
+          <p className="text-xs text-muted-foreground">Manage your personal &amp; travel details</p>
+        </div>
       </div>
 
-      {!editing ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
-            <User size={14} className="text-muted-foreground flex-shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Full Name</p>
-              <p className="text-sm font-medium text-foreground">{user?.name || '—'}</p>
+      {/* Tab Nav */}
+      <div className="flex border-b border-border">
+        <button
+          onClick={() => setActiveTab('personal')}
+          className={`flex-1 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${activeTab === 'personal' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <User size={14} /> Personal Details
+        </button>
+        <button
+          onClick={() => setActiveTab('passport')}
+          className={`flex-1 py-3 text-sm font-medium transition-colors flex items-center justify-center gap-2 ${activeTab === 'passport' ? 'text-primary border-b-2 border-primary bg-primary/5' : 'text-muted-foreground hover:text-foreground'}`}
+        >
+          <Shield size={14} /> Passport &amp; Travel
+        </button>
+      </div>
+
+      <div className="p-6">
+        {/* ── Personal Details Tab ── */}
+        {activeTab === 'personal' && (
+          <>
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs text-muted-foreground font-medium">Your contact &amp; personal information</p>
+              {!editingPersonal && (
+                <button
+                  onClick={startEditPersonal}
+                  className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/5"
+                >
+                  <Edit2 size={12} /> Edit
+                </button>
+              )}
             </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
-            <Mail size={14} className="text-muted-foreground flex-shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Email</p>
-              <p className="text-sm font-medium text-foreground">{user?.email || '—'}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
-            <Phone size={14} className="text-muted-foreground flex-shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Phone</p>
-              <p className="text-sm font-medium text-foreground">{user?.phone || '—'}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
-            <Calendar size={14} className="text-muted-foreground flex-shrink-0" />
-            <div>
-              <p className="text-xs text-muted-foreground">Date of Birth</p>
-              <p className="text-sm font-medium text-foreground">
-                {formatDob(user?.dateOfBirth) || '—'}
-                {isBirthdayToday(user?.dateOfBirth) && <span className="ml-2 text-base">🎂</span>}
+
+            {!editingPersonal ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                  <User size={14} className="text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Full Name</p>
+                    <p className="text-sm font-medium text-foreground">{user?.name || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                  <Mail size={14} className="text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Email</p>
+                    <p className="text-sm font-medium text-foreground">{user?.email || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                  <Phone size={14} className="text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Phone</p>
+                    <p className="text-sm font-medium text-foreground">{user?.phone || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                  <Calendar size={14} className="text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Date of Birth</p>
+                    <p className="text-sm font-medium text-foreground">
+                      {formatDob(user?.dateOfBirth) || '—'}
+                      {isBirthdayToday(user?.dateOfBirth) && <span className="ml-2 text-base">🎂</span>}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Full Name</label>
+                    <Input
+                      value={personalForm.name}
+                      onChange={e => setPersonalForm(f => ({ ...f, name: e.target.value }))}
+                      className="rounded-xl"
+                      placeholder="Your full name"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Phone</label>
+                    <Input
+                      value={personalForm.phone}
+                      onChange={e => setPersonalForm(f => ({ ...f, phone: e.target.value }))}
+                      className="rounded-xl"
+                      placeholder="+44 7700 000000"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Date of Birth</label>
+                    <Input
+                      type="date"
+                      value={personalForm.dateOfBirth}
+                      onChange={e => setPersonalForm(f => ({ ...f, dateOfBirth: e.target.value }))}
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
+                    <Input value={user?.email || ''} disabled className="rounded-xl bg-muted/30 text-muted-foreground" />
+                    <p className="text-xs text-muted-foreground mt-1">Email cannot be changed here — contact support</p>
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    onClick={() => updateProfile.mutate({ name: personalForm.name || undefined, phone: personalForm.phone || undefined, dateOfBirth: personalForm.dateOfBirth || undefined })}
+                    disabled={updateProfile.isPending}
+                    className="rounded-xl btn-gold border-0 text-foreground"
+                  >
+                    {updateProfile.isPending ? 'Saving…' : 'Save Changes'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setEditingPersonal(false)} className="rounded-xl">Cancel</Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* ── Passport & Travel Tab ── */}
+        {activeTab === 'passport' && (
+          <>
+            {/* Security notice */}
+            <div className="flex items-start gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl mb-5">
+              <Lock size={14} className="text-blue-600 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-blue-700">
+                Your passport details are stored securely and only used to support your bookings. We never share this information with third parties.
               </p>
             </div>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Full Name</label>
-              <Input
-                value={form.name}
-                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                className="rounded-xl"
-                placeholder="Your full name"
-              />
+
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-xs text-muted-foreground font-medium">Travel document information</p>
+              {!editingPassport && (
+                <button
+                  onClick={startEditPassport}
+                  className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors border border-primary/30 rounded-lg px-3 py-1.5 hover:bg-primary/5"
+                >
+                  <Edit2 size={12} /> {p?.passportNumber ? 'Update' : 'Add Passport'}
+                </button>
+              )}
             </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Phone</label>
-              <Input
-                value={form.phone}
-                onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                className="rounded-xl"
-                placeholder="+44 7700 000000"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Date of Birth</label>
-              <Input
-                type="date"
-                value={form.dateOfBirth}
-                onChange={e => setForm(f => ({ ...f, dateOfBirth: e.target.value }))}
-                className="rounded-xl"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Email</label>
-              <Input value={user?.email || ''} disabled className="rounded-xl bg-muted/30 text-muted-foreground" />
-              <p className="text-xs text-muted-foreground mt-1">Email cannot be changed here — contact support</p>
-            </div>
-          </div>
-          <div className="flex gap-2 pt-1">
-            <Button
-              onClick={() => updateProfile.mutate({ name: form.name || undefined, phone: form.phone || undefined, dateOfBirth: form.dateOfBirth || undefined })}
-              disabled={updateProfile.isPending}
-              className="rounded-xl btn-gold border-0 text-foreground"
-            >
-              {updateProfile.isPending ? 'Saving…' : 'Save Changes'}
-            </Button>
-            <Button variant="outline" onClick={() => setEditing(false)} className="rounded-xl">Cancel</Button>
-          </div>
-        </div>
-      )}
+
+            {!editingPassport ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                  <FileText size={14} className="text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Passport Number</p>
+                    <p className="text-sm font-medium text-foreground font-mono">{maskPassportNumber(p?.passportNumber)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                  <Calendar size={14} className="text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Expiry Date</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className={`text-sm font-medium ${p?.passportExpiry ? getExpiryStatus(p.passportExpiry)?.color : 'text-foreground'}`}>
+                        {formatDate(p?.passportExpiry)}
+                      </p>
+                      {p?.passportExpiry && (
+                        <span className="text-xs">{getExpiryStatus(p.passportExpiry)?.icon}</span>
+                      )}
+                    </div>
+                    {p?.passportExpiry && getExpiryStatus(p.passportExpiry) && (
+                      <p className={`text-xs ${getExpiryStatus(p.passportExpiry)?.color}`}>{getExpiryStatus(p.passportExpiry)?.label}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                  <Calendar size={14} className="text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Issue Date</p>
+                    <p className="text-sm font-medium text-foreground">{formatDate(p?.passportIssueDate)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl">
+                  <MapPin size={14} className="text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Issuing Country</p>
+                    <p className="text-sm font-medium text-foreground">{p?.passportIssuingCountry || '—'}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-muted/30 rounded-xl sm:col-span-2">
+                  <User size={14} className="text-muted-foreground flex-shrink-0" />
+                  <div>
+                    <p className="text-xs text-muted-foreground">Nationality</p>
+                    <p className="text-sm font-medium text-foreground">{p?.passportNationality || '—'}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Passport Number</label>
+                    <Input
+                      value={passportForm.passportNumber}
+                      onChange={e => setPassportForm(f => ({ ...f, passportNumber: e.target.value }))}
+                      className="rounded-xl font-mono"
+                      placeholder="e.g. 123456789"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Expiry Date</label>
+                    <Input
+                      type="date"
+                      value={passportForm.passportExpiry}
+                      onChange={e => setPassportForm(f => ({ ...f, passportExpiry: e.target.value }))}
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Issue Date</label>
+                    <Input
+                      type="date"
+                      value={passportForm.passportIssueDate}
+                      onChange={e => setPassportForm(f => ({ ...f, passportIssueDate: e.target.value }))}
+                      className="rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Issuing Country</label>
+                    <Input
+                      value={passportForm.passportIssuingCountry}
+                      onChange={e => setPassportForm(f => ({ ...f, passportIssuingCountry: e.target.value }))}
+                      className="rounded-xl"
+                      placeholder="e.g. United Kingdom"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Nationality</label>
+                    <Input
+                      value={passportForm.passportNationality}
+                      onChange={e => setPassportForm(f => ({ ...f, passportNationality: e.target.value }))}
+                      className="rounded-xl"
+                      placeholder="e.g. British"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <Button
+                    onClick={() => updatePassport.mutate({
+                      passportNumber: passportForm.passportNumber || null,
+                      passportExpiry: passportForm.passportExpiry || null,
+                      passportIssueDate: passportForm.passportIssueDate || null,
+                      passportIssuingCountry: passportForm.passportIssuingCountry || null,
+                      passportNationality: passportForm.passportNationality || null,
+                    })}
+                    disabled={updatePassport.isPending}
+                    className="rounded-xl btn-gold border-0 text-foreground"
+                  >
+                    {updatePassport.isPending ? 'Saving…' : 'Save Passport Details'}
+                  </Button>
+                  <Button variant="outline" onClick={() => setEditingPassport(false)} className="rounded-xl">Cancel</Button>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
@@ -459,6 +685,15 @@ function NotificationsSection() {
   );
 }
 
+const LOYALTY_TIERS = [
+  { name: "Bronze", min: 0, max: 499, emoji: "🥉", badge: "Bronze Member" },
+  { name: "Silver", min: 500, max: 1499, emoji: "🥈", badge: "Silver Member" },
+  { name: "Gold", min: 1500, max: Infinity, emoji: "🥇", badge: "Gold Member" },
+];
+function getLoyaltyTier(points: number) {
+  return LOYALTY_TIERS.find(t => points >= t.min && points <= t.max) || LOYALTY_TIERS[0];
+}
+
 export default function Dashboard() {
   useSEO({ title: 'My Account', noIndex: true });
   const { data: user } = trpc.auth.me.useQuery();
@@ -466,6 +701,8 @@ export default function Dashboard() {
   const { data: sharedBookings } = trpc.travelParty.mySharedBookings.useQuery();
   const { data: myQuotes } = trpc.quotes.myQuotes.useQuery();
   const { data: myAdminQuotes } = trpc.adminQuotes.myAdminQuotes.useQuery();
+  const { data: loyaltyAccount } = trpc.loyalty.myAccount.useQuery();
+  const { data: fullProfile } = trpc.profileV6.getMyProfile.useQuery();
   const [expandedQuoteId, setExpandedQuoteId] = useState<number | null>(null);
 
   // Compute stats
@@ -477,14 +714,35 @@ export default function Dashboard() {
     nextTripDays = Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
   }
 
+  // Loyalty tier
+  const loyaltyTier = loyaltyAccount ? getLoyaltyTier(loyaltyAccount.points || 0) : null;
+
+  // Passport expiry warning (within 12 months)
+  const passportExpiry = (fullProfile as any)?.passportExpiry;
+  let passportExpiryWarning: string | null = null;
+  if (passportExpiry) {
+    const d = new Date(passportExpiry);
+    const monthsLeft = (d.getTime() - Date.now()) / (1000 * 60 * 60 * 24 * 30.44);
+    if (monthsLeft < 0) passportExpiryWarning = 'Your passport has expired. Please renew it before travelling.';
+    else if (monthsLeft < 3) passportExpiryWarning = `Your passport expires in less than 3 months (${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}). Many destinations require 6 months validity — renew soon.`;
+    else if (monthsLeft < 12) passportExpiryWarning = `Your passport expires ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })} — within 12 months. Consider renewing before your next trip.`;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-accent/5 to-background">
       <div className="max-w-6xl mx-auto px-4 pt-24 pb-12">
         {/* Welcome Banner */}
-        <div className="bg-gradient-to-r from-amber-400 via-yellow-500 to-primary rounded-3xl p-8 mb-10 text-white shadow-xl relative overflow-hidden">
+        <div className="bg-gradient-to-r from-amber-400 via-yellow-500 to-primary rounded-3xl p-8 mb-4 text-white shadow-xl relative overflow-hidden">
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'url("https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=1200&q=60&auto=format&fit=crop")', backgroundSize: 'cover', backgroundPosition: 'center' }} />
           <div className="relative z-10">
-            <p className="text-white/80 text-sm font-medium mb-1">Welcome back,</p>
+            <div className="flex items-start justify-between flex-wrap gap-3 mb-2">
+              <p className="text-white/80 text-sm font-medium">Welcome back,</p>
+              {loyaltyTier && (loyaltyAccount?.points || 0) > 0 && (
+                <span className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm text-white text-xs font-bold px-3 py-1.5 rounded-full border border-white/30">
+                  {loyaltyTier.emoji} {loyaltyTier.badge}
+                </span>
+              )}
+            </div>
             <h1 className="font-serif text-4xl md:text-5xl font-bold mb-6">
               {user?.name?.split(" ")[0] || "Traveller"} ✈️
             </h1>
@@ -499,9 +757,29 @@ export default function Dashboard() {
                   <p className="text-white/70 text-xs mt-1">Days to Next Trip</p>
                 </div>
               )}
+              {loyaltyAccount && (loyaltyAccount.points || 0) > 0 && (
+                <div className="text-center">
+                  <p className="text-3xl font-bold">{loyaltyAccount.points?.toLocaleString()}</p>
+                  <p className="text-white/70 text-xs mt-1">Loyalty Points</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
+
+        {/* Passport Expiry Warning Banner */}
+        {passportExpiryWarning && (
+          <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-2xl px-5 py-4 mb-6 shadow-sm">
+            <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-amber-800">Passport Expiry Alert</p>
+              <p className="text-xs text-amber-700 mt-0.5">{passportExpiryWarning}</p>
+            </div>
+          </div>
+        )}
+
+        {/* spacing when no warning */}
+        {!passportExpiryWarning && <div className="mb-6" />}
 
         {/* V6: Holiday Countdown Banner */}
         <HolidayCountdownBanner />

@@ -679,3 +679,15 @@ export const notifications = mysqlTable("notifications", {
 
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = typeof notifications.$inferInsert;
+
+// ─── Itinerary Access Log ────────────────────────────────────────────────────
+export const itineraryAccessLog = mysqlTable('itineraryAccessLog', {
+  id: int('id').primaryKey().autoincrement(),
+  ipAddress: varchar('ipAddress', { length: 100 }),
+  agencyName: varchar('agencyName', { length: 255 }),
+  agencyTagline: varchar('agencyTagline', { length: 255 }),
+  destination: varchar('destination', { length: 255 }),
+  accessedAt: timestamp('accessedAt').defaultNow().notNull(),
+  userAgent: text('userAgent'),
+});
+export type ItineraryAccessLog = typeof itineraryAccessLog.$inferSelect;

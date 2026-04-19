@@ -28,6 +28,7 @@ import QuotePage from "./pages/QuotePage";
 import CommunityPage from "./pages/CommunityPage";
 import WhatsAppChatButton from "./components/WhatsAppChatButton";
 import AIChatbot from "./components/AIChatbot";
+import ItineraryGeneratorPage from "./pages/ItineraryGeneratorPage";
 
 import { trpc } from "./lib/trpc";
 
@@ -58,7 +59,18 @@ function ProtectedRoute({ component: Component, requiredRole }: { component: Rea
 }
 
 function SessionTimeoutWrapper({ children }: { children: React.ReactNode }) {
-  useSessionTimeout(30); // 30 minutes of inactivity
+  const utils = trpc.useUtils();
+  const logoutMutation = trpc.auth.logout.useMutation({
+    onSettled: () => {
+      utils.auth.me.invalidate();
+      window.location.href = '/login';
+    },
+  });
+
+  useSessionTimeout(() => {
+    logoutMutation.mutate();
+  }, 30 * 60 * 1000); // 30 minutes
+
   return <>{children}</>;
 }
 
@@ -81,6 +93,7 @@ function Router() {
       <Route path="/refer/:code" component={ReferralLanding} />
       <Route path="/quote/:ref" component={QuotePage} />
       <Route path="/community" component={CommunityPage} />
+      <Route path="/itinerarygenerator" component={ItineraryGeneratorPage} />
 
       {/* GDPR pages */}
       <Route path="/cookie-policy" component={CookiePolicy} />
