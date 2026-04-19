@@ -6,12 +6,31 @@ export default function ReferralSection() {
   const { data } = trpc.referral.getMyCode.useQuery();
   const [copied, setCopied] = useState(false);
 
-  const copy = () => {
-    if (data?.link) {
-      navigator.clipboard.writeText(data.link);
+  const copy = async () => {
+    if (!data?.link) return;
+    try {
+      await navigator.clipboard.writeText(data.link);
       setCopied(true);
       toast.success("Referral link copied! 🎉");
       setTimeout(() => setCopied(false), 3000);
+    } catch {
+      // Fallback for browsers that block clipboard API (e.g. non-HTTPS or restricted permissions)
+      try {
+        const textarea = document.createElement("textarea");
+        textarea.value = data.link;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.focus();
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+        setCopied(true);
+        toast.success("Referral link copied! 🎉");
+        setTimeout(() => setCopied(false), 3000);
+      } catch {
+        toast.error("Could not copy — please copy the link manually.");
+      }
     }
   };
 
