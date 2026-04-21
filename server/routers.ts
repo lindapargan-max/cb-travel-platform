@@ -1874,10 +1874,18 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
         if (!aiEnabled) throw new TRPCError({ code: "BAD_REQUEST", message: "AI features are currently disabled." });
         const apiKey = process.env.GROQ_API_KEY || (await getAppSetting('groq_api_key'));
         if (!apiKey) throw new TRPCError({ code: "BAD_REQUEST", message: "AI not configured. Please contact support." });
-        const prompt = `You are a luxury travel expert at CB Travel (UK travel agency). Create a detailed ${input.duration}-day itinerary for ${input.destination}.
+                const prompt = `You are a luxury travel expert at CB Travel (UK travel agency). Create a detailed ${input.duration}-day itinerary for ${input.destination}.
 
 Travel style: ${input.travelStyle}
 Interests: ${input.interests.join(', ')}
+
+CRITICAL ACCURACY RULES — read carefully:
+- DO NOT invent or guess names of specific restaurants, hotels, bars, shops, tour operators, or businesses. If you are not 100% certain a named establishment really exists in ${input.destination} today, do NOT name it.
+- DO NOT fabricate Michelin stars, awards, ratings, or accolades. Never write phrases like "Michelin-starred", "award-winning", or "top-rated" attached to a specific named place unless you are certain it is true.
+- It is far better to describe a TYPE of place generically ("a traditional seafront fish-and-chip restaurant", "a contemporary harbour-side bistro", "a family-run trattoria in the old town") than to invent a specific name.
+- You MAY name only well-known, unambiguous landmarks, museums, public parks, beaches, piers, and tourist attractions that genuinely exist in ${input.destination} (e.g. Blackpool Tower, Pleasure Beach, Eiffel Tower, Colosseum). If in any doubt, describe generically instead.
+- Never invent street names, phone numbers, opening hours, or prices.
+- If you cannot fill a slot accurately, write a generic but useful suggestion instead of inventing facts.
 
 Return a JSON response with this structure:
 {
@@ -1908,7 +1916,7 @@ IMPORTANT: Return ONLY valid JSON, no markdown code blocks.`;
           body: JSON.stringify({
             model: "llama-3.3-70b-versatile",
             messages: [{ role: "user", content: prompt }],
-            temperature: 0.7,
+            temperature: 0.3,
             max_tokens: 4096,
           }),
         });
