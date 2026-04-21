@@ -2001,8 +2001,13 @@ ${faqContext}`;
             eventType VARCHAR(50) DEFAULT 'access',
             accessedAt DATETIME DEFAULT CURRENT_TIMESTAMP
           )`);
-          const ip = (ctx as any).req?.headers['x-forwarded-for'] as string || (ctx as any).req?.socket?.remoteAddress || 'unknown';
-          const ua = (ctx as any).req?.headers['user-agent'] as string || '';
+          try {
+            await db.execute(sql`ALTER TABLE itineraryAccessLog MODIFY COLUMN ipAddress VARCHAR(255)`);
+          } catch { /* ignore */ }
+          const xff = (ctx as any).req?.headers['x-forwarded-for'] as string | undefined;
+          const rawIp = (xff?.split(',')[0]?.trim()) || (ctx as any).req?.socket?.remoteAddress || 'unknown';
+          const ip = rawIp.slice(0, 255);
+          const ua = ((ctx as any).req?.headers['user-agent'] as string || '').slice(0, 1000);
           const evType = input.eventType || 'access';
           await db.execute(sql`INSERT INTO itineraryAccessLog (ipAddress, agencyName, agencyTagline, destination, userAgent, eventType) VALUES (${ip}, ${input.agencyName || null}, ${input.agencyTagline || null}, ${input.destination || null}, ${ua}, ${evType})`);
         } catch(e) { console.error('Failed to log itinerary access:', e); }
