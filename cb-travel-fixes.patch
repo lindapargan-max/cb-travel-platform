@@ -1,0 +1,116 @@
+diff --git a/server/db.ts b/server/db.ts
+index f773d76..b13ef9d 100644
+--- a/server/db.ts
++++ b/server/db.ts
+@@ -1885,8 +1885,9 @@ export async function ensurePassportColumns() {
+       await db.execute(sql`${sql.raw(stmt)}`);
+     } catch (e: any) {
+       // Ignore "Duplicate column" errors (column already exists)
+-      const msg = e?.message || String(e);
+-      if (!msg.includes("Duplicate column") && !msg.includes("ER_DUP_FIELDNAME") && !msg.includes("already exists")) {
++      const code = e?.cause?.code || e?.code;
++      const msg = e?.cause?.sqlMessage || e?.message || String(e);
++      if (code !== "ER_DUP_FIELDNAME" && !msg.includes("Duplicate column") && !msg.includes("already exists")) {
+         console.warn("[DB] Passport migration warning:", msg);
+       }
+     }
+@@ -1961,14 +1962,25 @@ export async function ensureAdminQuotesTable(): Promise<void> {
+ export async function ensureUserPassportColumns() {
+   const db = await getDb();
+   if (!db) return;
+-  try {
+-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportNumber VARCHAR(100)`);
+-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportExpiry VARCHAR(50)`);
+-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportIssueDate VARCHAR(50)`);
+-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportIssuingCountry VARCHAR(100)`);
+-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportNationality VARCHAR(100)`);
+-  } catch (e) {
+-    console.error('[DB] ensureUserPassportColumns error:', e);
++  // MySQL (unlike MariaDB) does not support `ADD COLUMN IF NOT EXISTS`.
++  // Run each ALTER and swallow only the duplicate-column error.
++  const alterStatements = [
++    "ALTER TABLE users ADD COLUMN passportNumber VARCHAR(100)",
++    "ALTER TABLE users ADD COLUMN passportExpiry VARCHAR(50)",
++    "ALTER TABLE users ADD COLUMN passportIssueDate VARCHAR(50)",
++    "ALTER TABLE users ADD COLUMN passportIssuingCountry VARCHAR(100)",
++    "ALTER TABLE users ADD COLUMN passportNationality VARCHAR(100)",
++  ];
++  for (const stmt of alterStatements) {
++    try {
++      await db.execute(sql`${sql.raw(stmt)}`);
++    } catch (e: any) {
++      const code = e?.cause?.code || e?.code;
++      const msg = e?.cause?.sqlMessage || e?.message || String(e);
++      if (code !== "ER_DUP_FIELDNAME" && !msg.includes("Duplicate column") && !msg.includes("already exists")) {
++        console.error('[DB] ensureUserPassportColumns error:', msg);
++      }
++    }
+   }
+ }
+ 
+diff --git a/server/routers.ts b/server/routers.ts
+index a03296e..3c78736 100644
+--- a/server/routers.ts
++++ b/server/routers.ts
+@@ -1169,16 +1169,30 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
+     getWeather: publicProcedure
+       .input(z.object({ destination: z.string(), lat: z.number().optional(), lon: z.number().optional() }))
+       .query(async ({ input }) => {
++        const fetchWithTimeout = async (url: string, ms = 4000) => {
++          const ctrl = new AbortController();
++          const timer = setTimeout(() => ctrl.abort(), ms);
++          try {
++            return await fetch(url, { signal: ctrl.signal });
++          } finally {
++            clearTimeout(timer);
++          }
++        };
+         try {
+-          const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(input.destination)}&count=1&language=en&format=json`);
++          const res = await fetchWithTimeout(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(input.destination)}&count=1&language=en&format=json`);
+           const geoData = await res.json();
+           if (!geoData.results || geoData.results.length === 0) return null;
+           const { latitude, longitude } = geoData.results[0];
+-          const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,uv_index&temperature_unit=celsius&timezone=auto`);
++          const weatherRes = await fetchWithTimeout(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,uv_index&temperature_unit=celsius&timezone=auto`);
+           const weather = await weatherRes.json();
+           return weather.current;
+-        } catch (e) {
+-          console.error("Weather fetch error:", e);
++        } catch (e: any) {
++          // Downgrade expected upstream timeouts to a warning so they don't pollute error logs
++          if (e?.name === 'AbortError' || e?.cause?.code === 'ETIMEDOUT' || e?.code === 'ETIMEDOUT') {
++            console.warn("Weather fetch timeout for", input.destination);
++          } else {
++            console.error("Weather fetch error:", e);
++          }
+           return null;
+         }
+       }),
+@@ -1993,7 +2007,7 @@ ${faqContext}`;
+           // Ensure table exists
+           await db.execute(sql`CREATE TABLE IF NOT EXISTS itineraryAccessLog (
+             id INT AUTO_INCREMENT PRIMARY KEY,
+-            ipAddress VARCHAR(45),
++            ipAddress VARCHAR(255),
+             agencyName VARCHAR(255),
+             agencyTagline VARCHAR(500),
+             destination VARCHAR(255),
+@@ -2001,8 +2015,15 @@ ${faqContext}`;
+             eventType VARCHAR(50) DEFAULT 'access',
+             accessedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+           )`);
+-          const ip = (ctx as any).req?.headers['x-forwarded-for'] as string || (ctx as any).req?.socket?.remoteAddress || 'unknown';
+-          const ua = (ctx as any).req?.headers['user-agent'] as string || '';
++          // Best-effort widen if an older deployment created VARCHAR(45)
++          try {
++            await db.execute(sql`ALTER TABLE itineraryAccessLog MODIFY COLUMN ipAddress VARCHAR(255)`);
++          } catch { /* ignore — column already wide enough or no permission */ }
++          const xff = (ctx as any).req?.headers['x-forwarded-for'] as string | undefined;
++          // x-forwarded-for can be a comma-separated chain (client, proxy1, proxy2) — keep just the originating client.
++          const rawIp = (xff?.split(',')[0]?.trim()) || (ctx as any).req?.socket?.remoteAddress || 'unknown';
++          const ip = rawIp.slice(0, 255);
++          const ua = ((ctx as any).req?.headers['user-agent'] as string || '').slice(0, 1000);
+           const evType = input.eventType || 'access';
+           await db.execute(sql`INSERT INTO itineraryAccessLog (ipAddress, agencyName, agencyTagline, destination, userAgent, eventType) VALUES (${ip}, ${input.agencyName || null}, ${input.agencyTagline || null}, ${input.destination || null}, ${ua}, ${evType})`);
+         } catch(e) { console.error('Failed to log itinerary access:', e); }
