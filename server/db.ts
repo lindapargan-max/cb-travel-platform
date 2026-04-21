@@ -1043,10 +1043,7 @@ export async function ensureReferralCode(userId: number): Promise<string> {
   const rows = await db.execute(sql`SELECT referralCode FROM users WHERE id = ${userId} LIMIT 1`);
   const user = ((rows as any)[0] as any[])[0];
   if (user?.referralCode) return user.referralCode;
-  // Generate a unique, deterministic code from the user ID using a SHA-256 hash.
-  // Taking 8 hex chars gives 4 billion possible values — collision-free in practice.
-  const hash = crypto.createHash("sha256").update(`referral-${userId}-${process.env.SESSION_SECRET || "cb-travel-referral"}`).digest("hex");
-  const code = `REF-${hash.substring(0, 8).toUpperCase()}`;
+  const code = `REF-${userId}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
   await db.execute(sql`UPDATE users SET referralCode = ${code} WHERE id = ${userId}`);
   return code;
 }
@@ -1964,23 +1961,14 @@ export async function ensureAdminQuotesTable(): Promise<void> {
 export async function ensureUserPassportColumns() {
   const db = await getDb();
   if (!db) return;
-  const alterStatements = [
-    "ALTER TABLE users ADD COLUMN passportNumber VARCHAR(100)",
-    "ALTER TABLE users ADD COLUMN passportExpiry VARCHAR(50)",
-    "ALTER TABLE users ADD COLUMN passportIssueDate VARCHAR(50)",
-    "ALTER TABLE users ADD COLUMN passportIssuingCountry VARCHAR(100)",
-    "ALTER TABLE users ADD COLUMN passportNationality VARCHAR(100)",
-  ];
-  for (const stmt of alterStatements) {
-    try {
-      await db.execute(sql`${sql.raw(stmt)}`);
-    } catch (e: any) {
-      // Ignore "Duplicate column" errors (column already exists)
-      const msg = e?.message || String(e);
-      if (!msg.includes("Duplicate column") && !msg.includes("ER_DUP_FIELDNAME") && !msg.includes("already exists")) {
-        console.warn("[DB] User passport migration warning:", msg);
-      }
-    }
+  try {
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportNumber VARCHAR(100)`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportExpiry VARCHAR(50)`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportIssueDate VARCHAR(50)`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportIssuingCountry VARCHAR(100)`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportNationality VARCHAR(100)`);
+  } catch (e) {
+    console.error('[DB] ensureUserPassportColumns error:', e);
   }
 }
 
@@ -2520,8 +2508,34 @@ export async function getClientReferrals(userId: number): Promise<Array<{
   } catch { return []; }
 }
 
+// ─── Notifications Table ───────────────────────────────────────────────────────
+
+export async function ensureNotificationsTable() {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        type ENUM('info', 'success', 'warning', 'alert') NOT NULL DEFAULT 'info',
+        link VARCHAR(512),
+        isRead BOOLEAN NOT NULL DEFAULT false,
+        createdBy INT,
+        isBroadcast BOOLEAN NOT NULL DEFAULT false,
+        createdAt TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+  } catch (e) {
+    console.error('[DB] ensureNotificationsTable error:', e);
+  }
+}
+
 // Run on module load
 ensureUserPassportColumns().catch(console.error);
 ensureCommunityPostsTable().catch(console.error);
 ensureEmailLogsTable().catch(console.error);
 ensureLoginHistoryTable().catch(console.error);
+ensureNotificationsTable().catch(console.error);
