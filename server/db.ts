@@ -2508,6 +2508,112 @@ export async function getClientReferrals(userId: number): Promise<Array<{
   } catch { return []; }
 }
 
+// ─── Loyalty Tables ────────────────────────────────────────────────────────────
+
+export async function ensureLoyaltyTables() {
+  try {
+    const db = await getDb();
+    if (!db) return;
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS loyaltyAccounts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL UNIQUE,
+        points INT NOT NULL DEFAULT 0,
+        lifetimePoints INT NOT NULL DEFAULT 0,
+        tier ENUM('bronze','silver','gold') NOT NULL DEFAULT 'bronze',
+        pointsMultiplier DECIMAL(3,1) NOT NULL DEFAULT 1.0,
+        memberNotes TEXT,
+        createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+        updatedAt TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW()
+      )
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS loyaltyTransactions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL,
+        points INT NOT NULL,
+        type ENUM('earn','redeem','expire','adjustment','bonus','referral','birthday') NOT NULL,
+        description VARCHAR(500) NOT NULL,
+        reason VARCHAR(500),
+        bookingId INT,
+        adminId INT,
+        adminNote TEXT,
+        createdAt TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS loyaltyRewards (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        pointsCost INT NOT NULL,
+        category VARCHAR(100) NOT NULL DEFAULT 'General',
+        minTier ENUM('bronze','silver','gold') NOT NULL DEFAULT 'bronze',
+        stock INT,
+        stockUsed INT NOT NULL DEFAULT 0,
+        imageUrl VARCHAR(500),
+        termsAndConditions TEXT,
+        isFeatured BOOLEAN NOT NULL DEFAULT false,
+        sortOrder INT NOT NULL DEFAULT 0,
+        rewardType VARCHAR(50) NOT NULL DEFAULT 'voucher',
+        rewardValue VARCHAR(100),
+        isActive BOOLEAN NOT NULL DEFAULT true,
+        createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+        updatedAt TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW()
+      )
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS loyaltyRedemptions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL,
+        rewardId INT NOT NULL,
+        pointsSpent INT NOT NULL,
+        voucherCode VARCHAR(100),
+        voucherImagePath VARCHAR(500),
+        expiresAt TIMESTAMP NULL,
+        status ENUM('active','redeemed','expired','cancelled') NOT NULL DEFAULT 'active',
+        adminNote TEXT,
+        adminId INT,
+        redeemedAt TIMESTAMP NOT NULL DEFAULT NOW(),
+        createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+        updatedAt TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW()
+      )
+    `);
+
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS loyaltyTierHistory (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL,
+        fromTier ENUM('bronze','silver','gold') NOT NULL,
+        toTier ENUM('bronze','silver','gold') NOT NULL,
+        createdAt TIMESTAMP NOT NULL DEFAULT NOW()
+      )
+    `);
+
+    // Seed default rewards if the table is empty
+    const countRows = await db.execute(sql`SELECT COUNT(*) as cnt FROM loyaltyRewards`);
+    const cnt = ((countRows as any)[0] as any[])?.[0]?.cnt ?? 0;
+    if (Number(cnt) === 0) {
+      await db.execute(sql`
+        INSERT INTO loyaltyRewards (name, description, pointsCost, category, minTier, rewardType, isFeatured, sortOrder, isActive) VALUES
+        ('£10 Travel Credit',       'A £10 credit applied to your next booking with CB Travel.',                                          200,  'Voucher',   'bronze', 'voucher',  true,  1, true),
+        ('£25 Travel Credit',       'A £25 credit applied to your next booking with CB Travel.',                                          450,  'Voucher',   'bronze', 'voucher',  false, 2, true),
+        ('Free Travel Insurance',   'One month of complimentary single-trip travel insurance on your next holiday.',                       500,  'Upgrade',   'silver', 'service',  true,  3, true),
+        ('VIP Airport Lounge Pass', 'Access to 1,300+ airport lounges worldwide via Priority Pass — single entry.',                       750,  'Experience','silver', 'voucher',  true,  4, true),
+        ('£50 Travel Credit',       'A £50 credit applied to your next booking — great for longer holidays.',                             900,  'Voucher',   'silver', 'voucher',  false, 5, true),
+        ('Dedicated Travel Manager','Priority handling for your next trip — a dedicated personal travel manager assigned to your booking.',1500, 'Experience','gold',   'service',  true,  6, true)
+      `);
+      console.log('[DB] Seeded default loyalty rewards');
+    }
+  } catch (e) {
+    console.error('[DB] ensureLoyaltyTables error:', e);
+  }
+}
+
 // ─── Notifications Table ───────────────────────────────────────────────────────
 
 export async function ensureNotificationsTable() {
@@ -2539,3 +2645,4 @@ ensureCommunityPostsTable().catch(console.error);
 ensureEmailLogsTable().catch(console.error);
 ensureLoginHistoryTable().catch(console.error);
 ensureNotificationsTable().catch(console.error);
+ensureLoyaltyTables().catch(console.error);
