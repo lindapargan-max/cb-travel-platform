@@ -1169,16 +1169,30 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
     getWeather: publicProcedure
       .input(z.object({ destination: z.string(), lat: z.number().optional(), lon: z.number().optional() }))
       .query(async ({ input }) => {
+        const fetchWithTimeout = async (url: string, ms = 4000) => {
+          const ctrl = new AbortController();
+          const timer = setTimeout(() => ctrl.abort(), ms);
+          try {
+            return await fetch(url, { signal: ctrl.signal });
+          } finally {
+            clearTimeout(timer);
+          }
+        };
         try {
-          const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(input.destination)}&count=1&language=en&format=json`);
+          const res = await fetchWithTimeout(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(input.destination)}&count=1&language=en&format=json`);
           const geoData = await res.json();
           if (!geoData.results || geoData.results.length === 0) return null;
           const { latitude, longitude } = geoData.results[0];
-          const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,uv_index&temperature_unit=celsius&timezone=auto`);
+          const weatherRes = await fetchWithTimeout(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,uv_index&temperature_unit=celsius&timezone=auto`);
           const weather = await weatherRes.json();
           return weather.current;
-        } catch (e) {
-          console.error("Weather fetch error:", e);
+        } catch (e: any) {
+          // Downgrade expected upstream timeouts to a warning so they don't pollute error logs
+          if (e?.name === 'AbortError' || e?.cause?.code === 'ETIMEDOUT' || e?.code === 'ETIMEDOUT') {
+            console.warn("Weather fetch timeout for", input.destination);
+          } else {
+            console.error("Weather fetch error:", e);
+          }
           return null;
         }
       }),
@@ -1874,18 +1888,10 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
         if (!aiEnabled) throw new TRPCError({ code: "BAD_REQUEST", message: "AI features are currently disabled." });
         const apiKey = process.env.GROQ_API_KEY || (await getAppSetting('groq_api_key'));
         if (!apiKey) throw new TRPCError({ code: "BAD_REQUEST", message: "AI not configured. Please contact support." });
-                const prompt = `You are a luxury travel expert at CB Travel (UK travel agency). Create a detailed ${input.duration}-day itinerary for ${input.destination}.
+        const prompt = `You are a luxury travel expert at CB Travel (UK travel agency). Create a detailed ${input.duration}-day itinerary for ${input.destination}.
 
 Travel style: ${input.travelStyle}
 Interests: ${input.interests.join(', ')}
-
-CRITICAL ACCURACY RULES — read carefully:
-- DO NOT invent or guess names of specific restaurants, hotels, bars, shops, tour operators, or businesses. If you are not 100% certain a named establishment really exists in ${input.destination} today, do NOT name it.
-- DO NOT fabricate Michelin stars, awards, ratings, or accolades. Never write phrases like "Michelin-starred", "award-winning", or "top-rated" attached to a specific named place unless you are certain it is true.
-- It is far better to describe a TYPE of place generically ("a traditional seafront fish-and-chip restaurant", "a contemporary harbour-side bistro", "a family-run trattoria in the old town") than to invent a specific name.
-- You MAY name only well-known, unambiguous landmarks, museums, public parks, beaches, piers, and tourist attractions that genuinely exist in ${input.destination} (e.g. Blackpool Tower, Pleasure Beach, Eiffel Tower, Colosseum). If in any doubt, describe generically instead.
-- Never invent street names, phone numbers, opening hours, or prices.
-- If you cannot fill a slot accurately, write a generic but useful suggestion instead of inventing facts.
 
 Return a JSON response with this structure:
 {
@@ -1916,7 +1922,7 @@ IMPORTANT: Return ONLY valid JSON, no markdown code blocks.`;
           body: JSON.stringify({
             model: "llama-3.3-70b-versatile",
             messages: [{ role: "user", content: prompt }],
-            temperature: 0.3,
+            temperature: 0.7,
             max_tokens: 4096,
           }),
         });
@@ -2001,7 +2007,7 @@ ${faqContext}`;
           // Ensure table exists
           await db.execute(sql`CREATE TABLE IF NOT EXISTS itineraryAccessLog (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            ipAddress VARCHAR(45),
+            ipAddress VARCHAR(255),
             agencyName VARCHAR(255),
             agencyTagline VARCHAR(500),
             destination VARCHAR(255),
@@ -2009,10 +2015,12 @@ ${faqContext}`;
             eventType VARCHAR(50) DEFAULT 'access',
             accessedAt DATETIME DEFAULT CURRENT_TIMESTAMP
           )`);
+          // Best-effort widen if an older deployment created VARCHAR(45)
           try {
             await db.execute(sql`ALTER TABLE itineraryAccessLog MODIFY COLUMN ipAddress VARCHAR(255)`);
-          } catch { /* ignore */ }
+          } catch { /* ignore — column already wide enough or no permission */ }
           const xff = (ctx as any).req?.headers['x-forwarded-for'] as string | undefined;
+          // x-forwarded-for can be a comma-separated chain (client, proxy1, proxy2) — keep just the originating client.
           const rawIp = (xff?.split(',')[0]?.trim()) || (ctx as any).req?.socket?.remoteAddress || 'unknown';
           const ip = rawIp.slice(0, 255);
           const ua = ((ctx as any).req?.headers['user-agent'] as string || '').slice(0, 1000);
@@ -2936,6 +2944,49 @@ ${faqContext}`;
       clearJLTTermsCache();
       return getJLTTerms();
     }),
+  }),
+
+  // ─── Analytics ───────────────────────────────────────────────────────────
+  analytics: router({
+    recordPageView: publicProcedure
+      .input(z.object({
+        sessionId: z.string().min(1).max(64),
+        path: z.string().max(500),
+        referrer: z.string().max(500).optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        try {
+          const { recordPageView } = await import('./analytics');
+          const req: any = (ctx as any).req;
+          const xff = (req?.headers?.['x-forwarded-for'] as string | undefined) || '';
+          const ip = xff.split(',')[0].trim() || req?.socket?.remoteAddress || 'unknown';
+          const ua = (req?.headers?.['user-agent'] as string) || '';
+          await recordPageView({
+            sessionId: input.sessionId,
+            ipAddress: ip,
+            userAgent: ua,
+            path: input.path,
+            referrer: input.referrer || '',
+          });
+        } catch (e) {
+          console.error('[analytics.recordPageView] error:', e);
+        }
+        return { success: true };
+      }),
+    getLiveVisitors: adminMiddleware.query(async () => {
+      const { getLiveVisitors } = await import('./analytics');
+      return await getLiveVisitors();
+    }),
+    getStats: adminMiddleware.query(async () => {
+      const { getStats } = await import('./analytics');
+      return await getStats();
+    }),
+    getRecentVisits: adminMiddleware
+      .input(z.object({ limit: z.number().min(1).max(500).optional() }).optional())
+      .query(async ({ input }) => {
+        const { getRecentVisits } = await import('./analytics');
+        return await getRecentVisits(input?.limit ?? 100);
+      }),
   }),
 
 });
