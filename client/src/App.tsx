@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
+import { useEffect, useRef } from "react";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Navigation from "./components/Navigation";
 import Footer from "./components/Footer";
@@ -111,11 +112,39 @@ function Router() {
   );
 }
 
+function VisitorTracker() {
+  const [location] = useLocation();
+  const recordView = trpc.analytics.recordPageView.useMutation();
+  const lastPath = useRef<string>('');
+  useEffect(() => {
+    if (location === lastPath.current) return;
+    lastPath.current = location;
+    let sid = '';
+    try {
+      sid = localStorage.getItem('cb_sid') || '';
+      if (!sid) {
+        sid = (crypto as any).randomUUID ? (crypto as any).randomUUID() : (Date.now().toString(36) + Math.random().toString(36).slice(2));
+        localStorage.setItem('cb_sid', sid);
+      }
+    } catch {
+      sid = Date.now().toString(36) + Math.random().toString(36).slice(2);
+    }
+    recordView.mutate({
+      sessionId: sid,
+      path: location || '/',
+      referrer: typeof document !== 'undefined' ? (document.referrer || '') : '',
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location]);
+  return null;
+}
+
 function App() {
   return (
     <ThemeProvider defaultTheme="light">
       <TooltipProvider>
         <SessionTimeoutWrapper>
+          <VisitorTracker />
           <ScrollToTop />
           <Toaster richColors position="top-right" />
           <div className="flex flex-col min-h-screen">
