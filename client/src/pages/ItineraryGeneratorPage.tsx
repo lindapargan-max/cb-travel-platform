@@ -56,15 +56,6 @@ export default function ItineraryGeneratorPage() {
     setStep('generator');
   };
 
-  const handleLogDestination = (destination: string) => {
-    logAccessMutation.mutate({
-      agencyName: agencyName + (yourName ? ` (${yourName})` : ''),
-      agencyTagline: tagline || undefined,
-      destination,
-      eventType: 'generation',
-    });
-  };
-
   const displayName = yourName ? `${agencyName} · ${yourName}` : agencyName;
 
   const inputCls = "w-full bg-white/[0.06] border border-white/[0.12] rounded-2xl px-4 py-3.5 text-white placeholder-white/25 focus:outline-none focus:border-[#d4af37]/70 focus:ring-2 focus:ring-[#d4af37]/20 transition-all text-[15px]";
@@ -278,7 +269,6 @@ export default function ItineraryGeneratorPage() {
                 agencyName={displayName}
                 agencyTagline={tagline}
                 isProMode={true}
-                onLogAccess={handleLogDestination}
               />
             </div>
           </div>
