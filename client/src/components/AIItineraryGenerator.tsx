@@ -28,7 +28,6 @@ export default function AIItineraryGenerator({ destination: initDest, agencyName
     onSuccess: (data: any) => {
       setResult(data);
       toast.success("Itinerary generated! ✈️");
-      if (onLogAccess && data?.destination) onLogAccess(data.destination);
     },
     onError: (e) => toast.error(e.message),
   });
@@ -300,7 +299,7 @@ window.addEventListener('load', function() {
               </div>
             </div>
             <button
-              onClick={() => generateMutation.mutate({ destination: dest, duration, travelStyle: style, interests })}
+              onClick={() => generateMutation.mutate({ destination: dest, duration, travelStyle: style, interests, agencyName: agencyName || undefined, agencyTagline: agencyTagline || undefined })}
               disabled={!dest || generateMutation.isPending}
               className="w-full bg-[#d4af37] text-[#020917] py-4 rounded-xl font-bold text-lg hover:bg-[#e8c84b] transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-[#d4af37]/20"
             >
@@ -445,7 +444,7 @@ window.addEventListener('load', function() {
                   {interestOptions.map(i => <button key={i} type="button" onClick={() => setInterests(prev => prev.includes(i) ? prev.filter(x => x !== i) : [...prev, i])} className={`px-2.5 py-1 rounded-full text-xs transition-colors ${interests.includes(i) ? 'bg-[#e8b84b] text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>{i}</button>)}
                 </div>
               </div>
-              <button onClick={() => generateMutation.mutate({ destination: dest, duration, travelStyle: style, interests })} disabled={!dest || generateMutation.isPending}
+              <button onClick={() => generateMutation.mutate({ destination: dest, duration, travelStyle: style, interests, agencyName: agencyName || undefined, agencyTagline: agencyTagline || undefined })} disabled={!dest || generateMutation.isPending}
                 className="w-full bg-[#1e3a5f] text-white py-3 rounded-xl font-semibold hover:bg-[#2d5986] transition-colors disabled:opacity-50">
                 {generateMutation.isPending ? "✨ Generating your itinerary..." : "✨ Generate AI Itinerary"}
               </button>
