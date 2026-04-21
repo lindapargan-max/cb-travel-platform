@@ -265,11 +265,18 @@ export default function ItineraryGeneratorPage() {
             </div>
 
             <div className="bg-white/[0.04] border border-white/[0.1] rounded-3xl p-8 backdrop-blur-xl shadow-2xl">
-              <AIItineraryGenerator
-                agencyName={displayName}
-                agencyTagline={tagline}
-                isProMode={true}
-              />
+<AIItineraryGenerator
+  agencyName={displayName}
+  agencyTagline={tagline || undefined}
+  onLogAccess={(destination) => {
+    logAccessMutation.mutate({
+      agencyName: agencyName + (yourName ? ` (${yourName})` : ''),
+      agencyTagline: tagline || undefined,
+      destination,
+      eventType: 'generate',
+    });
+  }}
+/>
             </div>
           </div>
         )}
