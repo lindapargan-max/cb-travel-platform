@@ -1876,7 +1876,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
 
   // ─── V6: AI (Groq) ───────────────────────────────────────────────────────────
   ai: router({
-    generateItinerary: protectedProcedure
+    generateItinerary: publicProcedure
       .input(z.object({
         destination: z.string(),
         duration: z.number().min(1).max(30),
