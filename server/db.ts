@@ -1961,14 +1961,23 @@ export async function ensureAdminQuotesTable(): Promise<void> {
 export async function ensureUserPassportColumns() {
   const db = await getDb();
   if (!db) return;
-  try {
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportNumber VARCHAR(100)`);
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportExpiry VARCHAR(50)`);
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportIssueDate VARCHAR(50)`);
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportIssuingCountry VARCHAR(100)`);
-    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportNationality VARCHAR(100)`);
-  } catch (e) {
-    console.error('[DB] ensureUserPassportColumns error:', e);
+  const alterStatements = [
+    "ALTER TABLE users ADD COLUMN passportNumber VARCHAR(100)",
+    "ALTER TABLE users ADD COLUMN passportExpiry VARCHAR(50)",
+    "ALTER TABLE users ADD COLUMN passportIssueDate VARCHAR(50)",
+    "ALTER TABLE users ADD COLUMN passportIssuingCountry VARCHAR(100)",
+    "ALTER TABLE users ADD COLUMN passportNationality VARCHAR(100)",
+  ];
+  for (const stmt of alterStatements) {
+    try {
+      await db.execute(sql`${sql.raw(stmt)}`);
+    } catch (e: any) {
+      const code = e?.cause?.code || e?.code;
+      const msg = e?.cause?.sqlMessage || e?.message || String(e);
+      if (code !== "ER_DUP_FIELDNAME" && !msg.includes("Duplicate column") && !msg.includes("already exists")) {
+        console.error('[DB] ensureUserPassportColumns error:', msg);
+      }
+    }
   }
 }
 
