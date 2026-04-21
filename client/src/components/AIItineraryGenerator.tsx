@@ -24,13 +24,15 @@ export default function AIItineraryGenerator({ destination: initDest, agencyName
   const styles = [{ id: 'relaxing', label: '🌊 Relaxing' }, { id: 'adventurous', label: '🏔️ Adventurous' }, { id: 'cultural', label: '🏛️ Cultural' }, { id: 'family', label: '👨‍👩‍👧 Family' }] as const;
   const interestOptions = ['Beach', 'History', 'Food', 'Shopping', 'Nature', 'Nightlife', 'Sports', 'Art', 'Architecture', 'Wildlife'];
 
-  const generateMutation = trpc.ai.generateItinerary.useMutation({
-    onSuccess: (data: any) => {
-      setResult(data);
-      toast.success("Itinerary generated! ✈️");
-    },
-    onError: (e) => toast.error(e.message),
-  });
+// AFTER
+const generateMutation = trpc.ai.generateItinerary.useMutation({
+  onSuccess: (data: any) => {
+    setResult(data);
+    toast.success("Itinerary generated! ✈️");
+    if (onLogAccess) onLogAccess(dest);
+  },
+  onError: (e) => toast.error(e.message),
+});
 
   const downloadPDF = () => {
     if (!result) return;
