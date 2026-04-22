@@ -1,101 +1,152 @@
 /**
- * CB Travel – Server Security Middleware
- * ─────────────────────────────────────────────────────────────────────────────
- * Applied at the Express layer, before tRPC routes, so these limits fire
- * regardless of application logic.
+ * security.ts — Zero-dependency security middleware
+ *
+ * Provides:
+ *  1. Helmet-equivalent security headers (set manually)
+ *  2. In-memory rate limiting — 3 tiers:
+ *       • login / auth routes      → 10 req / 15 min
+ *       • itinerary generator      → 20 req / 1 hr
+ *       • all other /api/ routes   → 300 req / 1 min
  */
 
-import rateLimit from "express-rate-limit";
-import helmet from "helmet";
-import type { Express } from "express";
+import { Request, Response, NextFunction, Application } from "express";
 
-// ─── Helmet – Security Headers ────────────────────────────────────────────────
-// Protects against XSS, clickjacking, MIME sniffing, etc.
-// CSP is disabled because the React SPA loads inline scripts via Vite/CDN.
-export const helmetMiddleware = helmet({
-  contentSecurityPolicy: false,         // React + Vite inline scripts
-  crossOriginEmbedderPolicy: false,     // Allows CDN fonts/images
-  crossOriginResourcePolicy: false,     // Allows cross-origin static assets
-});
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-// ─── General API Limiter ──────────────────────────────────────────────────────
-// 300 requests per minute per IP on all /api routes.
-// Stops scraping, enumeration, and runaway clients.
-export const generalApiLimiter = rateLimit({
-  windowMs: 60 * 1000,           // 1 minute window
-  max: 300,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) =>
-    (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
-    req.socket?.remoteAddress ||
-    "unknown",
-  handler: (_req, res) => {
-    res.status(429).json({
-      error: "Too many requests. Please slow down.",
-      code: "RATE_LIMITED",
-    });
-  },
-});
+interface Window {
+  count: number;
+  resetAt: number;
+}
 
-// ─── Auth Limiter ─────────────────────────────────────────────────────────────
-// 10 attempts per 15 minutes per IP on login / forgot-password / reset-password.
-// skipSuccessfulRequests: true means a successful login doesn't count toward the cap.
-export const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,      // 15 minute window
+interface LimiterConfig {
+  /** Max requests allowed in the window */
+  max: number;
+  /** Window size in milliseconds */
+  windowMs: number;
+  /** Human-readable wait description for the error message */
+  waitMsg: string;
+}
+
+// ─── In-memory store ──────────────────────────────────────────────────────────
+
+const store = new Map<string, Window>();
+
+/** Clean up expired entries every 10 minutes to prevent memory leaks */
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, win] of store.entries()) {
+    if (now > win.resetAt) store.delete(key);
+  }
+}, 10 * 60 * 1000);
+
+// ─── Core factory ─────────────────────────────────────────────────────────────
+
+function createLimiter(config: LimiterConfig) {
+  return function rateLimitMiddleware(
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) {
+    // Trust Railway's proxy — real IP is in X-Forwarded-For
+    const ip =
+      (req.headers["x-forwarded-for"] as string | undefined)
+        ?.split(",")[0]
+        ?.trim() ||
+      req.socket.remoteAddress ||
+      "unknown";
+
+    const key = `${config.max}:${config.windowMs}:${ip}:${req.path}`;
+    const now = Date.now();
+    let win = store.get(key);
+
+    if (!win || now > win.resetAt) {
+      win = { count: 1, resetAt: now + config.windowMs };
+      store.set(key, win);
+      return next();
+    }
+
+    win.count++;
+    if (win.count > config.max) {
+      const retryAfterSec = Math.ceil((win.resetAt - now) / 1000);
+      res.setHeader("Retry-After", String(retryAfterSec));
+      res.status(429).json({
+        error: "Too Many Requests",
+        message: `Too many requests. Please wait ${config.waitMsg} before trying again.`,
+        retryAfter: retryAfterSec,
+      });
+      return;
+    }
+
+    next();
+  };
+}
+
+// ─── Pre-built limiters ───────────────────────────────────────────────────────
+
+/** Login / forgot-password / reset-password: 10 attempts per 15 min */
+const authLimiter = createLimiter({
   max: 10,
-  standardHeaders: true,
-  legacyHeaders: false,
-  skipSuccessfulRequests: true,
-  keyGenerator: (req) =>
-    (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
-    req.socket?.remoteAddress ||
-    "unknown",
-  handler: (_req, res) => {
-    res.status(429).json({
-      error:
-        "Too many attempts from this IP address. Please wait 15 minutes before trying again.",
-      code: "AUTH_RATE_LIMITED",
-    });
-  },
+  windowMs: 15 * 60 * 1000,
+  waitMsg: "15 minutes",
 });
 
-// ─── Itinerary Generator Limiter ──────────────────────────────────────────────
-// The generator calls Groq — cap at 20 generations per hour per IP.
-export const itineraryLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,      // 1 hour window
+/** Itinerary generator: 20 generations per hour */
+const itineraryLimiter = createLimiter({
   max: 20,
-  standardHeaders: true,
-  legacyHeaders: false,
-  keyGenerator: (req) =>
-    (req.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim() ||
-    req.socket?.remoteAddress ||
-    "unknown",
-  handler: (_req, res) => {
-    res.status(429).json({
-      error:
-        "You've generated too many itineraries this hour. Please try again later.",
-      code: "ITINERARY_RATE_LIMITED",
-    });
-  },
+  windowMs: 60 * 60 * 1000,
+  waitMsg: "1 hour",
 });
 
-// ─── Apply All Security Middleware ────────────────────────────────────────────
-export function applySecurityMiddleware(app: Express) {
+/** General API: 300 requests per minute */
+const generalLimiter = createLimiter({
+  max: 300,
+  windowMs: 60 * 1000,
+  waitMsg: "a moment",
+});
+
+// ─── Security headers middleware ──────────────────────────────────────────────
+
+function securityHeaders(_req: Request, res: Response, next: NextFunction) {
+  // Prevent clickjacking
+  res.setHeader("X-Frame-Options", "DENY");
+  // Stop MIME sniffing
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  // Legacy XSS filter
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  // Limit referrer leakage
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  // Force HTTPS for 1 year (only meaningful in prod behind TLS termination)
+  res.setHeader(
+    "Strict-Transport-Security",
+    "max-age=31536000; includeSubDomains"
+  );
+  // Basic permissions policy — disable unnecessary browser APIs
+  res.setHeader(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=()"
+  );
+  next();
+}
+
+// ─── Main export ──────────────────────────────────────────────────────────────
+
+/**
+ * Apply all security middleware to the Express app.
+ * Call this BEFORE body parsers and routes.
+ */
+export function applySecurityMiddleware(app: Application) {
   // 1. Security headers on every response
-  app.use(helmetMiddleware);
+  app.use(securityHeaders);
 
-  // 2. General API rate limit
-  app.use("/api/", generalApiLimiter);
+  // 2. Auth rate limiting — narrowly scoped to sensitive paths
+  app.use("/api/trpc/login", authLimiter);
+  app.use("/api/trpc/forgotPassword", authLimiter);
+  app.use("/api/trpc/resetPassword", authLimiter);
 
-  // 3. Strict auth rate limit — applied BEFORE tRPC middleware picks it up
-  //    tRPC exposes mutations at /api/trpc/<router>.<procedure>
-  app.use("/api/trpc/auth.login", authLimiter);
-  app.use("/api/trpc/auth.forgotPassword", authLimiter);
-  app.use("/api/trpc/auth.resetPassword", authLimiter);
-  app.use("/api/trpc/auth.setPassword", authLimiter);
+  // 3. Itinerary generator rate limit
+  app.use("/api/trpc/generateItinerary", itineraryLimiter);
+  app.use("/api/trpc/verifyItineraryPassword", itineraryLimiter);
 
-  // 4. Itinerary generator limiter
-  app.use("/api/trpc/itinerary.generate", itineraryLimiter);
-  app.use("/api/trpc/itinerary.generateItinerary", itineraryLimiter);
+  // 4. General API rate limit — everything else
+  app.use("/api/", generalLimiter);
 }

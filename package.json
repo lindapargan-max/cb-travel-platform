@@ -79,9 +79,7 @@
     "zod": "^4.1.12",
     "resend": "^4.0.0",
     "qrcode": "^1.5.4",
-    "sharp": "^0.33.5",
-    "express-rate-limit": "^7.4.1",
-    "helmet": "^8.0.0"
+    "sharp": "^0.33.5"
   },
   "devDependencies": {
     "@builder.io/vite-plugin-jsx-loc": "^0.1.1",
