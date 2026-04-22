@@ -28,7 +28,21 @@ onSuccess: (data) => {
   }, 500);
 },
     onError: (err) => {
-      toast.error(err.message || "Invalid email or password.");
+      // 429 from rate limiter — show a clear lockout message
+      const msg = err.message || "";
+      if (
+        err.data?.httpStatus === 429 ||
+        msg.toLowerCase().includes("too many") ||
+        msg.toLowerCase().includes("rate limit") ||
+        msg.toLowerCase().includes("wait 15")
+      ) {
+        toast.error(
+          "Too many login attempts. Please wait 15 minutes before trying again.",
+          { duration: 8000 }
+        );
+      } else {
+        toast.error(msg || "Invalid email or password.");
+      }
     },
   });
 
