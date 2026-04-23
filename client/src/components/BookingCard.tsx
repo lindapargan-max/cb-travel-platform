@@ -418,6 +418,235 @@ function BookingCard({ booking, user }: { booking: any; user?: any }) {
   const remaining = Math.max(0, total - paid);
   const gradient = getStatusGradient(booking.status);
 
+  // ── Booking Confirmation PDF ──────────────────────────────────────────────
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+
+  const downloadBookingPDF = () => {
+    if (pdfGenerating) return;
+    setPdfGenerating(true);
+
+    const fmtDate = (d: string | null | undefined) =>
+      d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '—';
+    const fmtCurrency = (n: number) => `£${n.toFixed(2)}`;
+
+    const data = {
+      ref: booking.bookingReference || '—',
+      destination: booking.destination || '—',
+      status: (booking.status || 'pending').toUpperCase(),
+      departure: fmtDate(booking.departureDate),
+      returnDate: fmtDate(booking.returnDate),
+      total: fmtCurrency(total),
+      paid: fmtCurrency(paid),
+      remaining: fmtCurrency(remaining),
+      clientName: user?.name || user?.email || '—',
+      issueDate: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+      airline: flightDetails?.airline || '',
+      outbound: flightDetails?.outboundFlightNumber || '',
+      outboundTime: flightDetails?.outboundDepartureTime || '',
+      inbound: flightDetails?.returnFlightNumber || '',
+      inboundTime: flightDetails?.returnDepartureTime || '',
+      hotels: (hotelDetails || []).map((h: any) => ({
+        name: h.hotelName || '',
+        location: h.destination || '',
+        checkIn: h.checkInDate || '',
+        checkOut: h.checkOutDate || '',
+        conf: h.confirmationNumber || '',
+      })),
+      notes: booking.notes || '',
+    };
+
+    const safeData = JSON.stringify(data).replace(/</g, '\\u003c').replace(/>/g, '\\u003e');
+
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Booking Confirmation</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"><\/script>
+<style>body{margin:0;background:#1e3a5f;display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:Arial,sans-serif;}</style>
+</head><body>
+<script>
+var D = ${safeData};
+window.addEventListener('load', function(){
+  try {
+    var jsPDF = window.jspdf.jsPDF;
+    var doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    var W = 210, PL = 18, PR = 192;
+
+    // ── Cover / header block ────────────────────────────────────────────────
+    // Navy gradient background (simulated with fill)
+    doc.setFillColor(11, 34, 64);
+    doc.rect(0, 0, W, 60, 'F');
+    doc.setFillColor(26, 58, 96);
+    doc.rect(0, 45, W, 15, 'F');
+
+    // Gold rule
+    doc.setDrawColor(212, 175, 55);
+    doc.setLineWidth(0.8);
+    doc.line(PL, 58, PR, 58);
+
+    // CB Travel logo text
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(22);
+    doc.setTextColor(212, 175, 55);
+    doc.text('CB Travel', PL, 22);
+
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(180, 200, 220);
+    doc.text('Luxury Travel Concierge', PL, 29);
+
+    // "Booking Confirmation" label
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(14);
+    doc.setTextColor(255, 255, 255);
+    doc.text('Booking Confirmation', PL, 46);
+
+    // Booking reference top-right
+    doc.setFont('courier','bold');
+    doc.setFontSize(13);
+    doc.setTextColor(212, 175, 55);
+    doc.text(D.ref, PR, 22, { align:'right' });
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8);
+    doc.setTextColor(180, 200, 220);
+    doc.text('Booking Reference', PR, 27, { align:'right' });
+
+    // ── Status badge ────────────────────────────────────────────────────────
+    var statusColors = { CONFIRMED:[39,174,96], PENDING:[230,162,20], COMPLETED:[39,174,96], CANCELLED:[231,76,60] };
+    var sc = statusColors[D.status] || [100,100,100];
+    doc.setFillColor(sc[0], sc[1], sc[2]);
+    doc.roundedRect(PR - 36, 36, 38, 9, 2, 2, 'F');
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(8);
+    doc.setTextColor(255,255,255);
+    doc.text(D.status, PR - 17, 41.5, { align:'center' });
+
+    // ── Issue date ──────────────────────────────────────────────────────────
+    var y = 70;
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(9);
+    doc.setTextColor(100,100,100);
+    doc.text('Issued: ' + D.issueDate, PL, y);
+    doc.text('Prepared for: ' + D.clientName, PR, y, { align:'right' });
+
+    // ── Section helper ──────────────────────────────────────────────────────
+    function sectionHeader(title, yPos) {
+      doc.setFillColor(245, 247, 250);
+      doc.rect(PL, yPos - 5, PR - PL, 10, 'F');
+      doc.setDrawColor(212, 175, 55);
+      doc.setLineWidth(0.4);
+      doc.line(PL, yPos - 5, PL + 3, yPos - 5);
+      doc.line(PL, yPos - 5, PL, yPos + 5);
+      doc.setFont('helvetica','bold');
+      doc.setFontSize(10);
+      doc.setTextColor(30, 58, 96);
+      doc.text(title, PL + 5, yPos + 1);
+      return yPos + 12;
+    }
+
+    function row(label, value, yPos, highlight) {
+      doc.setFont('helvetica','normal');
+      doc.setFontSize(9.5);
+      doc.setTextColor(100,100,100);
+      doc.text(label, PL + 2, yPos);
+      doc.setFont('helvetica', highlight ? 'bold' : 'normal');
+      doc.setTextColor(highlight ? 30 : 50, highlight ? 58 : 50, highlight ? 96 : 50);
+      doc.text(value || '—', PL + 65, yPos);
+      doc.setDrawColor(220,220,220);
+      doc.setLineWidth(0.2);
+      doc.line(PL, yPos + 2, PR, yPos + 2);
+      return yPos + 9;
+    }
+
+    // ── Trip Details ────────────────────────────────────────────────────────
+    y = sectionHeader('Trip Details', y + 8);
+    y = row('Destination', D.destination, y, true);
+    y = row('Departure Date', D.departure, y, false);
+    y = row('Return Date', D.returnDate, y, false);
+    y += 4;
+
+    // ── Payment Summary ─────────────────────────────────────────────────────
+    y = sectionHeader('Payment Summary', y);
+    y = row('Total Holiday Price', D.total, y, false);
+    y = row('Amount Paid', D.paid, y, false);
+
+    // Balance row — highlight if outstanding
+    var balLabel = parseFloat(D.remaining.replace('£','')) > 0 ? 'Balance Due' : 'Balance Due';
+    var balColor = parseFloat(D.remaining.replace('£','')) > 0 ? [200,80,20] : [39,174,96];
+    doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(100,100,100);
+    doc.text(balLabel, PL + 2, y);
+    doc.setFont('helvetica','bold'); doc.setTextColor(balColor[0], balColor[1], balColor[2]);
+    doc.text(D.remaining, PL + 65, y);
+    doc.setDrawColor(220,220,220); doc.setLineWidth(0.2); doc.line(PL, y + 2, PR, y + 2);
+    y += 13;
+
+    // ── Flight Details ──────────────────────────────────────────────────────
+    if (D.airline || D.outbound || D.inbound) {
+      y = sectionHeader('Flight Details', y);
+      if (D.airline) y = row('Airline', D.airline, y, false);
+      if (D.outbound) y = row('Outbound Flight', D.outbound + (D.outboundTime ? '  @  ' + D.outboundTime : ''), y, false);
+      if (D.inbound) y = row('Return Flight', D.inbound + (D.inboundTime ? '  @  ' + D.inboundTime : ''), y, false);
+      y += 4;
+    }
+
+    // ── Hotel Details ───────────────────────────────────────────────────────
+    if (D.hotels && D.hotels.length > 0) {
+      y = sectionHeader('Accommodation', y);
+      D.hotels.forEach(function(h) {
+        if (h.name) y = row('Hotel', h.name, y, true);
+        if (h.location) y = row('Location', h.location, y, false);
+        if (h.checkIn) y = row('Check-in', h.checkIn, y, false);
+        if (h.checkOut) y = row('Check-out', h.checkOut, y, false);
+        if (h.conf) y = row('Confirmation No.', h.conf, y, false);
+        y += 4;
+      });
+    }
+
+    // ── Notes ───────────────────────────────────────────────────────────────
+    if (D.notes && D.notes.trim()) {
+      y = sectionHeader('Notes', y);
+      doc.setFont('helvetica','italic');
+      doc.setFontSize(9);
+      doc.setTextColor(80,80,80);
+      var lines = doc.splitTextToSize(D.notes, PR - PL - 4);
+      doc.text(lines, PL + 2, y);
+      y += lines.length * 5 + 6;
+    }
+
+    // ── Footer ──────────────────────────────────────────────────────────────
+    var footerY = 280;
+    doc.setDrawColor(212, 175, 55);
+    doc.setLineWidth(0.5);
+    doc.line(PL, footerY, PR, footerY);
+    doc.setFont('helvetica','normal');
+    doc.setFontSize(8);
+    doc.setTextColor(120,120,120);
+    doc.text('CB Travel — hello@travelcb.co.uk — www.travelcb.co.uk', W/2, footerY + 5, { align:'center' });
+    doc.text('This confirmation is subject to our full booking terms & conditions.', W/2, footerY + 10, { align:'center' });
+    doc.text('Page 1', PR, footerY + 10, { align:'right' });
+
+    // ── Save ─────────────────────────────────────────────────────────────────
+    doc.save('CB-Travel-Booking-' + D.ref + '.pdf');
+    setTimeout(function(){ window.close(); }, 800);
+  } catch(e) {
+    document.body.innerHTML = '<p style="color:white;text-align:center;padding:40px;">Error generating PDF: ' + e.message + '</p>';
+  }
+});
+<\/script>
+</body></html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;opacity:0;';
+    document.body.appendChild(iframe);
+    iframe.src = url;
+    setTimeout(() => {
+      document.body.removeChild(iframe);
+      URL.revokeObjectURL(url);
+      setPdfGenerating(false);
+    }, 15000);
+    // Also reset generating state after a timeout just in case
+    setTimeout(() => setPdfGenerating(false), 16000);
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
       {/* Rich gradient header */}
@@ -427,7 +656,21 @@ function BookingCard({ booking, user }: { booking: any; user?: any }) {
             <p className="text-white/70 text-xs font-medium uppercase tracking-widest mb-1">Booking Reference</p>
             <p className="font-mono font-bold text-2xl">{booking.bookingReference}</p>
           </div>
-          <StatusBadge status={booking.status} />
+          <div className="flex flex-col items-end gap-2">
+            <StatusBadge status={booking.status} />
+            <button
+              onClick={downloadBookingPDF}
+              disabled={pdfGenerating}
+              title="Download booking confirmation PDF"
+              className="flex items-center gap-1.5 bg-white/15 hover:bg-white/25 border border-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-all duration-200 disabled:opacity-60"
+            >
+              {pdfGenerating ? (
+                <><span className="animate-spin inline-block w-3 h-3 border-2 border-white/40 border-t-white rounded-full" /> Generating…</>
+              ) : (
+                <><Download size={12} /> Download Confirmation</>
+              )}
+            </button>
+          </div>
         </div>
         {booking.destination && (
           <p className="text-white/90 font-semibold text-lg flex items-center gap-2 mt-3">

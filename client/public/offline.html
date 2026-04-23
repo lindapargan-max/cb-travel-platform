@@ -3,26 +3,269 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Offline — CB Travel</title>
+  <title>You're Offline — CB Travel</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    .card { background: #fff; border-radius: 16px; padding: 48px 32px; text-align: center; max-width: 400px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-    .logo { color: #1e3a5f; font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-    .icon { font-size: 64px; margin: 16px 0; }
-    h1 { color: #1e3a5f; font-size: 22px; margin-bottom: 12px; }
-    p { color: #666; line-height: 1.6; margin-bottom: 24px; }
-    button { background: #1e3a5f; color: #fff; border: none; border-radius: 8px; padding: 12px 28px; font-size: 16px; cursor: pointer; }
-    button:hover { background: #2a4f7a; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      background: #0b1e35;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Drifting stars */
+    .stars {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+    .star {
+      position: absolute;
+      background: rgba(255,255,255,0.7);
+      border-radius: 50%;
+      animation: drift linear infinite;
+    }
+    @keyframes drift {
+      0%   { transform: translateY(0) translateX(0); opacity: 0; }
+      10%  { opacity: 1; }
+      90%  { opacity: 0.6; }
+      100% { transform: translateY(-100vh) translateX(30px); opacity: 0; }
+    }
+
+    /* Subtle wave at bottom */
+    .wave {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 120px;
+      background: linear-gradient(to top, rgba(11,34,64,0.9), transparent);
+      z-index: 0;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 24px;
+      padding: 52px 40px;
+      text-align: center;
+      max-width: 420px;
+      width: 90%;
+      position: relative;
+      z-index: 1;
+      box-shadow: 0 32px 64px rgba(0,0,0,0.4);
+    }
+
+    .logo {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.5);
+      margin-bottom: 28px;
+    }
+
+    /* Compass animation */
+    .compass-wrap {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 28px;
+      position: relative;
+    }
+    .compass-ring {
+      width: 80px;
+      height: 80px;
+      border: 2px solid rgba(212,175,55,0.3);
+      border-radius: 50%;
+      position: absolute;
+      top: 0; left: 0;
+    }
+    .compass-inner {
+      width: 60px;
+      height: 60px;
+      border: 1px solid rgba(212,175,55,0.5);
+      border-radius: 50%;
+      position: absolute;
+      top: 10px; left: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: spin 8s linear infinite;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to   { transform: rotate(360deg); }
+    }
+    .compass-needle {
+      font-size: 28px;
+      line-height: 1;
+      display: block;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #d4af37, #f5d675, #d4af37);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: rgba(255,255,255,0.6);
+      font-size: 15px;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+
+    /* Gold signal pulse */
+    .signal {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      margin-bottom: 32px;
+    }
+    .signal-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #d4af37;
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+    .signal-dot:nth-child(2) { animation-delay: 0.3s; }
+    .signal-dot:nth-child(3) { animation-delay: 0.6s; }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.2; transform: scale(0.7); }
+      50% { opacity: 1; transform: scale(1.2); }
+    }
+    .signal-text {
+      font-size: 12px;
+      color: rgba(255,255,255,0.4);
+      letter-spacing: 0.05em;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #d4af37, #b8962e);
+      color: #0b1e35;
+      border: none;
+      border-radius: 50px;
+      padding: 14px 32px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      text-decoration: none;
+      width: 100%;
+      justify-content: center;
+      margin-bottom: 12px;
+    }
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(212,175,55,0.35);
+    }
+    .btn-ghost {
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.7);
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .btn-ghost:hover {
+      background: rgba(255,255,255,0.12);
+      box-shadow: none;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      margin: 28px 0;
+    }
+
+    .footer-note {
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+      line-height: 1.6;
+    }
+    .footer-note a {
+      color: rgba(212,175,55,0.7);
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
+
+  <!-- Stars -->
+  <div class="stars" id="stars"></div>
+  <div class="wave"></div>
+
   <div class="card">
-    <div class="logo">✈ CB Travel</div>
-    <div class="icon">📡</div>
-    <h1>You're Offline</h1>
-    <p>It looks like you've lost your internet connection. Please check your connection and try again.</p>
-    <button onclick="window.location.reload()">Try Again</button>
+    <div class="logo">✦ CB Travel</div>
+
+    <!-- Spinning compass -->
+    <div class="compass-wrap">
+      <div class="compass-ring"></div>
+      <div class="compass-inner">
+        <span class="compass-needle">🧭</span>
+      </div>
+    </div>
+
+    <h1>Lost at Sea</h1>
+    <p>You appear to be offline. Please check your internet connection — your journey will resume shortly.</p>
+
+    <div class="signal">
+      <div class="signal-dot"></div>
+      <div class="signal-dot"></div>
+      <div class="signal-dot"></div>
+      <span class="signal-text">Searching for connection…</span>
+    </div>
+
+    <button class="btn" onclick="window.location.reload()">
+      ↺ &nbsp;Try Again
+    </button>
+    <a href="/" class="btn btn-ghost">Return Home</a>
+
+    <hr class="divider">
+
+    <p class="footer-note">
+      Need help? Email us at <a href="mailto:hello@travelcb.co.uk">hello@travelcb.co.uk</a><br>
+      or WhatsApp us anytime.
+    </p>
   </div>
+
+  <script>
+    // Generate drifting stars
+    const container = document.getElementById('stars');
+    for (let i = 0; i < 60; i++) {
+      const star = document.createElement('div');
+      star.className = 'star';
+      const size = Math.random() * 2.5 + 0.5;
+      star.style.cssText = [
+        `width:${size}px`,
+        `height:${size}px`,
+        `left:${Math.random() * 100}%`,
+        `top:${Math.random() * 100}%`,
+        `animation-duration:${Math.random() * 20 + 10}s`,
+        `animation-delay:${Math.random() * 10}s`,
+      ].join(';');
+      container.appendChild(star);
+    }
+
+    // Auto-retry when connection is restored
+    window.addEventListener('online', () => window.location.reload());
+  </script>
 </body>
 </html>
