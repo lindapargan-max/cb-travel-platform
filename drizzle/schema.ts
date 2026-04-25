@@ -693,3 +693,37 @@ export const communityPosts = mysqlTable("communityPosts", {
 
 export type CommunityPost = typeof communityPosts.$inferSelect;
 export type InsertCommunityPost = typeof communityPosts.$inferInsert;
+
+// ─── GDPR Requests ────────────────────────────────────────────────────────────
+
+export const gdprRequests = mysqlTable("gdprRequests", {
+  id: int("id").autoincrement().primaryKey(),
+  type: mysqlEnum("type", ["SAR", "erasure"]).notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  phone: varchar("phone", { length: 30 }),
+  relationship: varchar("relationship", { length: 50 }),
+  reason: varchar("reason", { length: 100 }),
+  description: text("description"),
+  status: mysqlEnum("status", ["pending", "in_progress", "completed"]).default("pending").notNull(),
+  adminNotes: text("adminNotes"),
+  completedAt: timestamp("completedAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type GdprRequest = typeof gdprRequests.$inferSelect;
+export type InsertGdprRequest = typeof gdprRequests.$inferInsert;
+
+// ─── Deletion Logs ────────────────────────────────────────────────────────────
+
+export const deletionLogs = mysqlTable("deletionLogs", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  email: varchar("email", { length: 320 }).notNull(),
+  deletedBy: int("deletedBy").notNull(),
+  reason: text("reason"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type DeletionLog = typeof deletionLogs.$inferSelect;
