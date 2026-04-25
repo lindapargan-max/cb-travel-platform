@@ -691,3 +691,42 @@ export const itineraryAccessLog = mysqlTable('itineraryAccessLog', {
   userAgent: text('userAgent'),
 });
 export type ItineraryAccessLog = typeof itineraryAccessLog.$inferSelect;
+
+// ─── Destination Guides ────────────────────────────────────────────────────────
+// This table was missing and causing "guides 0" on the admin dashboard
+export const destinationGuides = mysqlTable("destinationGuides", {
+  id: int("id").autoincrement().primaryKey(),
+  slug: varchar("slug", { length: 255 }).unique().notNull(),
+  destination: varchar("destination", { length: 255 }).notNull(),
+  country: varchar("country", { length: 255 }),
+  region: varchar("region", { length: 255 }),
+  continent: varchar("continent", { length: 255 }),
+  tagline: text("tagline"),
+  overview: text("overview"),
+  bestTimeToVisit: text("bestTimeToVisit"),
+  climate: text("climate"),
+  currency: varchar("currency", { length: 100 }),
+  language: varchar("language", { length: 255 }),
+  timezone: varchar("timezone", { length: 50 }),
+  flightTimeFromUK: varchar("flightTimeFromUK", { length: 100 }),
+  attractions: json("attractions"), // Array of {name, description, type}
+  dining: json("dining"), // Array of {name, description, priceRange, cuisine}
+  accommodation: json("accommodation"), // Array of {tier, name, description, priceRange}
+  insiderTips: json("insiderTips"), // Array of strings
+  gettingThere: text("gettingThere"),
+  visaInfo: text("visaInfo"),
+  curatedItinerary: json("curatedItinerary"), // {title, duration, days: [{day, title, morning, afternoon, evening, tip}]}
+  tags: json("tags"), // Array of strings
+  heroImageBase64: mediumtext("heroImageBase64"),
+  heroImageMimeType: varchar("heroImageMimeType", { length: 50 }),
+  featured: boolean("featured").default(false).notNull(),
+  published: boolean("published").default(false).notNull(),
+  viewCount: int("viewCount").default(0).notNull(),
+  aiGenerated: boolean("aiGenerated").default(false).notNull(),
+  createdBy: int("createdBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type DestinationGuide = typeof destinationGuides.$inferSelect;
+export type InsertDestinationGuide = typeof destinationGuides.$inferInsert;
