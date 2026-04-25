@@ -2735,6 +2735,28 @@ export async function ensureDestinationGuideColumns() {
   }
 }
 
+// ─── Destination Guides Schema Inspector ──────────────────────────────────────
+
+export async function logDestinationGuidesColumns(): Promise<string[]> {
+  try {
+    const db = await getDb();
+    if (!db) {
+      console.warn('[DB] logDestinationGuidesColumns: no database connection');
+      return [];
+    }
+    const result = await db.execute(
+      sql`SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'destinationGuides' AND TABLE_SCHEMA = DATABASE()`
+    );
+    const rows = (result as any)[0] as Array<{ COLUMN_NAME: string }>;
+    const columns = rows.map((r) => r.COLUMN_NAME);
+    console.log('[DB] destinationGuides actual columns:', columns);
+    return columns;
+  } catch (e) {
+    console.error('[DB] logDestinationGuidesColumns error:', e);
+    return [];
+  }
+}
+
 // Run on module load
 ensureUserPassportColumns().catch(console.error);
 ensureCommunityPostsTable().catch(console.error);
@@ -2744,3 +2766,4 @@ ensureNotificationsTable().catch(console.error);
 ensureLoyaltyTables().catch(console.error);
 ensureDestinationGuidesTable().catch(console.error);
 ensureDestinationGuideColumns().catch(console.error);
+logDestinationGuidesColumns().catch(console.error);
