@@ -2766,16 +2766,43 @@ ${faqContext}`;
       const { sql } = await import('drizzle-orm');
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
       const slug = input.destination.toLowerCase().replace(/[^a-z0-9\\s-]/g, '').replace(/\\s+/g, '-').replace(/-+/g, '-').trim();
-      // Only insert into columns that are guaranteed to exist in the DB.
-      // Extended content columns (tagline, overview, attractions, dining, etc.)
-      // are omitted here because the ALTER TABLE migrations adding them have
-      // been failing silently, leaving the table with only the base columns.
-      // Once the migrations are confirmed to have run, this INSERT can be
-      // expanded to include the full column set again.
-      await db.execute(sql`
-        INSERT INTO destinationGuides (slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, featured, published, createdAt, updatedAt)
-        VALUES (${slug}, ${input.destination}, ${input.country||null}, ${input.region||null}, ${input.continent||null}, ${input.heroImageBase64||null}, ${input.heroImageMimeType||null}, ${input.featured??false}, ${input.published??false}, NOW(), NOW())
-      `);
+
+      // Query the actual columns present in the table so the INSERT never
+      // references a column that doesn't exist yet.
+      const { logDestinationGuidesColumns } = await import('./db');
+      const existingColumns = await logDestinationGuidesColumns();
+
+      // Full set of candidate columns with their values.
+      const allCandidates: Array<{ col: string; value: unknown; raw?: boolean }> = [
+        { col: 'slug',             value: slug },
+        { col: 'destination',      value: input.destination },
+        { col: 'country',          value: input.country    ?? null },
+        { col: 'region',           value: input.region     ?? null },
+        { col: 'continent',        value: input.continent  ?? null },
+        { col: 'heroImageBase64',  value: input.heroImageBase64  ?? null },
+        { col: 'heroImageMimeType',value: input.heroImageMimeType ?? null },
+        { col: 'featured',         value: input.featured   ?? false },
+        { col: 'published',        value: input.published  ?? false },
+        { col: 'createdAt',        value: 'NOW()', raw: true },
+        { col: 'updatedAt',        value: 'NOW()', raw: true },
+      ];
+
+      // Filter to only columns that actually exist in the live table.
+      const candidates = allCandidates.filter(c => existingColumns.includes(c.col));
+
+      if (!candidates.length) {
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'destinationGuides table has no recognised columns — check server logs for actual schema.' });
+      }
+
+      const colList  = candidates.map(c => `\`${c.col}\``).join(', ');
+      const valParts = candidates.map(c => (c.raw ? c.value as string : '?')).join(', ');
+      const bindings = candidates.filter(c => !c.raw).map(c => c.value);
+
+      const pool = (db as any)._.client as import('mysql2/promise').Pool;
+      await pool.execute(
+        `INSERT INTO destinationGuides (${colList}) VALUES (${valParts})`,
+        bindings
+      );
       return { ok: true };
     }),
 
