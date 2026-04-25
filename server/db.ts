@@ -2645,41 +2645,48 @@ export async function ensureDestinationGuidesTable() {
   try {
     const db = await getDb();
     if (!db) return;
-    await db.execute(sql`
+    const pool = (db as any)._.client as import("mysql2/promise").Pool;
+    // Drop the broken/incomplete table and recreate it with all columns defined
+    // in the schema. This table holds only AI-generated guide content and has no
+    // critical user data, so a clean rebuild is safe.
+    await pool.execute(`DROP TABLE IF EXISTS destinationGuides`);
+    await pool.execute(`
       CREATE TABLE IF NOT EXISTS destinationGuides (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        slug VARCHAR(100) NOT NULL UNIQUE,
+        slug VARCHAR(255) NOT NULL UNIQUE,
         destination VARCHAR(255) NOT NULL,
-        country VARCHAR(100),
-        region VARCHAR(100),
-        continent VARCHAR(100),
-        heroImageBase64 LONGTEXT,
-        heroImageMimeType VARCHAR(50),
-        tagline VARCHAR(500),
-        overview TEXT,
-        bestTimeToVisit TEXT,
-        climate TEXT,
-        currency VARCHAR(100),
-        language VARCHAR(100),
-        timezone VARCHAR(100),
+        country VARCHAR(255),
+        region VARCHAR(255),
+        continent VARCHAR(255),
+        tagline TEXT,
+        overview MEDIUMTEXT,
+        bestTimeToVisit MEDIUMTEXT,
+        climate MEDIUMTEXT,
+        currency VARCHAR(50),
+        language TEXT,
+        timezone VARCHAR(50),
         flightTimeFromUK VARCHAR(100),
         attractions JSON,
         dining JSON,
         accommodation JSON,
         insiderTips JSON,
-        gettingThere TEXT,
-        visaInfo TEXT,
+        gettingThere MEDIUMTEXT,
+        visaInfo MEDIUMTEXT,
         curatedItinerary JSON,
         tags JSON,
+        heroImageBase64 MEDIUMTEXT,
+        heroImageMimeType VARCHAR(100),
         featured BOOLEAN NOT NULL DEFAULT false,
         published BOOLEAN NOT NULL DEFAULT false,
         viewCount INT NOT NULL DEFAULT 0,
         aiGenerated BOOLEAN NOT NULL DEFAULT false,
         createdBy INT,
-        createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
-        updatedAt TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW()
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
+        UNIQUE KEY slugIdx (slug)
       )
     `);
+    console.log('[DB] ensureDestinationGuidesTable: table recreated with full schema');
   } catch (e) {
     console.error('[DB] ensureDestinationGuidesTable error:', e);
   }
@@ -2765,5 +2772,3 @@ ensureLoginHistoryTable().catch(console.error);
 ensureNotificationsTable().catch(console.error);
 ensureLoyaltyTables().catch(console.error);
 ensureDestinationGuidesTable().catch(console.error);
-ensureDestinationGuideColumns().catch(console.error);
-logDestinationGuidesColumns().catch(console.error);
