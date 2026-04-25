@@ -2690,34 +2690,34 @@ export async function ensureDestinationGuidesTable() {
 export async function ensureDestinationGuideColumns() {
   const db = await getDb();
   if (!db) return;
-  const columns: Array<{ name: string; ddl: string }> = [
-    { name: "tagline",          ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS tagline TEXT" },
-    { name: "overview",         ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS overview MEDIUMTEXT" },
-    { name: "bestTimeToVisit",  ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS bestTimeToVisit MEDIUMTEXT" },
-    { name: "climate",          ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS climate MEDIUMTEXT" },
-    { name: "currency",         ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS currency VARCHAR(50)" },
-    { name: "language",         ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS language TEXT" },
-    { name: "timezone",         ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS timezone VARCHAR(50)" },
-    { name: "flightTimeFromUK", ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS flightTimeFromUK VARCHAR(100)" },
-    { name: "attractions",      ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS attractions JSON" },
-    { name: "dining",           ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS dining JSON" },
-    { name: "accommodation",    ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS accommodation JSON" },
-    { name: "insiderTips",      ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS insiderTips JSON" },
-    { name: "gettingThere",     ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS gettingThere MEDIUMTEXT" },
-    { name: "visaInfo",         ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS visaInfo MEDIUMTEXT" },
-    { name: "curatedItinerary", ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS curatedItinerary JSON" },
-    { name: "tags",             ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS tags JSON" },
-    { name: "viewCount",        ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS viewCount INT NOT NULL DEFAULT 0" },
-    { name: "aiGenerated",      ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS aiGenerated BOOLEAN NOT NULL DEFAULT false" },
-    { name: "createdBy",        ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS createdBy INT" },
+  const alterStatements: Array<[string, string]> = [
+    ["tagline",          "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS tagline TEXT"],
+    ["overview",         "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS overview MEDIUMTEXT"],
+    ["bestTimeToVisit",  "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS bestTimeToVisit MEDIUMTEXT"],
+    ["climate",          "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS climate MEDIUMTEXT"],
+    ["currency",         "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS currency VARCHAR(50)"],
+    ["language",         "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS language TEXT"],
+    ["timezone",         "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS timezone VARCHAR(50)"],
+    ["flightTimeFromUK", "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS flightTimeFromUK VARCHAR(100)"],
+    ["attractions",      "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS attractions JSON"],
+    ["dining",           "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS dining JSON"],
+    ["accommodation",    "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS accommodation JSON"],
+    ["insiderTips",      "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS insiderTips JSON"],
+    ["gettingThere",     "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS gettingThere MEDIUMTEXT"],
+    ["visaInfo",         "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS visaInfo MEDIUMTEXT"],
+    ["curatedItinerary", "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS curatedItinerary JSON"],
+    ["tags",             "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS tags JSON"],
+    ["viewCount",        "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS viewCount INT NOT NULL DEFAULT 0"],
+    ["aiGenerated",      "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS aiGenerated BOOLEAN NOT NULL DEFAULT false"],
+    ["createdBy",        "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS createdBy INT"],
   ];
-  for (const col of columns) {
+  for (const [colName, stmt] of alterStatements) {
     try {
-      await db.execute(sql`${sql.raw(col.ddl)}`);
+      await db.execute(sql.raw(stmt));
     } catch (e: any) {
       const msg = e?.message || String(e);
       if (!msg.includes("Duplicate column") && !msg.includes("ER_DUP_FIELDNAME") && !msg.includes("already exists")) {
-        console.warn(`[DB] ensureDestinationGuideColumns warning (${col.name}):`, msg);
+        console.warn(`[DB] ensureDestinationGuideColumns warning (${colName}):`, msg);
       }
     }
   }
