@@ -9,9 +9,9 @@ const CONTINENTS = ["Europe", "Asia", "Africa", "Americas", "Middle East", "Ocea
 
 export default function AdminDestinationGuides() {
   const { data: guides = [], isLoading, refetch } = trpc.guides.getAllAdmin.useQuery();
-  const createMut = trpc.guides.create.useMutation({ onSuccess: () => { refetch(); setShowModal(false); toast.success("Guide created!"); } });
-  const updateMut = trpc.guides.update.useMutation({ onSuccess: () => { refetch(); setEditing(null); toast.success("Guide updated!"); } });
-  const deleteMut = trpc.guides.delete.useMutation({ onSuccess: () => { refetch(); toast.success("Guide deleted."); } });
+  const createMut = trpc.guides.create.useMutation({ onSuccess: () => { refetch(); setShowModal(false); toast.success("Guide created!"); }, onError: (e) => toast.error(e.message || "Failed to create guide") });
+  const updateMut = trpc.guides.update.useMutation({ onSuccess: () => { refetch(); setEditing(null); toast.success("Guide updated!"); }, onError: (e) => toast.error(e.message || "Failed to update guide") });
+  const deleteMut = trpc.guides.delete.useMutation({ onSuccess: () => { refetch(); toast.success("Guide deleted."); }, onError: (e) => toast.error(e.message || "Failed to delete guide") });
   const generateMut = trpc.guides.generateContent.useMutation();
 
   const [showModal, setShowModal] = useState(false);
@@ -89,8 +89,12 @@ export default function AdminDestinationGuides() {
       heroImageMimeType: form.heroImageMimeType || undefined,
       featured: form.featured, published: form.published, aiGenerated: form.aiGenerated,
     };
-    if (editing) { await updateMut.mutateAsync({ id: editing.id, ...payload }); }
-    else { await createMut.mutateAsync(payload); }
+    try {
+      if (editing) { await updateMut.mutateAsync({ id: editing.id, ...payload }); }
+      else { await createMut.mutateAsync(payload); }
+    } catch (e: any) {
+      toast.error(e?.message || "Something went wrong — please try again");
+    }
   }
 
   function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
