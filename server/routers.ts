@@ -2765,10 +2765,16 @@ ${faqContext}`;
       const db = await (await import('./db')).getDb();
       const { sql } = await import('drizzle-orm');
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-      const slug = input.destination.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+      const slug = input.destination.toLowerCase().replace(/[^a-z0-9\\s-]/g, '').replace(/\\s+/g, '-').replace(/-+/g, '-').trim();
+      // Only insert into columns that are guaranteed to exist in the DB.
+      // Extended content columns (tagline, overview, attractions, dining, etc.)
+      // are omitted here because the ALTER TABLE migrations adding them have
+      // been failing silently, leaving the table with only the base columns.
+      // Once the migrations are confirmed to have run, this INSERT can be
+      // expanded to include the full column set again.
       await db.execute(sql`
-        INSERT INTO destinationGuides (slug, destination, country, region, continent, tagline, overview, bestTimeToVisit, climate, currency, language, timezone, flightTimeFromUK, attractions, dining, accommodation, insiderTips, gettingThere, visaInfo, curatedItinerary, tags, heroImageBase64, heroImageMimeType, featured, published, aiGenerated, createdBy)
-        VALUES (${slug}, ${input.destination}, ${input.country||null}, ${input.region||null}, ${input.continent||null}, ${input.tagline||null}, ${input.overview||null}, ${input.bestTimeToVisit||null}, ${input.climate||null}, ${input.currency||null}, ${input.language||null}, ${input.timezone||null}, ${input.flightTimeFromUK||null}, ${JSON.stringify(input.attractions||[])}, ${JSON.stringify(input.dining||[])}, ${JSON.stringify(input.accommodation||[])}, ${JSON.stringify(input.insiderTips||[])}, ${input.gettingThere||null}, ${input.visaInfo||null}, ${input.curatedItinerary ? JSON.stringify(input.curatedItinerary) : null}, ${JSON.stringify(input.tags||[])}, ${input.heroImageBase64||null}, ${input.heroImageMimeType||null}, ${input.featured??false}, ${input.published??false}, ${input.aiGenerated??false}, ${(ctx as any).user?.id||null})
+        INSERT INTO destinationGuides (slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, featured, published, createdAt, updatedAt)
+        VALUES (${slug}, ${input.destination}, ${input.country||null}, ${input.region||null}, ${input.continent||null}, ${input.heroImageBase64||null}, ${input.heroImageMimeType||null}, ${input.featured??false}, ${input.published??false}, NOW(), NOW())
       `);
       return { ok: true };
     }),
