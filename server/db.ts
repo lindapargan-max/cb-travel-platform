@@ -1961,23 +1961,14 @@ export async function ensureAdminQuotesTable(): Promise<void> {
 export async function ensureUserPassportColumns() {
   const db = await getDb();
   if (!db) return;
-  const alterStatements = [
-    "ALTER TABLE users ADD COLUMN passportNumber VARCHAR(100)",
-    "ALTER TABLE users ADD COLUMN passportExpiry VARCHAR(50)",
-    "ALTER TABLE users ADD COLUMN passportIssueDate VARCHAR(50)",
-    "ALTER TABLE users ADD COLUMN passportIssuingCountry VARCHAR(100)",
-    "ALTER TABLE users ADD COLUMN passportNationality VARCHAR(100)",
-  ];
-  for (const stmt of alterStatements) {
-    try {
-      await db.execute(sql`${sql.raw(stmt)}`);
-    } catch (e: any) {
-      const code = e?.cause?.code || e?.code;
-      const msg = e?.cause?.sqlMessage || e?.message || String(e);
-      if (code !== "ER_DUP_FIELDNAME" && !msg.includes("Duplicate column") && !msg.includes("already exists")) {
-        console.error('[DB] ensureUserPassportColumns error:', msg);
-      }
-    }
+  try {
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportNumber VARCHAR(100)`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportExpiry VARCHAR(50)`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportIssueDate VARCHAR(50)`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportIssuingCountry VARCHAR(100)`);
+    await db.execute(sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS passportNationality VARCHAR(100)`);
+  } catch (e) {
+    console.error('[DB] ensureUserPassportColumns error:', e);
   }
 }
 
@@ -2648,6 +2639,52 @@ export async function ensureNotificationsTable() {
   }
 }
 
+// ─── Destination Guides Table ─────────────────────────────────────────────────
+
+export async function ensureDestinationGuidesTable() {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS destinationGuides (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        slug VARCHAR(100) NOT NULL UNIQUE,
+        destination VARCHAR(255) NOT NULL,
+        country VARCHAR(100),
+        region VARCHAR(100),
+        continent VARCHAR(100),
+        heroImageBase64 LONGTEXT,
+        heroImageMimeType VARCHAR(50),
+        tagline VARCHAR(500),
+        overview TEXT,
+        bestTimeToVisit TEXT,
+        climate TEXT,
+        currency VARCHAR(100),
+        language VARCHAR(100),
+        timezone VARCHAR(100),
+        flightTimeFromUK VARCHAR(100),
+        attractions JSON,
+        dining JSON,
+        accommodation JSON,
+        insiderTips JSON,
+        gettingThere TEXT,
+        visaInfo TEXT,
+        curatedItinerary JSON,
+        tags JSON,
+        featured BOOLEAN NOT NULL DEFAULT false,
+        published BOOLEAN NOT NULL DEFAULT false,
+        viewCount INT NOT NULL DEFAULT 0,
+        aiGenerated BOOLEAN NOT NULL DEFAULT false,
+        createdBy INT,
+        createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+        updatedAt TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW()
+      )
+    `);
+  } catch (e) {
+    console.error('[DB] ensureDestinationGuidesTable error:', e);
+  }
+}
+
 // Run on module load
 ensureUserPassportColumns().catch(console.error);
 ensureCommunityPostsTable().catch(console.error);
@@ -2655,3 +2692,4 @@ ensureEmailLogsTable().catch(console.error);
 ensureLoginHistoryTable().catch(console.error);
 ensureNotificationsTable().catch(console.error);
 ensureLoyaltyTables().catch(console.error);
+ensureDestinationGuidesTable().catch(console.error);

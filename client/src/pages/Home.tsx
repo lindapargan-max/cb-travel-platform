@@ -69,6 +69,52 @@ const FAQ_ITEMS = [
   },
 ];
 
+function DestinationsTeaser() {
+  const { data: guides = [] } = (trpc as any).guides.getAll.useQuery();
+  const featured = (guides as any[]).filter((g: any) => g.featured).slice(0, 3);
+  const all = (guides as any[]).slice(0, 3);
+  const display = featured.length >= 2 ? featured : all;
+  if (display.length === 0) return null;
+  return (
+    <section className="py-20 px-4 bg-[#0b2240]">
+      <div className="max-w-6xl mx-auto">
+        <div className="text-center mb-10">
+          <p className="text-xs tracking-[4px] uppercase font-semibold text-[#d4af37] mb-3">Explore the World</p>
+          <h2 className="font-serif text-3xl sm:text-4xl font-light text-white mb-4">
+            Destination <span className="font-semibold">Guides</span>
+          </h2>
+          <p className="text-white/60 max-w-xl mx-auto leading-relaxed text-sm">
+            Our luxury travel experts have curated in-depth guides to the world's most extraordinary destinations — with insider tips, handpicked dining, and CB Travel itineraries.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+          {display.map((g: any) => (
+            <a key={g.id} href={`/destinations/${g.slug}`} className="group relative rounded-2xl overflow-hidden h-64 block cursor-pointer">
+              {g.heroImageBase64 ? (
+                <img src={g.heroImageBase64} alt={g.destination} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-[#1a3a60] to-[#0b2240]" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-5">
+                <h3 className="font-serif text-xl font-bold text-white mb-0.5">{g.destination}</h3>
+                {g.country && <p className="text-white/60 text-xs mb-2">{g.country}</p>}
+                {g.tagline && <p className="text-white/80 text-xs line-clamp-1">{g.tagline}</p>}
+                <p className="text-[#d4af37] text-xs font-semibold mt-2 group-hover:translate-x-1 transition-transform">Read Guide →</p>
+              </div>
+            </a>
+          ))}
+        </div>
+        <div className="text-center">
+          <a href="/destinations" className="inline-block px-8 py-3.5 rounded-xl font-semibold text-sm bg-gradient-to-r from-[#d4af37] to-[#b8962e] text-[#0b2240] hover:opacity-90 transition-opacity">
+            View All Destinations →
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function StarRating({ rating }: { rating: number }) {
   return (
     <div className="flex gap-0.5">
@@ -420,6 +466,9 @@ export default function Home() {
       </section>
 
       {/* ─── COMMUNITY & IMPACT TEASER ─────────────────────────────────────── */}
+      {/* ─── Destination Guides Taster ─────────────────────────────────────── */}
+      <DestinationsTeaser />
+
       <section className="py-20 px-4 bg-gradient-to-b from-white to-slate-50">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-10">
@@ -487,7 +536,7 @@ export default function Home() {
                       {post.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{post.description}</p>}
                       {post.amountRaised && (
                         <div className="mt-2 inline-flex items-center gap-1 bg-[#d4af37]/12 border border-[#d4af37]/25 text-[#9a7c1e] text-[10px] font-bold px-2 py-1 rounded-full">
-                          ✦ Given Back: £{post.amountRaised}
+                          ✦ Given Back: {post.amountRaised.replace(/^£+/, '£')}
                         </div>
                       )}
                     </div>

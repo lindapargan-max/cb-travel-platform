@@ -767,32 +767,6 @@ export const appRouter = router({
           // Send emails (non-blocking)
           sendQuoteRequestAdminEmail({ name: input.name, email: input.email, phone: input.phone, destination: input.destination, travelType: input.travelType || "other", departureDate: input.departureDate, returnDate: input.returnDate, numberOfTravelers: input.numberOfTravelers, budget: input.budget, message: input.message, quoteType: input.quoteType }).catch(console.error);
           sendQuoteConfirmationEmail(input.email, input.name, input.destination).catch(console.error);
-          // Notify all admin users (non-blocking) — updates notification bell + command centre count
-          (async () => {
-            try {
-              const { createNotification } = await import("./db");
-              const db = await import("./db").then(m => m.getDb ? m.getDb() : null);
-              if (db) {
-                const { users: usersTable } = await import("../drizzle/schema");
-                const { eq } = await import("drizzle-orm");
-                const adminUsers = await db.select({ id: usersTable.id }).from(usersTable).where(eq(usersTable.role, "admin"));
-                const destination = input.destination ? ` for ${input.destination}` : "";
-                const notifTitle = "New Quote Request";
-                const notifMessage = `${input.name} submitted a quote request${destination}. Travel type: ${input.travelType || "other"}.`;
-                for (const admin of adminUsers) {
-                  await createNotification({
-                    userId: admin.id,
-                    title: notifTitle,
-                    message: notifMessage,
-                    type: "alert",
-                    link: "/admin/quotes",
-                  });
-                }
-              }
-            } catch (e) {
-              console.warn("[Quote notification] Failed to notify admins:", e);
-            }
-          })();
           return quoteResult;
         } catch (dbErr: any) {
           console.error("[Quote create error]", dbErr?.message || dbErr);
@@ -1169,30 +1143,16 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
     getWeather: publicProcedure
       .input(z.object({ destination: z.string(), lat: z.number().optional(), lon: z.number().optional() }))
       .query(async ({ input }) => {
-        const fetchWithTimeout = async (url: string, ms = 4000) => {
-          const ctrl = new AbortController();
-          const timer = setTimeout(() => ctrl.abort(), ms);
-          try {
-            return await fetch(url, { signal: ctrl.signal });
-          } finally {
-            clearTimeout(timer);
-          }
-        };
         try {
-          const res = await fetchWithTimeout(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(input.destination)}&count=1&language=en&format=json`);
+          const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(input.destination)}&count=1&language=en&format=json`);
           const geoData = await res.json();
           if (!geoData.results || geoData.results.length === 0) return null;
           const { latitude, longitude } = geoData.results[0];
-          const weatherRes = await fetchWithTimeout(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,uv_index&temperature_unit=celsius&timezone=auto`);
+          const weatherRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,weather_code,uv_index&temperature_unit=celsius&timezone=auto`);
           const weather = await weatherRes.json();
           return weather.current;
-        } catch (e: any) {
-          // Downgrade expected upstream timeouts to a warning so they don't pollute error logs
-          if (e?.name === 'AbortError' || e?.cause?.code === 'ETIMEDOUT' || e?.code === 'ETIMEDOUT') {
-            console.warn("Weather fetch timeout for", input.destination);
-          } else {
-            console.error("Weather fetch error:", e);
-          }
+        } catch (e) {
+          console.error("Weather fetch error:", e);
           return null;
         }
       }),
@@ -1876,7 +1836,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
 
   // ─── V6: AI (Groq) ───────────────────────────────────────────────────────────
   ai: router({
-    generateItinerary: publicProcedure
+    generateItinerary: protectedProcedure
       .input(z.object({
         destination: z.string(),
         duration: z.number().min(1).max(30),
@@ -2007,7 +1967,7 @@ ${faqContext}`;
           // Ensure table exists
           await db.execute(sql`CREATE TABLE IF NOT EXISTS itineraryAccessLog (
             id INT AUTO_INCREMENT PRIMARY KEY,
-            ipAddress VARCHAR(255),
+            ipAddress VARCHAR(45),
             agencyName VARCHAR(255),
             agencyTagline VARCHAR(500),
             destination VARCHAR(255),
@@ -2015,15 +1975,8 @@ ${faqContext}`;
             eventType VARCHAR(50) DEFAULT 'access',
             accessedAt DATETIME DEFAULT CURRENT_TIMESTAMP
           )`);
-          // Best-effort widen if an older deployment created VARCHAR(45)
-          try {
-            await db.execute(sql`ALTER TABLE itineraryAccessLog MODIFY COLUMN ipAddress VARCHAR(255)`);
-          } catch { /* ignore — column already wide enough or no permission */ }
-          const xff = (ctx as any).req?.headers['x-forwarded-for'] as string | undefined;
-          // x-forwarded-for can be a comma-separated chain (client, proxy1, proxy2) — keep just the originating client.
-          const rawIp = (xff?.split(',')[0]?.trim()) || (ctx as any).req?.socket?.remoteAddress || 'unknown';
-          const ip = rawIp.slice(0, 255);
-          const ua = ((ctx as any).req?.headers['user-agent'] as string || '').slice(0, 1000);
+          const ip = (ctx as any).req?.headers['x-forwarded-for'] as string || (ctx as any).req?.socket?.remoteAddress || 'unknown';
+          const ua = (ctx as any).req?.headers['user-agent'] as string || '';
           const evType = input.eventType || 'access';
           await db.execute(sql`INSERT INTO itineraryAccessLog (ipAddress, agencyName, agencyTagline, destination, userAgent, eventType) VALUES (${ip}, ${input.agencyName || null}, ${input.agencyTagline || null}, ${input.destination || null}, ${ua}, ${evType})`);
         } catch(e) { console.error('Failed to log itinerary access:', e); }
@@ -2745,6 +2698,218 @@ ${faqContext}`;
     }),
   }),
 
+  // ─── Destination Guides ───────────────────────────────────────────────────────
+  guides: router({
+    getAll: publicProcedure.query(async () => {
+      const db = await (await import('./db')).getDb();
+      if (!db) return [];
+      const rows = (await db.execute(sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, climate, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides WHERE published = true ORDER BY featured DESC, destination ASC`) as any)[0] as any[];
+      return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
+    }),
+
+    getAllAdmin: adminProcedure.query(async () => {
+      const db = await (await import('./db')).getDb();
+      if (!db) return [];
+      const rows = (await db.execute(sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides ORDER BY createdAt DESC`) as any)[0] as any[];
+      return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
+    }),
+
+    getBySlug: publicProcedure.input(z.object({ slug: z.string() })).query(async ({ input }) => {
+      const db = await (await import('./db')).getDb();
+      if (!db) return null;
+      const rows = (await db.execute(sql`SELECT * FROM destinationGuides WHERE slug = ${input.slug} AND published = true LIMIT 1`) as any)[0] as any[];
+      if (!rows.length) return null;
+      const r = rows[0];
+      await db.execute(sql`UPDATE destinationGuides SET viewCount = viewCount + 1 WHERE id = ${r.id}`);
+      return {
+        ...r,
+        attractions: r.attractions ? JSON.parse(r.attractions) : [],
+        dining: r.dining ? JSON.parse(r.dining) : [],
+        accommodation: r.accommodation ? JSON.parse(r.accommodation) : [],
+        insiderTips: r.insiderTips ? JSON.parse(r.insiderTips) : [],
+        curatedItinerary: r.curatedItinerary ? JSON.parse(r.curatedItinerary) : null,
+        tags: r.tags ? JSON.parse(r.tags) : [],
+      };
+    }),
+
+    create: adminProcedure.input(z.object({
+      destination: z.string(),
+      country: z.string().optional(),
+      region: z.string().optional(),
+      continent: z.string().optional(),
+      tagline: z.string().optional(),
+      overview: z.string().optional(),
+      bestTimeToVisit: z.string().optional(),
+      climate: z.string().optional(),
+      currency: z.string().optional(),
+      language: z.string().optional(),
+      timezone: z.string().optional(),
+      flightTimeFromUK: z.string().optional(),
+      attractions: z.array(z.any()).optional(),
+      dining: z.array(z.any()).optional(),
+      accommodation: z.array(z.any()).optional(),
+      insiderTips: z.array(z.string()).optional(),
+      gettingThere: z.string().optional(),
+      visaInfo: z.string().optional(),
+      curatedItinerary: z.any().optional(),
+      tags: z.array(z.string()).optional(),
+      heroImageBase64: z.string().optional(),
+      heroImageMimeType: z.string().optional(),
+      featured: z.boolean().optional(),
+      published: z.boolean().optional(),
+      aiGenerated: z.boolean().optional(),
+    })).mutation(async ({ input, ctx }) => {
+      const db = await (await import('./db')).getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      const slug = input.destination.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+      await db.execute(sql`
+        INSERT INTO destinationGuides (slug, destination, country, region, continent, tagline, overview, bestTimeToVisit, climate, currency, language, timezone, flightTimeFromUK, attractions, dining, accommodation, insiderTips, gettingThere, visaInfo, curatedItinerary, tags, heroImageBase64, heroImageMimeType, featured, published, aiGenerated, createdBy)
+        VALUES (${slug}, ${input.destination}, ${input.country||null}, ${input.region||null}, ${input.continent||null}, ${input.tagline||null}, ${input.overview||null}, ${input.bestTimeToVisit||null}, ${input.climate||null}, ${input.currency||null}, ${input.language||null}, ${input.timezone||null}, ${input.flightTimeFromUK||null}, ${JSON.stringify(input.attractions||[])}, ${JSON.stringify(input.dining||[])}, ${JSON.stringify(input.accommodation||[])}, ${JSON.stringify(input.insiderTips||[])}, ${input.gettingThere||null}, ${input.visaInfo||null}, ${input.curatedItinerary ? JSON.stringify(input.curatedItinerary) : null}, ${JSON.stringify(input.tags||[])}, ${input.heroImageBase64||null}, ${input.heroImageMimeType||null}, ${input.featured??false}, ${input.published??false}, ${input.aiGenerated??false}, ${(ctx as any).user?.id||null})
+      `);
+      return { ok: true };
+    }),
+
+    update: adminProcedure.input(z.object({
+      id: z.number(),
+      destination: z.string().optional(),
+      country: z.string().optional(),
+      region: z.string().optional(),
+      continent: z.string().optional(),
+      tagline: z.string().optional(),
+      overview: z.string().optional(),
+      bestTimeToVisit: z.string().optional(),
+      climate: z.string().optional(),
+      currency: z.string().optional(),
+      language: z.string().optional(),
+      timezone: z.string().optional(),
+      flightTimeFromUK: z.string().optional(),
+      attractions: z.array(z.any()).optional(),
+      dining: z.array(z.any()).optional(),
+      accommodation: z.array(z.any()).optional(),
+      insiderTips: z.array(z.string()).optional(),
+      gettingThere: z.string().optional(),
+      visaInfo: z.string().optional(),
+      curatedItinerary: z.any().optional(),
+      tags: z.array(z.string()).optional(),
+      heroImageBase64: z.string().optional(),
+      heroImageMimeType: z.string().optional(),
+      featured: z.boolean().optional(),
+      published: z.boolean().optional(),
+    })).mutation(async ({ input }) => {
+      const db = await (await import('./db')).getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      const fields: string[] = [];
+      const vals: any[] = [];
+      if (input.destination !== undefined) { fields.push('destination = ?'); vals.push(input.destination); }
+      if (input.country !== undefined) { fields.push('country = ?'); vals.push(input.country); }
+      if (input.region !== undefined) { fields.push('region = ?'); vals.push(input.region); }
+      if (input.continent !== undefined) { fields.push('continent = ?'); vals.push(input.continent); }
+      if (input.tagline !== undefined) { fields.push('tagline = ?'); vals.push(input.tagline); }
+      if (input.overview !== undefined) { fields.push('overview = ?'); vals.push(input.overview); }
+      if (input.bestTimeToVisit !== undefined) { fields.push('bestTimeToVisit = ?'); vals.push(input.bestTimeToVisit); }
+      if (input.climate !== undefined) { fields.push('climate = ?'); vals.push(input.climate); }
+      if (input.currency !== undefined) { fields.push('currency = ?'); vals.push(input.currency); }
+      if (input.language !== undefined) { fields.push('language = ?'); vals.push(input.language); }
+      if (input.timezone !== undefined) { fields.push('timezone = ?'); vals.push(input.timezone); }
+      if (input.flightTimeFromUK !== undefined) { fields.push('flightTimeFromUK = ?'); vals.push(input.flightTimeFromUK); }
+      if (input.attractions !== undefined) { fields.push('attractions = ?'); vals.push(JSON.stringify(input.attractions)); }
+      if (input.dining !== undefined) { fields.push('dining = ?'); vals.push(JSON.stringify(input.dining)); }
+      if (input.accommodation !== undefined) { fields.push('accommodation = ?'); vals.push(JSON.stringify(input.accommodation)); }
+      if (input.insiderTips !== undefined) { fields.push('insiderTips = ?'); vals.push(JSON.stringify(input.insiderTips)); }
+      if (input.gettingThere !== undefined) { fields.push('gettingThere = ?'); vals.push(input.gettingThere); }
+      if (input.visaInfo !== undefined) { fields.push('visaInfo = ?'); vals.push(input.visaInfo); }
+      if (input.curatedItinerary !== undefined) { fields.push('curatedItinerary = ?'); vals.push(JSON.stringify(input.curatedItinerary)); }
+      if (input.tags !== undefined) { fields.push('tags = ?'); vals.push(JSON.stringify(input.tags)); }
+      if (input.heroImageBase64 !== undefined) { fields.push('heroImageBase64 = ?'); vals.push(input.heroImageBase64); }
+      if (input.heroImageMimeType !== undefined) { fields.push('heroImageMimeType = ?'); vals.push(input.heroImageMimeType); }
+      if (input.featured !== undefined) { fields.push('featured = ?'); vals.push(input.featured); }
+      if (input.published !== undefined) { fields.push('published = ?'); vals.push(input.published); }
+      if (!fields.length) return { ok: true };
+      vals.push(input.id);
+      await db.execute(`UPDATE destinationGuides SET ${fields.join(', ')} WHERE id = ?`, vals);
+      return { ok: true };
+    }),
+
+    delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      const db = await (await import('./db')).getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      await db.execute(sql`DELETE FROM destinationGuides WHERE id = ${input.id}`);
+      return { ok: true };
+    }),
+
+    generateContent: adminProcedure.input(z.object({
+      destination: z.string(),
+      country: z.string().optional(),
+    })).mutation(async ({ input }) => {
+      const apiKey = process.env.GROQ_API_KEY || (await getAppSetting('groq_api_key'));
+      if (!apiKey) throw new TRPCError({ code: 'BAD_REQUEST', message: 'AI not configured.' });
+
+      const prompt = `You are a senior luxury travel writer for CB Travel, a premium UK travel concierge agency. Write a comprehensive, beautifully crafted destination guide for ${input.destination}${input.country ? `, ${input.country}` : ''}.
+
+The tone must be: warm, aspirational, sophisticated — like a private members travel club. Avoid clichés. Be specific and evocative.
+
+Return ONLY valid JSON (no markdown code blocks) matching this exact structure:
+{
+  "country": "Country name",
+  "region": "Region or area name",
+  "continent": "Continent",
+  "tagline": "One stunning original sentence that captures the soul of this destination max 12 words",
+  "overview": "3-4 sentences. Paint a picture of what makes this place extraordinary. Specific, sensory, evocative.",
+  "bestTimeToVisit": "Detailed paragraph on optimal travel months and what each season offers.",
+  "climate": "Brief climate summary 1-2 sentences",
+  "currency": "Local currency name and code",
+  "language": "Primary languages",
+  "timezone": "Timezone e.g. GMT+2",
+  "flightTimeFromUK": "Approximate flight duration from London",
+  "attractions": [
+    { "name": "Attraction name", "description": "2-3 sentences why it is unmissable and what to expect", "type": "Landmark" }
+  ],
+  "dining": [
+    { "name": "Restaurant or dining experience", "description": "What makes it special and a specific dish worth having", "priceRange": "£££", "cuisine": "Cuisine type" }
+  ],
+  "accommodation": [
+    { "tier": "Boutique Luxury", "name": "Property name or type", "description": "What sets this apart views service unique features", "priceRange": "Price guide per night in GBP" },
+    { "tier": "Ultra-Premium", "name": "Property name or type", "description": "The pinnacle option butler service extraordinary features", "priceRange": "Price guide per night in GBP" },
+    { "tier": "Classic Elegance", "name": "Property name or type", "description": "Timeless choice heritage charm impeccable service", "priceRange": "Price guide per night in GBP" }
+  ],
+  "insiderTips": ["Specific actionable insider tip", "Another tip", "Another tip", "Another tip", "Another tip"],
+  "gettingThere": "Paragraph on flights from UK best airlines airports transfers and how CB Travel can arrange private transfers.",
+  "visaInfo": "UK passport holders visa requirements entry conditions passport validity rules. Note requirements change.",
+  "curatedItinerary": {
+    "title": "A CB Travel Curated Journey",
+    "duration": 7,
+    "days": [
+      { "day": 1, "title": "Day title", "morning": "Morning activity", "afternoon": "Afternoon activity", "evening": "Evening experience or dinner", "tip": "Practical tip" }
+    ]
+  },
+  "tags": ["Beach", "Culture", "Luxury"]
+}
+
+Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 5 insider tips, and 7 itinerary days. All specific to ${input.destination}.`;
+
+      const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'llama-3.3-70b-versatile',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.75,
+          max_tokens: 6000,
+        }),
+      });
+      if (!resp.ok) {
+        const err = await resp.text();
+        console.error('[AI] Groq guides error:', err);
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'AI generation failed. Please try again.' });
+      }
+      const data = await resp.json() as any;
+      const text = data.choices?.[0]?.message?.content || '';
+      if (!text) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      const cleaned = text.replace(/^```(?:json)?\s*/m, '').replace(/\s*```$/m, '').trim();
+      return JSON.parse(cleaned);
+    }),
+  }),
+
   // ─── Community & Impact ────────────────────────────────────────────────────
   community: router({
     getPublished: publicProcedure.query(async () => {
@@ -2944,49 +3109,6 @@ ${faqContext}`;
       clearJLTTermsCache();
       return getJLTTerms();
     }),
-  }),
-
-  // ─── Analytics ───────────────────────────────────────────────────────────
-  analytics: router({
-    recordPageView: publicProcedure
-      .input(z.object({
-        sessionId: z.string().min(1).max(64),
-        path: z.string().max(500),
-        referrer: z.string().max(500).optional(),
-      }))
-      .mutation(async ({ input, ctx }) => {
-        try {
-          const { recordPageView } = await import('./analytics');
-          const req: any = (ctx as any).req;
-          const xff = (req?.headers?.['x-forwarded-for'] as string | undefined) || '';
-          const ip = xff.split(',')[0].trim() || req?.socket?.remoteAddress || 'unknown';
-          const ua = (req?.headers?.['user-agent'] as string) || '';
-          await recordPageView({
-            sessionId: input.sessionId,
-            ipAddress: ip,
-            userAgent: ua,
-            path: input.path,
-            referrer: input.referrer || '',
-          });
-        } catch (e) {
-          console.error('[analytics.recordPageView] error:', e);
-        }
-        return { success: true };
-      }),
-    getLiveVisitors: adminMiddleware.query(async () => {
-      const { getLiveVisitors } = await import('./analytics');
-      return await getLiveVisitors();
-    }),
-    getStats: adminMiddleware.query(async () => {
-      const { getStats } = await import('./analytics');
-      return await getStats();
-    }),
-    getRecentVisits: adminMiddleware
-      .input(z.object({ limit: z.number().min(1).max(500).optional() }).optional())
-      .query(async ({ input }) => {
-        const { getRecentVisits } = await import('./analytics');
-        return await getRecentVisits(input?.limit ?? 100);
-      }),
   }),
 
 });

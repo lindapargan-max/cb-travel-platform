@@ -37,6 +37,7 @@ import AdminPassportManager from "@/components/admin/AdminPassportManager";
 import AdminPaymentPlans from "@/components/admin/AdminPaymentPlans";
 import AdminQuotesManager from "@/components/admin/AdminQuotesManager";
 import AdminCommunityManager from "@/components/admin/AdminCommunityManager";
+import AdminDestinationGuides from "@/components/admin/AdminDestinationGuides";
 import AdminNotificationsManager from "@/components/admin/AdminNotificationsManager";
 import { useSEO } from '@/hooks/useSEO';
 
@@ -3196,251 +3197,6 @@ function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userB
 }
 
 
-function parseUserAgent(ua: string): { browser: string; os: string; device: string } {
-  if (!ua) return { browser: '—', os: '—', device: '—' };
-  let browser = 'Other';
-  if (/Edg\//i.test(ua)) browser = 'Edge';
-  else if (/OPR\//i.test(ua)) browser = 'Opera';
-  else if (/Chrome\//i.test(ua) && !/Chromium/i.test(ua)) browser = 'Chrome';
-  else if (/Firefox\//i.test(ua)) browser = 'Firefox';
-  else if (/Safari\//i.test(ua) && !/Chrome/i.test(ua)) browser = 'Safari';
-  let os = 'Other';
-  if (/Windows NT/i.test(ua)) os = 'Windows';
-  else if (/Android/i.test(ua)) os = 'Android';
-  else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS';
-  else if (/Mac OS X/i.test(ua)) os = 'macOS';
-  else if (/Linux/i.test(ua)) os = 'Linux';
-  const device = /Mobi|Android|iPhone|iPod/i.test(ua) ? 'Mobile' : /iPad|Tablet/i.test(ua) ? 'Tablet' : 'Desktop';
-  return { browser, os, device };
-}
-
-function AdminAnalyticsTab() {
-  const { data: live, refetch: refetchLive, isLoading: liveLoading } = trpc.analytics.getLiveVisitors.useQuery(undefined, { refetchInterval: 10000 });
-  const { data: stats, refetch: refetchStats } = trpc.analytics.getStats.useQuery(undefined, { refetchInterval: 60000 });
-  const { data: recent, refetch: refetchRecent, isLoading: recentLoading } = trpc.analytics.getRecentVisits.useQuery({ limit: 100 }, { refetchInterval: 30000 });
-
-  const refreshAll = () => { refetchLive(); refetchStats(); refetchRecent(); };
-  const maxHourly = Math.max(1, ...((stats?.hourly || []).map((h: any) => h.views)));
-
-  return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="bg-white rounded-2xl border border-border p-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <BarChart3 size={18} className="text-emerald-600" />
-            </div>
-            <div>
-              <h2 className="font-serif text-xl font-semibold text-[#1e3a5f]">Site Analytics</h2>
-              <p className="text-sm text-muted-foreground">Real-time visitor activity, traffic sources & device breakdown. Auto-refreshes every 10s–60s.</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 bg-emerald-50 border border-emerald-200 rounded-xl">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-              </span>
-              <span className="text-sm font-semibold text-emerald-700">{liveLoading ? '…' : (live?.count || 0)} online now</span>
-            </div>
-            <Button onClick={refreshAll} variant="outline" size="sm" className="rounded-xl">
-              <RefreshCw size={14} className="mr-2" /> Refresh
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Stat cards */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        {[
-          { label: 'Live Now', value: live?.count ?? 0, sub: 'last 5 min', color: 'emerald' },
-          { label: 'Visitors Today', value: stats?.visitorsToday ?? 0, sub: `${stats?.viewsToday ?? 0} views`, color: 'indigo' },
-          { label: 'Visitors / 7d', value: stats?.visitorsWeek ?? 0, sub: `${stats?.viewsWeek ?? 0} views`, color: 'blue' },
-          { label: 'Visitors / 30d', value: stats?.visitorsMonth ?? 0, sub: `${stats?.viewsMonth ?? 0} views`, color: 'violet' },
-          { label: 'Top Country', value: stats?.topCountries?.[0]?.country || '—', sub: `${stats?.topCountries?.[0]?.views ?? 0} views`, color: 'amber' },
-          { label: 'Top Page', value: (stats?.topPages?.[0]?.path || '—').slice(0, 14), sub: `${stats?.topPages?.[0]?.views ?? 0} views`, color: 'rose' },
-        ].map((s, i) => (
-          <div key={i} className="bg-white rounded-2xl border border-border p-4">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</div>
-            <div className="text-2xl font-bold text-[#1e3a5f] mt-1 truncate">{s.value}</div>
-            <div className="text-xs text-muted-foreground mt-0.5">{s.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Live visitors panel */}
-      <div className="bg-white rounded-2xl border border-border overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Users size={16} className="text-emerald-600" />
-            <h3 className="font-semibold text-sm">Currently On The Site</h3>
-            <span className="text-xs text-muted-foreground">({live?.sessions?.length || 0} active sessions in last 5 min)</span>
-          </div>
-        </div>
-        <div className="overflow-x-auto max-h-[320px] overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-slate-50 border-b border-border">
-              <tr>
-                <th className="text-left py-2.5 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Last Seen</th>
-                <th className="text-left py-2.5 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Location</th>
-                <th className="text-left py-2.5 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">IP</th>
-                <th className="text-left py-2.5 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Browser / OS</th>
-                <th className="text-left py-2.5 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Current Page</th>
-                <th className="text-right py-2.5 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Views</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(live?.sessions || []).length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12 text-muted-foreground">No active visitors right now.</td></tr>
-              ) : (live?.sessions || []).map((v: any, i: number) => {
-                const ua = parseUserAgent(v.userAgent || '');
-                const since = Math.max(0, Math.round((Date.now() - new Date(v.lastSeen).getTime()) / 1000));
-                return (
-                  <tr key={i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                    <td className="py-2.5 px-4 whitespace-nowrap text-xs">
-                      <span className="inline-flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        {since < 60 ? `${since}s ago` : `${Math.round(since / 60)}m ago`}
-                      </span>
-                    </td>
-                    <td className="py-2.5 px-4 text-xs">{[v.city, v.country].filter(Boolean).join(', ') || '—'}</td>
-                    <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground">{v.ipAddress || '—'}</td>
-                    <td className="py-2.5 px-4 text-xs">
-                      <div className="font-medium">{ua.browser}</div>
-                      <div className="text-muted-foreground">{ua.os} · {ua.device}</div>
-                    </td>
-                    <td className="py-2.5 px-4 text-xs font-mono text-[#1e3a5f] truncate max-w-[260px]">{v.lastPath || '—'}</td>
-                    <td className="py-2.5 px-4 text-right text-xs font-semibold">{v.pageViews}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Hourly chart + Top lists */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* Hourly */}
-        <div className="bg-white rounded-2xl border border-border p-5 lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <Clock size={15} className="text-indigo-600" />
-              <h3 className="font-semibold text-sm">Page Views — Last 24 Hours</h3>
-            </div>
-            <span className="text-xs text-muted-foreground">{(stats?.hourly || []).reduce((sum: number, h: any) => sum + h.views, 0)} total views</span>
-          </div>
-          {(stats?.hourly || []).length === 0 ? (
-            <div className="h-40 flex items-center justify-center text-muted-foreground text-sm">No data yet</div>
-          ) : (
-            <div className="flex items-end gap-1 h-40">
-              {(stats?.hourly || []).map((h: any, i: number) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1 group" title={`${h.hour}: ${h.views} views`}>
-                  <div className="w-full bg-indigo-100 hover:bg-indigo-200 rounded-t transition-colors relative" style={{ height: `${Math.max(2, (h.views / maxHourly) * 100)}%` }}>
-                    <span className="absolute -top-5 left-1/2 -translate-x-1/2 text-[10px] font-semibold text-indigo-700 opacity-0 group-hover:opacity-100">{h.views}</span>
-                  </div>
-                  <div className="text-[9px] text-muted-foreground">{h.hour.slice(11, 13)}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Top countries */}
-        <div className="bg-white rounded-2xl border border-border p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Globe size={15} className="text-amber-600" />
-            <h3 className="font-semibold text-sm">Top Countries (7d)</h3>
-          </div>
-          <div className="space-y-2">
-            {(stats?.topCountries || []).length === 0 ? <div className="text-xs text-muted-foreground py-4">No data yet</div> :
-              (stats?.topCountries || []).map((c: any, i: number) => {
-                const max = stats?.topCountries?.[0]?.views || 1;
-                return (
-                  <div key={i}>
-                    <div className="flex justify-between text-xs mb-0.5"><span className="font-medium">{c.country}</span><span className="text-muted-foreground">{c.views}</span></div>
-                    <div className="h-1.5 bg-amber-50 rounded-full overflow-hidden"><div className="h-full bg-amber-400 rounded-full" style={{ width: `${(c.views / max) * 100}%` }}></div></div>
-                  </div>
-                );
-              })}
-          </div>
-        </div>
-      </div>
-
-      {/* Top pages + referrers */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl border border-border p-5">
-          <div className="flex items-center gap-2 mb-3"><FileText size={15} className="text-rose-600" /><h3 className="font-semibold text-sm">Top Pages (7d)</h3></div>
-          <div className="space-y-1.5">
-            {(stats?.topPages || []).length === 0 ? <div className="text-xs text-muted-foreground py-4">No data yet</div> :
-              (stats?.topPages || []).map((p: any, i: number) => (
-                <div key={i} className="flex justify-between items-center text-xs py-1.5 border-b border-border/40 last:border-0">
-                  <code className="font-mono text-[#1e3a5f] truncate max-w-[400px]">{p.path}</code>
-                  <span className="font-semibold text-rose-600 shrink-0 ml-3">{p.views}</span>
-                </div>
-              ))}
-          </div>
-        </div>
-        <div className="bg-white rounded-2xl border border-border p-5">
-          <div className="flex items-center gap-2 mb-3"><ExternalLink size={15} className="text-blue-600" /><h3 className="font-semibold text-sm">Top Referrers (7d)</h3></div>
-          <div className="space-y-1.5">
-            {(stats?.topReferrers || []).length === 0 ? <div className="text-xs text-muted-foreground py-4">No data yet</div> :
-              (stats?.topReferrers || []).map((r: any, i: number) => (
-                <div key={i} className="flex justify-between items-center text-xs py-1.5 border-b border-border/40 last:border-0">
-                  <span className="truncate max-w-[400px] text-[#1e3a5f]">{r.referrer}</span>
-                  <span className="font-semibold text-blue-600 shrink-0 ml-3">{r.views}</span>
-                </div>
-              ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Recent visits */}
-      <div className="bg-white rounded-2xl border border-border overflow-hidden">
-        <div className="px-5 py-4 border-b border-border flex items-center justify-between">
-          <div className="flex items-center gap-2"><Monitor size={15} className="text-slate-600" /><h3 className="font-semibold text-sm">Recent Page Views</h3>
-            <span className="text-xs text-muted-foreground">(last {(recent || []).length})</span>
-          </div>
-        </div>
-        <div className="overflow-x-auto max-h-[480px] overflow-y-auto">
-          <table className="w-full text-sm">
-            <thead className="sticky top-0 bg-slate-50 border-b border-border">
-              <tr>
-                <th className="text-left py-2.5 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Time</th>
-                <th className="text-left py-2.5 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Page</th>
-                <th className="text-left py-2.5 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Location</th>
-                <th className="text-left py-2.5 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">IP</th>
-                <th className="text-left py-2.5 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Browser / OS</th>
-                <th className="text-left py-2.5 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Referrer</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentLoading ? (
-                <tr><td colSpan={6} className="text-center py-8 text-muted-foreground">Loading…</td></tr>
-              ) : (recent || []).length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12 text-muted-foreground">No page views recorded yet. They'll appear here as visitors browse the site.</td></tr>
-              ) : (recent || []).map((r: any, i: number) => {
-                const ua = parseUserAgent(r.userAgent || '');
-                return (
-                  <tr key={r.id || i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
-                    <td className="py-2.5 px-4 whitespace-nowrap text-xs text-muted-foreground">{new Date(r.viewedAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                    <td className="py-2.5 px-4 font-mono text-xs text-[#1e3a5f] truncate max-w-[240px]">{r.path || '—'}</td>
-                    <td className="py-2.5 px-4 text-xs">{[r.city, r.country].filter(Boolean).join(', ') || '—'}</td>
-                    <td className="py-2.5 px-4 font-mono text-xs text-muted-foreground">{r.ipAddress || '—'}</td>
-                    <td className="py-2.5 px-4 text-xs"><div className="font-medium">{ua.browser}</div><div className="text-muted-foreground">{ua.os} · {ua.device}</div></td>
-                    <td className="py-2.5 px-4 text-xs text-muted-foreground truncate max-w-[200px]">{r.referrer || 'Direct'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function AdminDashboard() {
   useSEO({ title: 'Admin Dashboard', noIndex: true });
   const utils = trpc.useUtils();
@@ -3553,7 +3309,6 @@ export default function AdminDashboard() {
     { value: 'testimonials', label: 'Reviews' }, { value: 'destinations', label: 'Destinations' },
     { value: 'loyalty-admin', label: 'Loyalty Programme' }, { value: 'gdpr', label: 'GDPR Requests' }, { value: 'audit', label: 'Audit Log' },
     { value: 'itinerary-logs', label: 'Itinerary Tool Logs' },
-    { value: 'analytics', label: 'Site Analytics' },
     { value: 'settings', label: 'Settings' },
     { value: 'command', label: 'Command Centre' },
     { value: 'passports', label: 'Passport Manager' },
@@ -3600,6 +3355,7 @@ export default function AdminDashboard() {
         { value: 'faq', label: 'FAQ', icon: HelpCircle },
         { value: 'testimonials', label: 'Reviews', icon: Star },
         { value: 'destinations', label: 'Destinations', icon: Globe },
+        { value: 'destination-guides', label: 'Destination Guides', icon: Globe },
         { value: 'community', label: 'Community & Impact', icon: Heart },
         { value: 'notifications', label: 'Notifications', icon: Bell },
       ]
@@ -3614,7 +3370,6 @@ export default function AdminDashboard() {
         { value: 'gdpr', label: 'GDPR', icon: Lock },
         { value: 'audit', label: 'Audit Log', icon: BarChart3 },
         { value: 'itinerary-logs', label: 'Itinerary Logs', icon: Monitor },
-        { value: 'analytics', label: 'Site Analytics', icon: BarChart3 },
         { value: 'settings', label: 'Settings', icon: RefreshCw },
       ]
     },
@@ -4799,11 +4554,6 @@ export default function AdminDashboard() {
             <GdprAdminSection />
           </TabsContent>
 
-          {/* SITE ANALYTICS */}
-          <TabsContent value="analytics">
-            <AdminAnalyticsTab />
-          </TabsContent>
-
           {/* V6: SETTINGS */}
           <TabsContent value="settings">
             <div className="bg-white rounded-2xl border border-border p-6 space-y-6">
@@ -4862,6 +4612,10 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
+
+          <TabsContent value="destination-guides">
+            <AdminDestinationGuides />
+          </TabsContent>
 
           <TabsContent value="community">
             <AdminCommunityManager />
