@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Helmet } from "react-helmet";
+import { useSEO } from "@/hooks/useSEO";
 
 const CONTINENTS = ["All", "Europe", "Asia", "Africa", "Americas", "Middle East", "Oceania"];
 
@@ -42,15 +42,13 @@ export default function DestinationsPage() {
   const featured = filtered.filter((g: any) => g.featured);
   const regular = filtered.filter((g: any) => !g.featured);
 
+  useSEO({
+    title: "Destination Guides — CB Travel | Luxury Travel Inspiration",
+    description: "Explore our curated luxury destination guides. From European escapes to far-flung adventures, discover the world through the eyes of CB Travel.",
+  });
+
   return (
     <>
-      <Helmet>
-        <title>Destination Guides — CB Travel | Luxury Travel Inspiration</title>
-        <meta name="description" content="Explore our curated luxury destination guides. From European escapes to far-flung adventures, discover the world through the eyes of CB Travel." />
-        <meta property="og:title" content="Destination Guides — CB Travel" />
-        <meta property="og:description" content="Curated luxury travel guides by CB Travel." />
-      </Helmet>
-
       {/* Hero */}
       <section className="relative min-h-[55vh] flex items-center justify-center overflow-hidden bg-[#0b2240]">
         <div className="absolute inset-0 bg-gradient-to-b from-[#0b2240] via-[#0b2240]/90 to-[#0b2240]/80" />

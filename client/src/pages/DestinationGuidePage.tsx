@@ -1,7 +1,16 @@
 import { useState } from "react";
 import { useParams, Link } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { Helmet } from "react-helmet";
+import { useSEO } from "@/hooks/useSEO";
+
+function GuidePageSEO({ guide }: { guide: any }) {
+  useSEO({
+    title: `${guide.destination} Travel Guide — CB Travel`,
+    description: guide.tagline || `Luxury travel guide to ${guide.destination} by CB Travel.`,
+    ogImage: guide.heroImageBase64 || undefined,
+  });
+  return null;
+}
 
 const ATTR_TYPE_ICON: Record<string, string> = {
   Landmark: "🏛", Nature: "🌿", Culture: "🎭", Experience: "✨",
@@ -36,13 +45,7 @@ export default function DestinationGuidePage() {
 
   return (
     <>
-      <Helmet>
-        <title>{guide.destination} Travel Guide — CB Travel</title>
-        <meta name="description" content={guide.tagline || `Luxury travel guide to ${guide.destination} by CB Travel.`} />
-        <meta property="og:title" content={`${guide.destination} — CB Travel Luxury Guide`} />
-        <meta property="og:description" content={guide.tagline || ""} />
-        {guide.heroImageBase64 && <meta property="og:image" content={guide.heroImageBase64} />}
-      </Helmet>
+      <GuidePageSEO guide={guide} />
 
       {/* Hero */}
       <section className="relative h-[70vh] min-h-[500px] flex items-end overflow-hidden">
