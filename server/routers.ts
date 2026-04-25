@@ -2763,45 +2763,48 @@ ${faqContext}`;
       aiGenerated: z.boolean().optional(),
     })).mutation(async ({ input, ctx }) => {
       const db = await (await import('./db')).getDb();
-      const { sql } = await import('drizzle-orm');
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-      const slug = input.destination.toLowerCase().replace(/[^a-z0-9\\s-]/g, '').replace(/\\s+/g, '-').replace(/-+/g, '-').trim();
-
-      // Query the actual columns present in the table so the INSERT never
-      // references a column that doesn't exist yet.
-      const { logDestinationGuidesColumns } = await import('./db');
-      const existingColumns = await logDestinationGuidesColumns();
-
-      // Full set of candidate columns with their values.
-      const allCandidates: Array<{ col: string; value: unknown; raw?: boolean }> = [
-        { col: 'slug',             value: slug },
-        { col: 'destination',      value: input.destination },
-        { col: 'country',          value: input.country    ?? null },
-        { col: 'region',           value: input.region     ?? null },
-        { col: 'continent',        value: input.continent  ?? null },
-        { col: 'heroImageBase64',  value: input.heroImageBase64  ?? null },
-        { col: 'heroImageMimeType',value: input.heroImageMimeType ?? null },
-        { col: 'featured',         value: input.featured   ?? false },
-        { col: 'published',        value: input.published  ?? false },
-        { col: 'createdAt',        value: 'NOW()', raw: true },
-        { col: 'updatedAt',        value: 'NOW()', raw: true },
-      ];
-
-      // Filter to only columns that actually exist in the live table.
-      const candidates = allCandidates.filter(c => existingColumns.includes(c.col));
-
-      if (!candidates.length) {
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'destinationGuides table has no recognised columns — check server logs for actual schema.' });
-      }
-
-      const colList  = candidates.map(c => `\`${c.col}\``).join(', ');
-      const valParts = candidates.map(c => (c.raw ? c.value as string : '?')).join(', ');
-      const bindings = candidates.filter(c => !c.raw).map(c => c.value);
+      const slug = input.destination.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
 
       const pool = (db as any)._.client as import('mysql2/promise').Pool;
       await pool.execute(
-        `INSERT INTO destinationGuides (${colList}) VALUES (${valParts})`,
-        bindings
+        `INSERT INTO destinationGuides (
+          slug, destination, country, region, continent,
+          tagline, overview, bestTimeToVisit, climate,
+          currency, language, timezone, flightTimeFromUK,
+          attractions, dining, accommodation, insiderTips,
+          gettingThere, visaInfo, curatedItinerary, tags,
+          heroImageBase64, heroImageMimeType,
+          featured, published, aiGenerated
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          slug,
+          input.destination,
+          input.country          ?? null,
+          input.region           ?? null,
+          input.continent        ?? null,
+          input.tagline          ?? null,
+          input.overview         ?? null,
+          input.bestTimeToVisit  ?? null,
+          input.climate          ?? null,
+          input.currency         ?? null,
+          input.language         ?? null,
+          input.timezone         ?? null,
+          input.flightTimeFromUK ?? null,
+          input.attractions      ? JSON.stringify(input.attractions)      : null,
+          input.dining           ? JSON.stringify(input.dining)           : null,
+          input.accommodation    ? JSON.stringify(input.accommodation)    : null,
+          input.insiderTips      ? JSON.stringify(input.insiderTips)      : null,
+          input.gettingThere     ?? null,
+          input.visaInfo         ?? null,
+          input.curatedItinerary ? JSON.stringify(input.curatedItinerary) : null,
+          input.tags             ? JSON.stringify(input.tags)             : null,
+          input.heroImageBase64  ?? null,
+          input.heroImageMimeType ?? null,
+          input.featured         ?? false,
+          input.published        ?? false,
+          input.aiGenerated      ?? false,
+        ]
       );
       return { ok: true };
     }),
