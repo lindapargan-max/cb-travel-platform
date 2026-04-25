@@ -317,7 +317,7 @@ export default function CommunityPage() {
                       {/* Amount badge */}
                       {amount && (
                         <div className="inline-flex items-center gap-1.5 bg-[#d4af37]/10 border border-[#d4af37]/30 text-[#8a6e1a] text-[11px] font-bold px-3 py-1.5 rounded-full mb-3">
-                          ✦ Given Back: £{amount}
+                          ✦ Given Back: {amount}
                         </div>
                       )}
 
