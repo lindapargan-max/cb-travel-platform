@@ -2702,6 +2702,7 @@ ${faqContext}`;
   guides: router({
     getAll: publicProcedure.query(async () => {
       const db = await (await import('./db')).getDb();
+      const { sql } = await import('drizzle-orm');
       if (!db) return [];
       const rows = (await db.execute(sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, climate, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides WHERE published = true ORDER BY featured DESC, destination ASC`) as any)[0] as any[];
       return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
@@ -2709,6 +2710,7 @@ ${faqContext}`;
 
     getAllAdmin: adminProcedure.query(async () => {
       const db = await (await import('./db')).getDb();
+      const { sql } = await import('drizzle-orm');
       if (!db) return [];
       const rows = (await db.execute(sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides ORDER BY createdAt DESC`) as any)[0] as any[];
       return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
@@ -2716,6 +2718,7 @@ ${faqContext}`;
 
     getBySlug: publicProcedure.input(z.object({ slug: z.string() })).query(async ({ input }) => {
       const db = await (await import('./db')).getDb();
+      const { sql } = await import('drizzle-orm');
       if (!db) return null;
       const rows = (await db.execute(sql`SELECT * FROM destinationGuides WHERE slug = ${input.slug} AND published = true LIMIT 1`) as any)[0] as any[];
       if (!rows.length) return null;
@@ -2760,6 +2763,7 @@ ${faqContext}`;
       aiGenerated: z.boolean().optional(),
     })).mutation(async ({ input, ctx }) => {
       const db = await (await import('./db')).getDb();
+      const { sql } = await import('drizzle-orm');
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
       const slug = input.destination.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
       await db.execute(sql`
@@ -2832,6 +2836,7 @@ ${faqContext}`;
 
     delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
       const db = await (await import('./db')).getDb();
+      const { sql } = await import('drizzle-orm');
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
       await db.execute(sql`DELETE FROM destinationGuides WHERE id = ${input.id}`);
       return { ok: true };
