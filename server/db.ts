@@ -2690,6 +2690,12 @@ export async function ensureDestinationGuidesTable() {
 export async function ensureDestinationGuideColumns() {
   const db = await getDb();
   if (!db) return;
+
+  // Use the underlying mysql2 pool directly so raw DDL strings are executed
+  // without going through Drizzle's sql template tag, which does not reliably
+  // handle ALTER TABLE statements when composed via sql.raw().
+  const pool = (db as any)._.client as import("mysql2/promise").Pool;
+
   const columns: Array<{ name: string; ddl: string }> = [
     { name: "tagline",          ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS tagline TEXT" },
     { name: "overview",         ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS overview MEDIUMTEXT" },
@@ -2711,12 +2717,18 @@ export async function ensureDestinationGuideColumns() {
     { name: "aiGenerated",      ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS aiGenerated BOOLEAN NOT NULL DEFAULT false" },
     { name: "createdBy",        ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS createdBy INT" },
   ];
+
   for (const col of columns) {
     try {
-      await db.execute(sql`${sql.raw(col.ddl)}`);
+      await pool.execute(col.ddl);
+      console.log(`[DB] ensureDestinationGuideColumns: added column ${col.name}`);
     } catch (e: any) {
-      const msg = e?.message || String(e);
-      if (!msg.includes("Duplicate column") && !msg.includes("ER_DUP_FIELDNAME") && !msg.includes("already exists")) {
+      const msg: string = e?.message || String(e);
+      const code: string = e?.code || "";
+      // ER_DUP_FIELDNAME = column already exists — safe to ignore
+      if (code === "ER_DUP_FIELDNAME" || msg.includes("Duplicate column") || msg.includes("already exists")) {
+        // column already present, nothing to do
+      } else {
         console.warn(`[DB] ensureDestinationGuideColumns warning (${col.name}):`, msg);
       }
     }
