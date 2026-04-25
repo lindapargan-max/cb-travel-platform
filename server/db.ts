@@ -2645,12 +2645,11 @@ export async function ensureDestinationGuidesTable() {
   try {
     const db = await getDb();
     if (!db) return;
-    const pool = (db as any)._.client as import("mysql2/promise").Pool;
     // Drop the broken/incomplete table and recreate it with all columns defined
     // in the schema. This table holds only AI-generated guide content and has no
     // critical user data, so a clean rebuild is safe.
-    await pool.execute(`DROP TABLE IF EXISTS destinationGuides`);
-    await pool.execute(`
+    await db.execute(sql.raw(`DROP TABLE IF EXISTS destinationGuides`));
+    await db.execute(sql.raw(`
       CREATE TABLE IF NOT EXISTS destinationGuides (
         id INT AUTO_INCREMENT PRIMARY KEY,
         slug VARCHAR(255) NOT NULL UNIQUE,
@@ -2685,7 +2684,7 @@ export async function ensureDestinationGuidesTable() {
         updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
         UNIQUE KEY slugIdx (slug)
       )
-    `);
+    `));
     console.log('[DB] ensureDestinationGuidesTable: table recreated with full schema');
   } catch (e) {
     console.error('[DB] ensureDestinationGuidesTable error:', e);
@@ -2697,11 +2696,6 @@ export async function ensureDestinationGuidesTable() {
 export async function ensureDestinationGuideColumns() {
   const db = await getDb();
   if (!db) return;
-
-  // Use the underlying mysql2 pool directly so raw DDL strings are executed
-  // without going through Drizzle's sql template tag, which does not reliably
-  // handle ALTER TABLE statements when composed via sql.raw().
-  const pool = (db as any)._.client as import("mysql2/promise").Pool;
 
   const columns: Array<{ name: string; ddl: string }> = [
     { name: "tagline",          ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS tagline TEXT" },
@@ -2727,7 +2721,7 @@ export async function ensureDestinationGuideColumns() {
 
   for (const col of columns) {
     try {
-      await pool.execute(col.ddl);
+      await db.execute(sql.raw(col.ddl));
       console.log(`[DB] ensureDestinationGuideColumns: added column ${col.name}`);
     } catch (e: any) {
       const msg: string = e?.message || String(e);
