@@ -2644,11 +2644,10 @@ export async function ensureNotificationsTable() {
 export async function ensureDestinationGuidesTable() {
   try {
     const db = await getDb();
-    if (!db) return;
-    // Drop the broken/incomplete table and recreate it with all columns defined
-    // in the schema. This table holds only AI-generated guide content and has no
-    // critical user data, so a clean rebuild is safe.
-    await db.execute(sql.raw(`DROP TABLE IF EXISTS destinationGuides`));
+    if (!db) {
+      console.warn('[DB] ensureDestinationGuidesTable: no database connection, skipping');
+      return;
+    }
     await db.execute(sql.raw(`
       CREATE TABLE IF NOT EXISTS destinationGuides (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -2685,7 +2684,7 @@ export async function ensureDestinationGuidesTable() {
         UNIQUE KEY slugIdx (slug)
       )
     `));
-    console.log('[DB] ensureDestinationGuidesTable: table recreated with full schema');
+    console.log('[DB] ensureDestinationGuidesTable: table ready');
   } catch (e) {
     console.error('[DB] ensureDestinationGuidesTable error:', e);
   }
