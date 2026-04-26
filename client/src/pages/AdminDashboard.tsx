@@ -3245,8 +3245,15 @@ function AdminDashboard() {
             <div>
               <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Content & Marketing</h3>
               <div className="space-y-1">
-                {['destinations', 'destination-guides', 'destination-spotlight', 'travel-hacks', 'faq', 'testimonials'].map(tab => (
-                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
+                {[
+                  { value: 'destinations', label: 'destinations' },
+                  { value: 'destination-guides', label: 'destination-guides' },
+                  { value: 'spotlight', label: 'Destination Spotlight' },
+                  { value: 'travel-hacks', label: 'travel-hacks' },
+                  { value: 'faq', label: 'faq' },
+                  { value: 'testimonials', label: 'testimonials' },
+                ].map(tab => (
+                  <NavButton key={tab.value} label={tab.label} value={tab.value} isActive={activeTab === tab.value} onClick={() => { setActiveTab(tab.value); setSidebarOpen(false); }} />
                 ))}
               </div>
             </div>
