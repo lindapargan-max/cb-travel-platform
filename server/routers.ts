@@ -3145,6 +3145,14 @@ Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 
     }),
   }),
 
+  // ─── V13: Admin Extensions ────────────────────────────────────────────────────
+  aiAssistant: aiAssistantRouter,
+  emailTemplates: emailTemplatesRouter,
+  bookingEmails: bookingEmailsRouter,
+  socialHub: socialHubRouter,
+  destinationSpotlight: destinationSpotlightRouter,
+  travelHacks: travelHacksRouter,
+
 });
 
 export type AppRouter = typeof appRouter;
