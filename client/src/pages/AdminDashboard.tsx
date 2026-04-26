@@ -3208,6 +3208,109 @@ function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("bookings");
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  // ── Data fetching ──────────────────────────────────────────────────────────
+  const utils = trpc.useUtils();
+
+  const { data: bookings, isLoading: bookingsLoading } = trpc.bookings.getAllAdmin.useQuery();
+  const { data: quotes, isLoading: quotesLoading } = trpc.quotes.getAll.useQuery();
+  const { data: deals, isLoading: dealsLoading } = trpc.deals.listAdmin.useQuery();
+  const { data: allUsers, isLoading: usersLoading } = trpc.admin.users.useQuery();
+  const { data: testimonials, isLoading: testimonialsLoading } = trpc.testimonials.getAllAdmin.useQuery();
+  const { data: subscribers } = trpc.newsletter.getSubscribers.useQuery();
+  const { data: promoCodes, isLoading: promoLoading } = trpc.promoCodes.list.useQuery();
+  const { data: faqItems, isLoading: faqLoading } = trpc.faq.listAdmin.useQuery();
+  const { data: intakeSubmissions, isLoading: intakeLoading } = trpc.intake.getAll.useQuery();
+  const { data: bookedDestinations, refetch: refetchDestinations } = trpc.destinations.list.useQuery();
+  const { data: allTickets, refetch: refetchTickets } = trpc.support.getAllTickets.useQuery();
+  const { data: campaigns, refetch: refetchCampaigns } = trpc.newsletter.getCampaigns.useQuery();
+  const { data: auditLogs } = trpc.audit.getLogs.useQuery();
+  const { data: itineraryLogs } = trpc.itinerary.getLogs.useQuery();
+  const { data: itineraryPasswordData } = trpc.itinerary.getPassword.useQuery();
+  const { data: allSettings, refetch: refetchSettings } = trpc.settings.getAll.useQuery();
+
+  // ── Mutations ──────────────────────────────────────────────────────────────
+  const updateQuoteStatus = trpc.quotes.updateStatus.useMutation({
+    onSuccess: () => utils.quotes.getAll.invalidate(),
+  });
+  const deleteDeal = trpc.deals.delete.useMutation({
+    onSuccess: () => utils.deals.listAdmin.invalidate(),
+  });
+  const disableUser = trpc.admin.disableUser.useMutation({
+    onSuccess: () => utils.admin.users.invalidate(),
+  });
+  const deleteUser = trpc.admin.deleteUser.useMutation({
+    onSuccess: () => utils.admin.users.invalidate(),
+  });
+  const approveTestimonial = trpc.testimonials.approve.useMutation({
+    onSuccess: () => utils.testimonials.getAllAdmin.invalidate(),
+  });
+  const deleteTestimonial = trpc.testimonials.delete.useMutation({
+    onSuccess: () => utils.testimonials.getAllAdmin.invalidate(),
+  });
+  const createPromo = trpc.promoCodes.create.useMutation({
+    onSuccess: () => utils.promoCodes.list.invalidate(),
+  });
+  const updatePromo = trpc.promoCodes.update.useMutation({
+    onSuccess: () => utils.promoCodes.list.invalidate(),
+  });
+  const deletePromo = trpc.promoCodes.delete.useMutation({
+    onSuccess: () => utils.promoCodes.list.invalidate(),
+  });
+  const deleteFaq = trpc.faq.delete.useMutation({
+    onSuccess: () => utils.faq.listAdmin.invalidate(),
+  });
+  const updateIntakeStatus = trpc.intake.updateStatus.useMutation({
+    onSuccess: () => utils.intake.getAll.invalidate(),
+  });
+  const updateDestMut = trpc.destinations.update.useMutation();
+  const deleteDestMut = trpc.destinations.delete.useMutation();
+  const deleteAllDestMut = trpc.destinations.deleteAll.useMutation({
+    onSuccess: () => refetchDestinations(),
+  });
+  const createDestMut = trpc.destinations.create.useMutation({
+    onSuccess: () => { refetchDestinations(); setShowAddDestModal(false); toast.success("Destination added!"); },
+  });
+  const fetchDestImageMut = trpc.destinations.fetchImage.useMutation({
+    onSuccess: (data: any) => {
+      const urls: string[] = Array.isArray(data) ? data : (data?.urls ?? (data?.url ? [data.url] : []));
+      if (urls.length > 0) {
+        setDestFetchedImages(urls);
+        setDestImageIndex(0);
+        setNewDestForm((p: any) => ({ ...p, imageUrl: urls[0], imageBase64: '', imageMimeType: '' }));
+      } else {
+        toast.error("No images found for that destination");
+      }
+    },
+  });
+  const createNoteMut = trpc.clientNotes.create.useMutation();
+  const createCampaignMut = trpc.newsletter.createCampaign.useMutation();
+  const sendCampaignMut = trpc.newsletter.sendCampaign.useMutation();
+  const setSettingMut = trpc.settings.set.useMutation();
+  const setItineraryPasswordMutation = trpc.itinerary.setPassword.useMutation({
+    onSuccess: () => toast.success("Password updated!"),
+  });
+
+  // ── Local state ────────────────────────────────────────────────────────────
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [bookingSearch, setBookingSearch] = useState("");
+  const [bookingStatusFilter, setBookingStatusFilter] = useState<"all"|"pending"|"confirmed"|"completed"|"cancelled">("all");
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
+  const [selectedIntake, setSelectedIntake] = useState<any>(null);
+  const [intakeAdminNotes, setIntakeAdminNotes] = useState("");
+  const [editingDest, setEditingDest] = useState<any>(null);
+  const [showAddDestModal, setShowAddDestModal] = useState(false);
+  const [newDestForm, setNewDestForm] = useState({ name: '', lastBooked: '', imageBase64: '', imageMimeType: '', imageUrl: '' });
+  const [destImageName, setDestImageName] = useState('');
+  const [destFetchedImages, setDestFetchedImages] = useState<string[]>([]);
+  const [destImageIndex, setDestImageIndex] = useState(0);
+  const [noteClientId, setNoteClientId] = useState('');
+  const [noteContent, setNoteContent] = useState('');
+  const [promoForm, setPromoForm] = useState({ code: '', description: '', discountAmount: '', expiresAt: '' });
+  const [campaignForm, setCampaignForm] = useState({ subject: '', htmlBody: '' });
+  const [auditSearch, setAuditSearch] = useState('');
+  const [itineraryPasswordEdit, setItineraryPasswordEdit] = useState('');
+  const [settingsForm, setSettingsForm] = useState<Record<string, string>>({});
+
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar Navigation */}
