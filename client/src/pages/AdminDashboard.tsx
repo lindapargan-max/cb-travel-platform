@@ -46,6 +46,7 @@ import AdminDestinationSpotlight from "@/components/admin/AdminDestinationSpotli
 import AdminTravelHacks from "@/components/admin/AdminTravelHacks";
 import { useSEO } from '@/hooks/useSEO';
 
+
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; className: string }> = {
     pending:   { label: "Pending",   className: "badge-pending" },
@@ -4685,3 +4686,1289 @@ export default function AdminDashboard() {
   );
 }
 
+function AdminDashboard() {
+  useSEO({ title: "Admin Dashboard" });
+  const [activeTab, setActiveTab] = useState("bookings");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+
+  return (
+    <div className="flex h-screen bg-background">
+      {/* Sidebar Navigation */}
+      <aside className={`${
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      } fixed lg:static left-0 top-0 bottom-0 w-64 bg-muted/40 border-r border-border overflow-y-auto transition-transform duration-300 z-40 lg:z-0`}>
+        <div className="p-4 space-y-4">
+          <div className="px-3 py-2 mb-4">
+            <h2 className="font-bold text-lg">Admin Panel</h2>
+          </div>
+          
+          {/* Navigation Sections */}
+          <div className="space-y-6">
+            {/* Core Operations */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Core Operations</h3>
+              <div className="space-y-1">
+                {['bookings', 'deals', 'quotes', 'quotes-manager'].map(tab => (
+                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Customer Management */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Customer Management</h3>
+              <div className="space-y-1">
+                {['accounts', 'intake', 'client-notes', 'subscribers'].map(tab => (
+                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Content & Community */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Content & Marketing</h3>
+              <div className="space-y-1">
+                {['destinations', 'destination-guides', 'destination-spotlight', 'travel-hacks', 'faq', 'testimonials'].map(tab => (
+                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Community & Social */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Community & Social</h3>
+              <div className="space-y-1">
+                {['community', 'social-hub', 'campaigns'].map(tab => (
+                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Communications */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Communications</h3>
+              <div className="space-y-1">
+                {['emails', 'booking-emails', 'notifications', 'support'].map(tab => (
+                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
+                ))}
+              </div>
+            </div>
+
+            {/* AI & Automation */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">AI & Automation</h3>
+              <div className="space-y-1">
+                {['ai-assistant', 'command'].map(tab => (
+                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
+                ))}
+              </div>
+            </div>
+
+            {/* Administration */}
+            <div>
+              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Administration</h3>
+              <div className="space-y-1">
+                {['loyalty-rules', 'loyalty-admin', 'promos', 'audit', 'itinerary-logs', 'gdpr', 'settings'].map(tab => (
+                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Mobile Overlay */}
+      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="border-b border-border bg-background/95 backdrop-blur p-4 lg:p-6 flex items-center justify-between">
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 hover:bg-muted rounded-lg">
+            <Menu className="w-5 h-5" />
+          </button>
+          <h1 className="text-2xl font-bold capitalize">{activeTab.replace('-', ' ')}</h1>
+          <Badge variant="outline" className="gap-2">
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            System Online
+          </Badge>
+        </div>
+
+        {/* Tab Content */}
+        <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+          <div className="max-w-7xl">
+<Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="hidden" />
+          <TabsContent value="bookings">
+            {/* Bookings mini stats */}
+            {bookings && bookings.length > 0 && (() => {
+              const totalVal = (bookings as any[]).reduce((s: number, b: any) => s + (parseFloat(b.totalPrice) || 0), 0);
+              const confirmedCount = (bookings as any[]).filter((b: any) => b.status === 'confirmed').length;
+              const pendingBCount = (bookings as any[]).filter((b: any) => b.status === 'pending').length;
+              return (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                  <div className="bg-white rounded-2xl border border-border p-4 shadow-sm">
+                    <p className="text-xs text-muted-foreground mb-1">Total Bookings</p>
+                    <p className="text-2xl font-bold text-foreground">{(bookings as any[]).length}</p>
+                  </div>
+                  <div className="bg-emerald-50 rounded-2xl border border-emerald-100 p-4 shadow-sm">
+                    <p className="text-xs text-emerald-700/70 mb-1">Confirmed</p>
+                    <p className="text-2xl font-bold text-emerald-800">{confirmedCount}</p>
+                  </div>
+                  <div className="bg-amber-50 rounded-2xl border border-amber-100 p-4 shadow-sm">
+                    <p className="text-xs text-amber-700/70 mb-1">Pending</p>
+                    <p className="text-2xl font-bold text-amber-800">{pendingBCount}</p>
+                  </div>
+                  <div className="bg-primary/5 rounded-2xl border border-primary/10 p-4 shadow-sm">
+                    <p className="text-xs text-primary/70 mb-1">Total Value</p>
+                    <p className="text-2xl font-bold text-primary">£{totalVal.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* Search + Filter bar */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-5">
+              <div className="relative flex-1">
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <input
+                  type="text"
+                  placeholder="Search bookings by reference, name, destination…"
+                  value={bookingSearch}
+                  onChange={e => setBookingSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-border bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50 transition-all placeholder:text-muted-foreground/60"
+                />
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {(['all', 'pending', 'confirmed', 'completed', 'cancelled'] as const).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setBookingStatusFilter(s)}
+                    className={`px-3 py-2 text-xs font-semibold rounded-xl border transition-all capitalize ${bookingStatusFilter === s ? 'bg-primary text-primary-foreground border-primary shadow-sm' : 'bg-white border-border text-muted-foreground hover:border-primary/30 hover:text-foreground'}`}
+                  >
+                    {s === 'all' ? 'All' : s.charAt(0).toUpperCase() + s.slice(1)}
+                  </button>
+                ))}
+              </div>
+              <AddBookingModal onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
+            </div>
+
+            {bookingsLoading ? (
+              <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-24 animate-pulse border border-border" />)}</div>
+            ) : (() => {
+              const filteredBookings = (bookings as any[] || []).filter((b: any) => {
+                const matchSearch = !bookingSearch ||
+                  b.bookingReference?.toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                  b.leadPassengerName?.toLowerCase().includes(bookingSearch.toLowerCase()) ||
+                  b.destination?.toLowerCase().includes(bookingSearch.toLowerCase());
+                const matchStatus = bookingStatusFilter === 'all' || b.status === bookingStatusFilter;
+                return matchSearch && matchStatus;
+              });
+
+              if (filteredBookings.length === 0) {
+                return (
+                  <div className="bg-white rounded-2xl border border-border p-12 text-center">
+                    <Package size={40} className="mx-auto text-muted-foreground/30 mb-3" />
+                    <p className="text-muted-foreground font-medium">{bookingSearch || bookingStatusFilter !== 'all' ? 'No bookings match your filters.' : 'No bookings yet.'}</p>
+                    {(bookingSearch || bookingStatusFilter !== 'all') && (
+                      <button onClick={() => { setBookingSearch(''); setBookingStatusFilter('all'); }} className="mt-3 text-xs text-primary hover:underline font-semibold">Clear filters</button>
+                    )}
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-3">
+                  {filteredBookings.map((b: any) => {
+                    const total = b.totalPrice ? parseFloat(b.totalPrice) : 0;
+                    const paid = b.amountPaid ? parseFloat(b.amountPaid) : 0;
+                    const outstanding = total - paid;
+                    const isFullyPaid = outstanding <= 0.01;
+                    return (
+                      <div
+                        key={b.id}
+                        className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden hover:shadow-md hover:border-primary/30 transition-all group cursor-pointer"
+                        onClick={() => setSelectedBooking(b)}
+                      >
+                        {/* Top row: reference, destination, status */}
+                        <div className="px-5 pt-4 pb-3 flex items-start justify-between gap-4">
+                          <div className="flex items-start gap-3 flex-1 min-w-0">
+                            <div className="w-10 h-10 rounded-xl bg-primary/8 flex items-center justify-center flex-shrink-0 group-hover:bg-primary/15 transition-colors">
+                              <Plane size={16} className="text-primary" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                                <span className="font-mono font-bold text-primary text-sm">{b.bookingReference || `#${b.id}`}</span>
+                                <StatusBadge status={b.status} />
+                                {!isFullyPaid && outstanding > 0 && (
+                                  <span className="text-xs bg-amber-50 text-amber-700 border border-amber-200 px-2 py-0.5 rounded-full font-semibold">
+                                    £{outstanding.toFixed(0)} outstanding
+                                  </span>
+                                )}
+                                <span className="text-xs text-muted-foreground ml-auto group-hover:text-primary transition-colors flex items-center gap-1 hidden sm:flex">View details <ArrowRight size={11} /></span>
+                              </div>
+                              <div className="flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                                <span className="flex items-center gap-1 font-medium text-foreground">{b.destination || 'No destination'}</span>
+                                {b.leadPassengerName && <span className="flex items-center gap-1"><User size={10} />{b.leadPassengerName}</span>}
+                                {b.departureDate && <span className="flex items-center gap-1"><Calendar size={10} />{b.departureDate}</span>}
+                              </div>
+                            </div>
+                          </div>
+                          {/* Price */}
+                          <div className="text-right flex-shrink-0">
+                            {total > 0 && <p className="font-bold text-foreground text-sm">£{total.toLocaleString()}</p>}
+                            {paid > 0 && <p className="text-xs text-muted-foreground">£{paid.toLocaleString()} paid</p>}
+                          </div>
+                          <AdminBookingGroupBadge bookingId={b.id} />
+                        </div>
+                        {/* Bottom row: date + actions */}
+                        <div className="px-5 pb-3 flex items-center justify-between border-t border-border/50 pt-2.5" onClick={e => e.stopPropagation()}>
+                          <p className="text-xs text-muted-foreground">
+                            {b.createdAt ? new Date(b.createdAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : ''}
+                          </p>
+                          <div className="flex items-center gap-1">
+                            <EditBookingModal booking={b} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
+                            <FlightHotelModal booking={b} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
+                            <UploadDocumentModal booking={b} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
+                            <BookingDocumentsModal booking={b} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
+                            <SendPostcardButton bookingId={b.id} booking={b} postcardSent={!!b.postcardSent} onSuccess={() => utils.bookings.getAllAdmin.invalidate()} />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </TabsContent>
+
+          {/* DEALS */}
+          <TabsContent value="deals">
+            <div className="flex items-center justify-between mb-5"><h2 className="font-serif text-xl font-semibold">Weekly Deals</h2><AddDealModal onSuccess={() => utils.deals.listAdmin.invalidate()} /></div>
+            {dealsLoading ? <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{[1,2,3,4].map(i => <div key={i} className="bg-white rounded-2xl h-32 animate-pulse border border-border" />)}</div> : deals && deals.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{deals.map((d: any) => (
+                <div key={d.id} className={`bg-white rounded-2xl border shadow-sm p-5 ${!d.isActive ? "opacity-60" : ""} border-border`}>
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1"><p className="font-semibold text-foreground truncate">{d.title}</p>{d.isFeatured && <span className="text-xs bg-yellow-50 text-yellow-700 px-2 py-0.5 rounded-full font-medium">Featured</span>}{!d.isActive && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Inactive</span>}</div>
+                      <p className="text-xs text-muted-foreground">{d.destination} · {d.category?.replace(/_/g, " ")}</p>
+                    </div>
+                    <div className="text-right ml-3 flex-shrink-0"><p className="font-bold text-primary">£{parseFloat(d.price).toFixed(0)}pp</p>{d.originalPrice && <p className="text-xs text-muted-foreground line-through">£{parseFloat(d.originalPrice).toFixed(0)}</p>}</div>
+                  </div>
+                  <p className="text-xs text-muted-foreground line-clamp-2 mb-3">{d.description}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="flex gap-1 text-xs text-muted-foreground">{d.duration && <span>{d.duration}</span>}{d.departureDate && <span>· {d.departureDate}</span>}</div>
+                    <Button variant="ghost" size="sm" className="rounded-lg gap-1 text-xs text-destructive hover:bg-destructive/5" onClick={() => { if (confirm("Delete this deal?")) deleteDeal.mutate(d.id); }}><Trash2 size={13} /> Delete</Button>
+                  </div>
+                </div>
+              ))}</div>
+            ) : <div className="bg-white rounded-2xl border border-border p-12 text-center"><Globe size={40} className="mx-auto text-muted-foreground/30 mb-3" /><p className="text-muted-foreground">No deals yet.</p></div>}
+          </TabsContent>
+
+          {/* QUOTES */}
+          <TabsContent value="quotes">
+            <div className="flex items-center justify-between mb-5"><h2 className="font-serif text-xl font-semibold">Quote Requests</h2><span className="text-sm text-muted-foreground">{quotes?.length || 0} total</span></div>
+            {quotesLoading ? <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-24 animate-pulse border border-border" />)}</div> : quotes && quotes.length > 0 ? (
+              <QuotesList quotes={quotes} updateQuoteStatus={updateQuoteStatus} />
+            ) : <div className="bg-white rounded-2xl border border-border p-12 text-center"><FileText size={40} className="mx-auto text-muted-foreground/30 mb-3" /><p className="text-muted-foreground">No quote requests yet.</p></div>}
+          </TabsContent>
+
+          {/* QUOTES MANAGER */}
+          <TabsContent value="quotes-manager">
+            <AdminQuotesManager />
+          </TabsContent>
+
+          {/* ACCOUNTS */}
+          <TabsContent value="accounts">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-serif text-xl font-semibold">User Accounts</h2>
+              <CreateUserModal onSuccess={() => utils.admin.users.invalidate()} />
+            </div>
+            {usersLoading ? (
+              <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-16 animate-pulse border border-border" />)}</div>
+            ) : allUsers && allUsers.length > 0 ? (
+              <div className="space-y-2">
+                {allUsers.map((u: any) => {
+                  const isExpanded = expandedUserId === u.id;
+                  const userBookings = (bookings || []).filter((b: any) =>
+                    b.clientId === u.id ||
+                    (b.leadPassengerEmail && b.leadPassengerEmail.toLowerCase() === (u.email || '').toLowerCase())
+                  );
+                  return (
+                    <div key={u.id} className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-all ${u.isDisabled ? "opacity-60" : "border-border"}`}>
+                      {/* Row header */}
+                      <div className="flex items-center justify-between px-5 py-4">
+                        <button
+                          className="flex items-center gap-3 min-w-0 flex-1 text-left"
+                          onClick={() => setExpandedUserId(isExpanded ? null : u.id)}
+                        >
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-semibold text-sm flex-shrink-0 ${u.role === "admin" ? "bg-primary" : "bg-slate-400"}`}>
+                            {(u.name || u.email || "?").charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-sm font-semibold text-foreground truncate">{u.name || "—"}</p>
+                              {u.role === "admin" && <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Admin</span>}
+                              {u.isDisabled && <span className="text-xs bg-red-50 text-red-600 px-2 py-0.5 rounded-full font-medium">Disabled</span>}
+                              {userBookings.length > 0 && <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{userBookings.length} booking{userBookings.length !== 1 ? "s" : ""}</span>}
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">{u.email}{u.phone ? ` · ${u.phone}` : ""}</p>
+                          </div>
+                          <span className="ml-2 text-muted-foreground shrink-0 text-xs">{isExpanded ? "▲" : "▼"}</span>
+                        </button>
+                        <div className="flex items-center gap-1 flex-shrink-0 ml-3" onClick={e => e.stopPropagation()}>
+                          <ChangePasswordModal user={u} onSuccess={() => utils.admin.users.invalidate()} />
+                          <SendSetPasswordLinkModal user={u} onSuccess={() => utils.admin.users.invalidate()} />
+                          <SendEmailModal recipient={u} />
+                          <Button variant="ghost" size="sm" className={`rounded-lg gap-1 text-xs ${u.isDisabled ? "text-green-600 hover:bg-green-50" : "text-orange-600 hover:bg-orange-50"}`} onClick={() => disableUser.mutate({ id: u.id, disabled: !u.isDisabled })}>{u.isDisabled ? <><UserCheck size={13} /> Enable</> : <><UserX size={13} /> Disable</>}</Button>
+                          <Button variant="ghost" size="sm" className="rounded-lg gap-1 text-xs text-destructive hover:bg-destructive/5" onClick={() => { if (confirm(`Delete account for ${u.name || u.email}? This cannot be undone.`)) deleteUser.mutate(u.id); }}><Trash2 size={13} /> Delete</Button>
+                        </div>
+                      </div>
+                      {/* Expanded profile panel */}
+                      {isExpanded && (
+                        <ClientProfilePanel
+                          user={u}
+                          userBookings={userBookings}
+                          onUpdate={() => utils.admin.users.invalidate()}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-border p-12 text-center">
+                <Users size={40} className="mx-auto text-muted-foreground/30 mb-3" />
+                <p className="text-muted-foreground">No accounts yet.</p>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* EMAILS */}
+          <TabsContent value="emails">
+            <div className="space-y-8">
+              <ComposeEmailSection allUsers={allUsers} />
+              <EmailLogsSection />
+            </div>
+          </TabsContent>
+
+
+          {/* FAQ */}
+          <TabsContent value="faq">
+            <div className="flex items-center justify-between mb-5"><h2 className="font-serif text-xl font-semibold">Frequently Asked Questions</h2><FaqItemModal onSuccess={() => utils.faq.listAdmin.invalidate()} /></div>
+            {faqLoading ? <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-20 animate-pulse border border-border" />)}</div> : faqItems && faqItems.length > 0 ? (
+              <div className="space-y-3">{faqItems.map((f: any) => (
+                <div key={f.id} className={`bg-white rounded-2xl border border-border shadow-sm p-5 ${!f.isActive ? "opacity-60" : ""}`}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1 flex-wrap"><span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">{f.category}</span>{!f.isActive && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Hidden</span>}<span className="text-xs text-muted-foreground">Order: {f.sortOrder}</span></div>
+                      <p className="font-semibold text-foreground text-sm mb-1">{f.question}</p>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{f.answer}</p>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <FaqItemModal item={f} onSuccess={() => utils.faq.listAdmin.invalidate()} />
+                      <Button variant="ghost" size="sm" className="rounded-lg gap-1 text-xs text-destructive hover:bg-destructive/5" onClick={() => { if (confirm("Delete this FAQ item?")) deleteFaq.mutate(f.id); }}><Trash2 size={13} /> Delete</Button>
+                    </div>
+                  </div>
+                </div>
+              ))}</div>
+            ) : <div className="bg-white rounded-2xl border border-border p-12 text-center"><HelpCircle size={40} className="mx-auto text-muted-foreground/30 mb-3" /><p className="text-muted-foreground">No FAQ items yet. Add your first question above.</p></div>}
+          </TabsContent>
+
+          {/* TESTIMONIALS */}
+          <TabsContent value="testimonials">
+            <div className="flex items-center justify-between mb-5"><h2 className="font-serif text-xl font-semibold">Client Reviews</h2><AddTestimonialModal onSuccess={() => utils.testimonials.getAllAdmin.invalidate()} /></div>
+            {testimonialsLoading ? <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{[1,2].map(i => <div key={i} className="bg-white rounded-2xl h-32 animate-pulse border border-border" />)}</div> : testimonials && testimonials.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">{testimonials.map((t: any) => (
+                <div key={t.id} className="bg-white rounded-2xl border border-border shadow-sm p-5">
+                  <div className="flex items-start justify-between mb-3">
+                    <div><p className="font-semibold text-foreground">{t.clientName}</p><p className="text-xs text-muted-foreground">{t.destination}</p></div>
+                    <div className="flex items-center gap-1">
+                      {!t.isApproved && <Button variant="ghost" size="sm" className="rounded-lg gap-1 text-xs text-green-600 hover:bg-green-50" onClick={() => approveTestimonial.mutate(t.id)}><CheckCircle2 size={13} /> Approve</Button>}
+                      <Button variant="ghost" size="sm" className="rounded-lg gap-1 text-xs text-destructive hover:bg-destructive/5" onClick={() => { if (confirm("Delete this review?")) deleteTestimonial.mutate(t.id); }}><Trash2 size={13} /> Delete</Button>
+                    </div>
+                  </div>
+                  <div className="flex gap-0.5 mb-2">{[1,2,3,4,5].map(s => <Star key={s} size={12} className={s <= t.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-200 fill-gray-200"} />)}</div>
+                  <p className="text-sm font-medium text-foreground mb-1">"{t.title}"</p>
+                  <p className="text-xs text-muted-foreground line-clamp-2">{t.content}</p>
+                  {!t.isApproved && <span className="inline-flex items-center gap-1 mt-2 text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full"><AlertCircle size={11} /> Pending approval</span>}
+                </div>
+              ))}</div>
+            ) : <div className="bg-white rounded-2xl border border-border p-12 text-center"><Star size={40} className="mx-auto text-muted-foreground/30 mb-3" /><p className="text-muted-foreground">No testimonials yet.</p></div>}
+          </TabsContent>
+
+          {/* SUBSCRIBERS */}
+          <TabsContent value="subscribers">
+            <div className="flex items-center justify-between mb-5"><h2 className="font-serif text-xl font-semibold">Newsletter Subscribers</h2><span className="text-sm text-muted-foreground">{subscribers?.length || 0} total</span></div>
+            {subscribers && subscribers.length > 0 ? (
+              <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+                <div className="divide-y divide-border">{subscribers.map((s: any) => (
+                  <div key={s.id} className="flex items-center justify-between px-5 py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-primary/8 rounded-full flex items-center justify-center text-primary font-semibold text-xs">{(s.name || s.email).charAt(0).toUpperCase()}</div>
+                      <div>{s.name && <p className="text-sm font-medium text-foreground">{s.name}</p>}<p className="text-xs text-muted-foreground">{s.email}</p></div>
+                    </div>
+                    <span className="text-xs text-muted-foreground">{new Date(s.createdAt).toLocaleDateString("en-GB")}</span>
+                  </div>
+                ))}</div>
+              </div>
+            ) : <div className="bg-white rounded-2xl border border-border p-12 text-center"><Mail size={40} className="mx-auto text-muted-foreground/30 mb-3" /><p className="text-muted-foreground">No subscribers yet.</p></div>}
+          </TabsContent>
+          {/* PROMO CODES */}
+          <TabsContent value="promos">
+            <div className="flex items-center justify-between mb-5"><h2 className="font-serif text-xl font-semibold">Promotion Codes</h2><span className="text-sm text-muted-foreground">{promoCodes?.length || 0} codes</span></div>
+            <div className="bg-white rounded-2xl border border-border shadow-sm p-5 mb-5 space-y-4">
+              <p className="font-semibold text-sm">Create New Promo Code</p>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="space-y-1.5 col-span-2 md:col-span-1"><Label>Code *</Label><Input placeholder="SUMMER50" value={promoForm.code} onChange={e => setPromoForm({...promoForm, code: e.target.value.toUpperCase()})} className="rounded-xl font-mono uppercase" maxLength={30} /></div>
+                <div className="space-y-1.5"><Label>Description</Label><Input placeholder="Summer sale" value={promoForm.description} onChange={e => setPromoForm({...promoForm, description: e.target.value})} className="rounded-xl" /></div>
+                <div className="space-y-1.5"><Label>Discount (£) *</Label><Input type="number" min="0.01" step="0.01" placeholder="50.00" value={promoForm.discountAmount} onChange={e => setPromoForm({...promoForm, discountAmount: e.target.value})} className="rounded-xl" /></div>
+                <div className="space-y-1.5"><Label>Expires (optional)</Label><Input type="date" value={promoForm.expiresAt} onChange={e => setPromoForm({...promoForm, expiresAt: e.target.value})} className="rounded-xl" /></div>
+              </div>
+              <Button onClick={() => { if (!promoForm.code || !promoForm.discountAmount) { toast.error("Code and discount amount are required."); return; } createPromo.mutate({ code: promoForm.code, description: promoForm.description || undefined, discountAmount: parseFloat(promoForm.discountAmount), expiresAt: promoForm.expiresAt || undefined }); }} className="rounded-xl btn-gold border-0 text-foreground gap-2" disabled={createPromo.isPending}><Tag size={14} /> {createPromo.isPending ? "Creating..." : "Create Code"}</Button>
+            </div>
+            {promoLoading ? <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-16 animate-pulse border border-border" />)}</div> : promoCodes && promoCodes.length > 0 ? (
+              <div className="bg-white rounded-2xl border border-border shadow-sm overflow-hidden">
+                <div className="divide-y divide-border">{promoCodes.map((p: any) => (
+                  <div key={p.id} className={`flex items-center justify-between px-5 py-4 ${!p.isActive ? "opacity-50" : ""}`}>
+                    <div className="flex items-center gap-4 min-w-0">
+                      <div className="w-9 h-9 bg-primary/8 rounded-xl flex items-center justify-center flex-shrink-0"><Percent size={16} className="text-primary" /></div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono font-bold text-primary text-sm">{p.code}</span>
+                          <span className="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-semibold">£{parseFloat(p.discountAmount).toFixed(0)} off</span>
+                          {!p.isActive && <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">Inactive</span>}
+                          {p.usedAt && <span className="text-xs bg-orange-50 text-orange-600 px-2 py-0.5 rounded-full">Used</span>}
+                          {p.codeType === "loyalty" && <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">Loyalty</span>}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{p.description || "No description"}{p.expiresAt && ` · Expires ${new Date(p.expiresAt).toLocaleDateString("en-GB")}`}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0 ml-3">
+                      <Button variant="ghost" size="sm" className={`rounded-lg gap-1 text-xs ${p.isActive ? "text-orange-600 hover:bg-orange-50" : "text-green-600 hover:bg-green-50"}`} onClick={() => updatePromo.mutate({ id: p.id, isActive: !p.isActive })}>{p.isActive ? "Disable" : "Enable"}</Button>
+                      <Button variant="ghost" size="sm" className="rounded-lg gap-1 text-xs text-destructive hover:bg-destructive/5" onClick={() => { if (confirm(`Delete promo code ${p.code}?`)) deletePromo.mutate(p.id); }}><Trash2 size={13} /> Delete</Button>
+                    </div>
+                  </div>
+                ))}</div>
+              </div>
+            ) : <div className="bg-white rounded-2xl border border-border p-12 text-center"><Tag size={40} className="mx-auto text-muted-foreground/30 mb-3" /><p className="text-muted-foreground">No promo codes yet. Create your first one above.</p></div>}
+          </TabsContent>
+
+          {/* INTAKE FORMS */}
+          <TabsContent value="intake">
+            <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+              <h2 className="font-serif text-xl font-semibold">Booking Intake Forms</h2>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" className="rounded-xl gap-2 text-xs" onClick={() => {
+                  const origin = window.location.origin;
+                  navigator.clipboard.writeText(origin + "/booking-intake");
+                  toast.success("Intake form link copied!");
+                }}>
+                  <Copy size={13} /> Copy Intake Form Link
+                </Button>
+                {intakeSubmissions && intakeSubmissions.length > 0 && (
+                  <Button variant="outline" size="sm" className="rounded-xl gap-2 text-xs" onClick={() => {
+                    const headers = ["Ref","Name","Email","Phone","Destination","Departure","Return","Adults","Children","Status","Submitted"];
+                    const rows = intakeSubmissions.map((s: any) => [
+                      s.submissionRef, `${s.leadFirstName} ${s.leadLastName}`, s.email, s.phone,
+                      s.destination, s.departureDate || "", s.returnDate || "",
+                      s.numberOfAdults, s.numberOfChildren, s.status,
+                      new Date(s.createdAt).toLocaleDateString("en-GB")
+                    ]);
+                    const csv = [headers, ...rows].map((r: any[]) => r.map((c: any) => `"${c}"`).join(",")).join("\n");
+                    const blob = new Blob([csv], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url; a.download = "booking-intake-submissions.csv"; a.click();
+                  }}>
+                    <Download size={13} /> Export CSV
+                  </Button>
+                )}
+              </div>
+            </div>
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4 mb-6">
+              {[
+                { label: "Total Submissions", value: intakeSubmissions?.length || 0, color: "text-primary", bg: "bg-primary/8" },
+                { label: "New (Unreviewed)", value: intakeSubmissions?.filter((s:any)=>s.status==="new").length || 0, color: "text-red-600", bg: "bg-red-50" },
+                { label: "Converted", value: intakeSubmissions?.filter((s:any)=>s.status==="converted").length || 0, color: "text-green-600", bg: "bg-green-50" },
+              ].map(stat => (
+                <div key={stat.label} className="bg-white rounded-2xl p-4 border border-border shadow-sm">
+                  <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                  <p className={`text-2xl font-bold ${stat.color}`}>{stat.value}</p>
+                </div>
+              ))}
+            </div>
+            {intakeLoading ? (
+              <div className="space-y-3">{[1,2,3].map(i => <div key={i} className="bg-white rounded-2xl h-20 animate-pulse border border-border" />)}</div>
+            ) : intakeSubmissions && intakeSubmissions.length > 0 ? (
+              <div className="space-y-3">
+                {intakeSubmissions.map((s: any) => (
+                  <div key={s.id} className="bg-white rounded-2xl border border-border shadow-sm p-5 cursor-pointer hover:border-primary/40 hover:shadow-md transition-all group" onClick={() => { setSelectedIntake(s); setIntakeAdminNotes(s.adminNotes || ""); }}>
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span className="font-mono font-bold text-primary text-sm">{s.submissionRef}</span>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${s.status==="new"?"bg-red-50 text-red-700":s.status==="reviewed"?"bg-blue-50 text-blue-700":s.status==="converted"?"bg-green-50 text-green-700":"bg-gray-100 text-gray-600"}`}>
+                            {s.status}
+                          </span>
+                        </div>
+                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1"><Users size={11} />{s.leadFirstName} {s.leadLastName}</span>
+                          <span className="flex items-center gap-1"><Mail size={11} />{s.email}</span>
+                          <span className="flex items-center gap-1"><MapPin size={11} />{s.destination}</span>
+                          {s.departureDate && <span className="flex items-center gap-1"><Calendar size={11} />{s.departureDate} – {s.returnDate}</span>}
+                          <span className="flex items-center gap-1 text-muted-foreground/60"><Clock size={11} />{new Date(s.createdAt).toLocaleDateString("en-GB")}</span>
+                        </div>
+                      </div>
+                      <Button variant="outline" size="sm" className="rounded-xl text-xs gap-1.5 group-hover:bg-primary group-hover:text-white transition-colors">
+                        <Eye size={13} /> View
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl border border-border p-12 text-center">
+                <ClipboardList size={40} className="mx-auto text-muted-foreground/30 mb-3" />
+                <p className="text-muted-foreground">No intake form submissions yet.</p>
+                <p className="text-xs text-muted-foreground mt-1">Share the booking intake form link with clients who are ready to book.</p>
+                <Button variant="outline" className="mt-4 rounded-xl gap-2 text-sm" onClick={() => { navigator.clipboard.writeText(window.location.origin + "/booking-intake"); toast.success("Link copied!"); }}>
+                  <Copy size={14} /> Copy Intake Form Link
+                </Button>
+              </div>
+            )}
+          </TabsContent>
+
+          {selectedBooking && (
+            <BookingDetailModal
+              booking={selectedBooking}
+              onClose={() => setSelectedBooking(null)}
+              onSuccess={() => utils.bookings.getAllAdmin.invalidate()}
+            />
+          )}
+
+                    {/* INTAKE DETAIL MODAL */}
+          {selectedIntake && (
+            <Dialog open={!!selectedIntake} onOpenChange={() => setSelectedIntake(null)}>
+              <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl">
+                <DialogHeader>
+                  <DialogTitle className="font-serif text-xl flex items-center gap-2">
+                    <ClipboardList size={18} className="text-primary" />
+                    Intake Form — {selectedIntake.submissionRef}
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-5 mt-2">
+                  {/* Status */}
+                  <div className="flex items-center gap-3 p-4 bg-muted/30 rounded-xl">
+                    <div className="flex-1">
+                      <Label className="text-xs text-muted-foreground">Status</Label>
+                      <Select value={selectedIntake.status} onValueChange={v => {
+                        updateIntakeStatus.mutate({ id: selectedIntake.id, status: v as any, adminNotes: intakeAdminNotes });
+                        setSelectedIntake({ ...selectedIntake, status: v });
+                      }}>
+                        <SelectTrigger className="rounded-xl h-9 mt-1 w-40"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="new">New</SelectItem>
+                          <SelectItem value="reviewed">Reviewed</SelectItem>
+                          <SelectItem value="converted">Converted</SelectItem>
+                          <SelectItem value="archived">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="text-right text-xs text-muted-foreground">
+                      Submitted {new Date(selectedIntake.createdAt).toLocaleDateString("en-GB")}
+                    </div>
+                  </div>
+
+                  {/* Lead Traveller */}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Lead Traveller</p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div><span className="text-muted-foreground">Name:</span> <span className="font-medium">{selectedIntake.leadFirstName} {selectedIntake.leadLastName}</span></div>
+                      <div><span className="text-muted-foreground">Email:</span> <span className="font-medium">{selectedIntake.email}</span></div>
+                      <div><span className="text-muted-foreground">Phone:</span> <span className="font-medium">{selectedIntake.phone}</span></div>
+                      {selectedIntake.dateOfBirth && <div><span className="text-muted-foreground">DOB:</span> <span>{selectedIntake.dateOfBirth}</span></div>}
+                      {selectedIntake.nationality && <div><span className="text-muted-foreground">Nationality:</span> <span>{selectedIntake.nationality}</span></div>}
+                      {selectedIntake.passportNumber && <div><span className="text-muted-foreground">Passport:</span> <span>{selectedIntake.passportNumber}</span></div>}
+                      {selectedIntake.passportExpiry && <div><span className="text-muted-foreground">Passport Expiry:</span> <span>{selectedIntake.passportExpiry}</span></div>}
+                      {selectedIntake.passportIssuingCountry && <div><span className="text-muted-foreground">Issuing Country:</span> <span>{selectedIntake.passportIssuingCountry}</span></div>}
+                      {selectedIntake.address && <div className="col-span-2"><span className="text-muted-foreground">Address:</span> <span>{selectedIntake.address}</span></div>}
+                    </div>
+                  </div>
+
+                  {/* Holiday Details */}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Holiday Details</p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      <div className="col-span-2"><span className="text-muted-foreground">Destination:</span> <span className="font-semibold text-primary">{selectedIntake.destination}</span></div>
+                      {selectedIntake.departureAirport && <div><span className="text-muted-foreground">Departure Airport:</span> <span>{selectedIntake.departureAirport}</span></div>}
+                      {selectedIntake.departureDate && <div><span className="text-muted-foreground">Departure:</span> <span>{selectedIntake.departureDate}</span></div>}
+                      {selectedIntake.returnDate && <div><span className="text-muted-foreground">Return:</span> <span>{selectedIntake.returnDate}</span></div>}
+                      <div><span className="text-muted-foreground">Flexible Dates:</span> <span>{selectedIntake.flexibleDates ? "Yes" : "No"}</span></div>
+                      <div><span className="text-muted-foreground">Adults:</span> <span>{selectedIntake.numberOfAdults}</span></div>
+                      {selectedIntake.numberOfChildren > 0 && <div><span className="text-muted-foreground">Children:</span> <span>{selectedIntake.numberOfChildren} (ages: {selectedIntake.childAges})</span></div>}
+                    </div>
+                  </div>
+
+                  {/* Additional Travellers */}
+                  {selectedIntake.additionalTravellers && Array.isArray(selectedIntake.additionalTravellers) && selectedIntake.additionalTravellers.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Additional Travellers ({selectedIntake.additionalTravellers.length})</p>
+                      <div className="space-y-2">
+                        {selectedIntake.additionalTravellers.map((t: any, i: number) => (
+                          <div key={i} className="bg-muted/20 rounded-xl p-3 text-sm grid grid-cols-2 gap-2">
+                            <div><span className="text-muted-foreground">Name:</span> <span>{t.firstName} {t.lastName}</span></div>
+                            {t.dateOfBirth && <div><span className="text-muted-foreground">DOB:</span> <span>{t.dateOfBirth}</span></div>}
+                            {t.passportNumber && <div><span className="text-muted-foreground">Passport:</span> <span>{t.passportNumber}</span></div>}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Preferences */}
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Preferences & Requirements</p>
+                    <div className="grid grid-cols-2 gap-3 text-sm">
+                      {selectedIntake.holidayType && <div><span className="text-muted-foreground">Holiday Type:</span> <span>{selectedIntake.holidayType}</span></div>}
+                      {selectedIntake.accommodationType && <div><span className="text-muted-foreground">Accommodation:</span> <span>{selectedIntake.accommodationType}</span></div>}
+                      {selectedIntake.boardBasis && <div><span className="text-muted-foreground">Board Basis:</span> <span>{selectedIntake.boardBasis}</span></div>}
+                      {selectedIntake.roomType && <div><span className="text-muted-foreground">Room Type:</span> <span>{selectedIntake.roomType}</span></div>}
+                      {selectedIntake.budget && <div><span className="text-muted-foreground">Budget:</span> <span className="font-semibold">{selectedIntake.budget}</span></div>}
+                      {selectedIntake.paymentMethod && <div><span className="text-muted-foreground">Payment:</span> <span>{selectedIntake.paymentMethod}</span></div>}
+                      {selectedIntake.specialOccasion && <div className="col-span-2"><span className="text-muted-foreground">Special Occasion:</span> <span className="font-semibold text-pink-600">🎉 {selectedIntake.specialOccasion}</span></div>}
+                      {selectedIntake.dietaryRequirements && <div className="col-span-2"><span className="text-muted-foreground">Dietary:</span> <span>{selectedIntake.dietaryRequirements}</span></div>}
+                      {selectedIntake.accessibilityNeeds && <div className="col-span-2"><span className="text-muted-foreground">Accessibility:</span> <span>{selectedIntake.accessibilityNeeds}</span></div>}
+                      {selectedIntake.otherRequests && <div className="col-span-2"><span className="text-muted-foreground">Other Requests:</span> <span>{selectedIntake.otherRequests}</span></div>}
+                    </div>
+                  </div>
+
+                  {/* Admin Notes */}
+                  <div>
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Admin Notes</Label>
+                    <Textarea
+                      value={intakeAdminNotes}
+                      onChange={e => setIntakeAdminNotes(e.target.value)}
+                      placeholder="Add internal notes about this submission..."
+                      className="rounded-xl resize-none mt-2"
+                      rows={3}
+                    />
+                    <Button size="sm" className="mt-2 rounded-xl btn-gold border-0 text-foreground" onClick={() => {
+                      updateIntakeStatus.mutate({ id: selectedIntake.id, status: selectedIntake.status, adminNotes: intakeAdminNotes });
+                    }}>Save Notes</Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          )}
+
+          {/* V6: BOOKED DESTINATIONS */}
+          <TabsContent value="destinations">
+            <div className="bg-white rounded-2xl border border-border p-6">
+              <div className="flex items-center justify-between mb-5">
+                <div>
+                  <h2 className="font-serif text-xl font-semibold">🗺 Booked Destinations</h2>
+                  <p className="text-sm text-muted-foreground mt-0.5">Manage destination cards shown on the homepage</p>
+                </div>
+                <div className="flex gap-2">
+                  {bookedDestinations && bookedDestinations.length > 0 && (
+                    <Button
+                      variant="outline"
+                      className="rounded-xl border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300"
+                      onClick={async () => {
+                        if (confirm(`Delete all ${bookedDestinations.length} destination${bookedDestinations.length !== 1 ? 's' : ''}? This cannot be undone.`)) {
+                          await deleteAllDestMut.mutateAsync();
+                        }
+                      }}
+                      disabled={deleteAllDestMut.isPending}
+                    >
+                      {deleteAllDestMut.isPending ? 'Deleting…' : '🗑 Delete All'}
+                    </Button>
+                  )}
+                  <Button
+                    onClick={() => { setNewDestForm({ name: '', lastBooked: '', imageBase64: '', imageMimeType: '', imageUrl: '' }); setDestImageName(''); setDestFetchedImages([]); setDestImageIndex(0); setShowAddDestModal(true); }}
+                    className="rounded-xl btn-gold border-0 text-foreground"
+                  >
+                    + Add New Destination
+                  </Button>
+                </div>
+              </div>
+
+              {/* Destination cards grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                {(bookedDestinations || []).map((d: any) => (
+                  <div key={d.id} className="rounded-xl border border-border overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+                    {/* Image */}
+                    <div className="relative h-36 bg-muted overflow-hidden">
+                      {d.imageUrl ? (
+                        <img src={d.imageUrl} alt={d.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-3xl">🌍</span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                      <p className="absolute bottom-2 left-3 text-white font-bold text-sm drop-shadow">{d.name}</p>
+                    </div>
+                    {/* Details */}
+                    <div className="p-3">
+                      {editingDest?.id === d.id ? (
+                        <div className="space-y-2">
+                          <Input
+                            value={editingDest.name}
+                            onChange={e => setEditingDest((p: any) => ({ ...p, name: e.target.value }))}
+                            className="h-7 rounded text-sm"
+                            placeholder="Destination name"
+                          />
+                          <Input
+                            type="date"
+                            value={editingDest.lastBooked || ''}
+                            onChange={e => setEditingDest((p: any) => ({ ...p, lastBooked: e.target.value }))}
+                            className="h-7 rounded text-sm"
+                          />
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="default" className="h-7 rounded px-2 text-xs flex-1" onClick={async () => { await updateDestMut.mutateAsync({ id: d.id, name: editingDest.name, lastBooked: editingDest.lastBooked }); setEditingDest(null); refetchDestinations(); toast.success("Updated!"); }}>Save</Button>
+                            <Button size="sm" variant="ghost" className="h-7 rounded px-2 text-xs" onClick={() => setEditingDest(null)}>Cancel</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-xs text-muted-foreground">
+                              {d.lastBooked ? `Last booked: ${d.lastBooked}` : 'No date set'}
+                            </p>
+                            {d.tripCount > 0 && <p className="text-xs text-muted-foreground">{d.tripCount} trip{d.tripCount !== 1 ? 's' : ''}</p>}
+                          </div>
+                          <div className="flex gap-1">
+                            <Button size="sm" variant="ghost" className="h-7 w-7 rounded p-0 text-xs" onClick={() => setEditingDest({ ...d })}>✏️</Button>
+                            <Button size="sm" variant="ghost" className="h-7 w-7 rounded p-0 text-xs text-red-500 hover:text-red-700 hover:bg-red-50" onClick={async () => { if (confirm('Delete ' + d.name + '?')) { await deleteDestMut.mutateAsync({ id: d.id }); refetchDestinations(); toast.success("Deleted"); } }}>🗑</Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+                {(!bookedDestinations || bookedDestinations.length === 0) && (
+                  <div className="col-span-3 text-center py-12 text-muted-foreground">
+                    <p className="text-3xl mb-2">🗺</p>
+                    <p>No destinations yet. Add one to get started!</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Add Destination Modal */}
+            {showAddDestModal && (
+              <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onClick={(e) => { if (e.target === e.currentTarget) setShowAddDestModal(false); }}>
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+                  <h3 className="font-bold text-lg text-foreground mb-1">Add New Destination</h3>
+                  <p className="text-sm text-muted-foreground mb-5">Fill in the details below to add a destination card.</p>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Destination Name *</label>
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="e.g. Santorini, Greece"
+                          value={newDestForm.name}
+                          onChange={e => setNewDestForm(p => ({ ...p, name: e.target.value }))}
+                          className="rounded-xl flex-1"
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="rounded-xl shrink-0 text-sm px-3"
+                          disabled={!newDestForm.name.trim() || fetchDestImageMut.isPending}
+                          onClick={() => {
+                            if (destFetchedImages.length > 1) {
+                              // Cycle locally — no server call needed
+                              const next = (destImageIndex + 1) % destFetchedImages.length;
+                              setDestImageIndex(next);
+                              setNewDestForm(p => ({ ...p, imageUrl: destFetchedImages[next], imageBase64: '', imageMimeType: '' }));
+                            } else {
+                              // First fetch — hit the server
+                              setDestFetchedImages([]);
+                              setDestImageIndex(0);
+                              fetchDestImageMut.mutate({ name: newDestForm.name.trim() });
+                            }
+                          }}
+                          title="Auto-find travel photos for this destination"
+                        >
+                          {fetchDestImageMut.isPending ? '⏳ Searching…' : destFetchedImages.length > 1 ? `🔄 Next photo (${destImageIndex + 1}/${destFetchedImages.length})` : '🔍 Find Image'}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">Enter a name then click <strong>Find Image</strong> to search for travel photos — press again to cycle through results.</p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Date Last Booked</label>
+                      <Input
+                        type="date"
+                        value={newDestForm.lastBooked}
+                        onChange={e => setNewDestForm(p => ({ ...p, lastBooked: e.target.value }))}
+                        className="rounded-xl"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wide">Destination Image</label>
+                      <label className="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-border rounded-xl p-5 cursor-pointer hover:border-primary/50 hover:bg-muted/30 transition-colors">
+                        {(newDestForm.imageUrl || newDestForm.imageBase64) ? (
+                          <>
+                            <img
+                              src={newDestForm.imageUrl || newDestForm.imageBase64}
+                              alt="Preview"
+                              className="h-28 w-full object-cover rounded-lg"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                              {newDestForm.imageUrl ? `🌐 Travel photo${destFetchedImages.length > 1 ? ` (${destImageIndex + 1}/${destFetchedImages.length}) — press Find Image to cycle` : ''} — click to replace with upload` : `${destImageName} — click to change`}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-3xl">📷</span>
+                            <p className="text-sm text-muted-foreground">Click to upload an image</p>
+                            <p className="text-xs text-muted-foreground">JPEG, PNG, WebP up to 5MB</p>
+                          </>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            if (file.size > 5 * 1024 * 1024) { toast.error("Image must be under 5MB"); return; }
+                            setDestImageName(file.name);
+                            const reader = new FileReader();
+                            reader.onload = (ev) => {
+                              setNewDestForm(p => ({ ...p, imageBase64: ev.target?.result as string, imageMimeType: file.type, imageUrl: '' }));
+                            setDestFetchedImages([]); setDestImageIndex(0);
+                            };
+                            reader.readAsDataURL(file);
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 mt-6">
+                    <Button
+                      className="flex-1 rounded-xl btn-gold border-0 text-foreground"
+                      disabled={!newDestForm.name.trim() || createDestMut.isPending}
+                      onClick={() => {
+                        if (!newDestForm.name.trim()) { toast.error("Please enter a destination name"); return; }
+                        createDestMut.mutate({
+                          name: newDestForm.name.trim(),
+                          lastBooked: newDestForm.lastBooked || undefined,
+                          imageUrl: newDestForm.imageUrl || undefined,
+                          imageBase64: newDestForm.imageBase64 || undefined,
+                          imageMimeType: newDestForm.imageMimeType || undefined,
+                        });
+                      }}
+                    >
+                      {createDestMut.isPending ? "Adding…" : "Add Destination"}
+                    </Button>
+                    <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setShowAddDestModal(false)}>Cancel</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
+          {/* V6: CLIENT CRM NOTES */}
+          <TabsContent value="client-notes">
+            <div className="bg-white rounded-2xl border border-border p-6">
+              <h2 className="font-serif text-xl font-semibold mb-5">📋 Client CRM Notes</h2>
+              <p className="text-sm text-muted-foreground mb-4">Admin-only notes — never visible to clients. Record preferences, pet names, anniversaries, special requirements.</p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                <select className="select select-bordered select-sm rounded-xl" value={noteClientId} onChange={e => setNoteClientId(e.target.value)}>
+                  <option value="">Select client...</option>
+                  {(allUsers || []).map((u: any) => <option key={u.id} value={u.id}>{u.name} ({u.email})</option>)}
+                </select>
+                <Input placeholder="Note content..." value={noteContent} onChange={e => setNoteContent(e.target.value)} className="rounded-xl md:col-span-2" />
+              </div>
+              <Button size="sm" className="rounded-xl mb-6" disabled={!noteClientId || !noteContent} onClick={async () => {
+                await createNoteMut.mutateAsync({ userId: Number(noteClientId), note: noteContent });
+                setNoteContent('');
+                toast.success('Note saved');
+              }}>+ Add Note</Button>
+              {noteClientId && (
+                <ClientNotesList userId={Number(noteClientId)} />
+              )}
+            </div>
+          </TabsContent>
+
+          {/* V7: SUPPORT TICKETS */}
+          <TabsContent value="support">
+            <AdminSupportTab tickets={allTickets || []} refetch={refetchTickets} />
+          </TabsContent>
+
+
+          {/* V6: NEWSLETTER CAMPAIGNS */}
+          <TabsContent value="campaigns">
+            <div className="bg-white rounded-2xl border border-border p-6 space-y-6">
+              <h2 className="font-serif text-xl font-semibold">📧 Newsletter Campaigns</h2>
+              <div className="space-y-3 border rounded-xl p-4 bg-muted/10">
+                <h3 className="font-semibold text-sm">Create New Campaign</h3>
+                <Input placeholder="Subject line" value={campaignForm.subject} onChange={e=>setCampaignForm(p=>({...p,subject:e.target.value}))} className="rounded-xl" />
+                <Textarea placeholder="HTML body (or plain text)" value={campaignForm.htmlBody} onChange={e=>setCampaignForm(p=>({...p,htmlBody:e.target.value}))} className="rounded-xl resize-none" rows={5} />
+                <Button size="sm" className="rounded-xl" disabled={!campaignForm.subject || !campaignForm.htmlBody} onClick={async () => {
+                  await createCampaignMut.mutateAsync(campaignForm);
+                  setCampaignForm({subject:'',htmlBody:''});
+                  refetchCampaigns();
+                  toast.success('Campaign saved!');
+                }}>Save Campaign</Button>
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm mb-3">Campaigns</h3>
+                <div className="space-y-2">
+                  {(campaigns || []).map((c: any) => (
+                    <div key={c.id} className="flex items-center justify-between p-3 border rounded-xl bg-white">
+                      <div>
+                        <p className="font-medium text-sm">{c.subject}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Created: {new Date(c.createdAt).toLocaleDateString('en-GB')}
+                          {c.sentAt && ` · Sent: ${new Date(c.sentAt).toLocaleDateString('en-GB')} (${c.recipientCount} recipients)`}
+                        </p>
+                      </div>
+                      {!c.sentAt && (
+                        <Button size="sm" className="rounded-xl" onClick={async () => {
+                          if (confirm('Send this campaign to all active subscribers?')) {
+                            const res = await sendCampaignMut.mutateAsync({ campaignId: c.id });
+                            toast.success(`Sent to ${res.sent} subscribers!`);
+                            refetchCampaigns();
+                          }
+                        }}>Send Now</Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* V6: AUDIT LOG */}
+          <TabsContent value="audit">
+            <div className="bg-white rounded-2xl border border-border p-6">
+              <div className="flex items-center justify-between mb-5">
+                <h2 className="font-serif text-xl font-semibold">📊 Audit Log</h2>
+                <Input placeholder="Search logs..." value={auditSearch} onChange={e=>setAuditSearch(e.target.value)} className="rounded-xl w-64" />
+              </div>
+              <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                <table className="w-full text-xs">
+                  <thead className="sticky top-0 bg-white"><tr className="border-b"><th className="text-left py-2 px-3">Time</th><th className="text-left py-2 px-3">Actor</th><th className="text-left py-2 px-3">Action</th><th className="text-left py-2 px-3">Entity</th><th className="text-left py-2 px-3">Details</th></tr></thead>
+                  <tbody>
+                    {(auditLogs || []).filter((l:any) =>
+                      !auditSearch || JSON.stringify(l).toLowerCase().includes(auditSearch.toLowerCase())
+                    ).map((l: any) => (
+                      <tr key={l.id} className="border-b hover:bg-muted/10">
+                        <td className="py-1.5 px-3 whitespace-nowrap text-muted-foreground">{new Date(l.createdAt).toLocaleString('en-GB', {dateStyle:'short',timeStyle:'short'})}</td>
+                        <td className="py-1.5 px-3">
+                          <span className={`inline-block px-2 py-0.5 rounded-full text-xs ${l.actorType==='admin'?'bg-blue-100 text-blue-700':'bg-green-100 text-green-700'}`}>{l.actorType}</span>
+                          <span className="ml-1 text-muted-foreground">#{l.actorId}</span>
+                        </td>
+                        <td className="py-1.5 px-3 font-medium">{l.action}</td>
+                        <td className="py-1.5 px-3 text-muted-foreground">{l.entityType} {l.entityId ? `#${l.entityId}` : ''}</td>
+                        <td className="py-1.5 px-3 text-muted-foreground max-w-xs truncate">{l.newValue ? JSON.stringify(l.newValue) : l.description || '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ITINERARY TOOL LOGS */}
+          <TabsContent value="itinerary-logs">
+            <div className="space-y-5">
+              {/* Password Management */}
+              <div className="bg-white rounded-2xl border border-amber-200 p-5">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center">
+                    <Lock size={16} className="text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm text-foreground">Access Password</h3>
+                    <p className="text-xs text-muted-foreground">Controls who can enter the AI Itinerary Generator at <code className="bg-muted px-1 rounded text-xs">cbtravel.uk/itinerarygenerator</code></p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex-1">
+                    <span className="text-xs text-amber-700 font-medium">Current password:</span>
+                    <code className="text-sm font-mono text-amber-900 font-bold">{itineraryPasswordData?.password || 'CBTRAVEL2025'}</code>
+                  </div>
+                  <div className="flex items-center gap-2 flex-1">
+                    <Input
+                      placeholder="New password (min. 6 chars)"
+                      value={itineraryPasswordEdit}
+                      onChange={e => setItineraryPasswordEdit(e.target.value)}
+                      className="rounded-xl text-sm font-mono"
+                    />
+                    <Button
+                      onClick={() => { if (itineraryPasswordEdit.length >= 6) setItineraryPasswordMutation.mutate({ password: itineraryPasswordEdit }); else toast.error("Password must be at least 6 characters"); }}
+                      disabled={setItineraryPasswordMutation.isPending || !itineraryPasswordEdit}
+                      className="rounded-xl btn-gold border-0 text-foreground shrink-0"
+                      size="sm"
+                    >
+                      {setItineraryPasswordMutation.isPending ? 'Saving…' : 'Update'}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Header */}
+              <div className="bg-white rounded-2xl border border-border p-6">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-xl flex items-center justify-center">
+                      <Monitor size={18} className="text-indigo-600" />
+                    </div>
+                    <div>
+                      <h2 className="font-serif text-xl font-semibold text-[#1e3a5f]">Itinerary Generator Logs</h2>
+                      <p className="text-sm text-muted-foreground">Every login and generation at <code className="bg-muted px-1 rounded text-xs">cbtravel.uk/itinerarygenerator</code></p>
+                    </div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="text-center px-4 py-2 bg-indigo-50 rounded-xl">
+                      <div className="text-2xl font-bold text-indigo-700">{(itineraryLogs || []).length}</div>
+                      <div className="text-xs text-muted-foreground">Total Events</div>
+                    </div>
+                    <div className="text-center px-4 py-2 bg-green-50 rounded-xl">
+                      <div className="text-2xl font-bold text-green-700">{new Set((itineraryLogs || []).map((l:any) => l.agencyName).filter(Boolean)).size}</div>
+                      <div className="text-xs text-muted-foreground">Agencies</div>
+                    </div>
+                    <div className="text-center px-4 py-2 bg-amber-50 rounded-xl">
+                      <div className="text-2xl font-bold text-amber-700">{(itineraryLogs || []).filter((l:any) => l.eventType === 'generation').length}</div>
+                      <div className="text-xs text-muted-foreground">Itineraries Generated</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Logs table */}
+              <div className="bg-white rounded-2xl border border-border overflow-hidden">
+                <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="sticky top-0 bg-slate-50 border-b border-border">
+                      <tr>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Time</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Event</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Agency</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Agent Name</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">Destination</th>
+                        <th className="text-left py-3 px-4 font-medium text-muted-foreground text-xs uppercase tracking-wide">IP Address</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(itineraryLogs || []).length === 0 ? (
+                        <tr><td colSpan={6} className="text-center py-12 text-muted-foreground">No access logs yet. They'll appear here once someone uses the tool.</td></tr>
+                      ) : (itineraryLogs || []).map((l: any, i: number) => (
+                        <tr key={l.id || i} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                          <td className="py-3 px-4 whitespace-nowrap text-muted-foreground text-xs">
+                            {new Date(l.accessedAt).toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' })}
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium ${
+                              l.eventType === 'generation' ? 'bg-green-100 text-green-700' :
+                              l.eventType === 'login' ? 'bg-blue-100 text-blue-700' :
+                              'bg-slate-100 text-slate-600'
+                            }`}>
+                              {l.eventType === 'generation' ? '✨' : l.eventType === 'login' ? '🔑' : '👁️'}
+                              {l.eventType || 'visit'}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-medium text-[#1e3a5f]">{l.agencyName || '—'}</td>
+                          <td className="py-3 px-4 text-muted-foreground">{l.agentName || '—'}</td>
+                          <td className="py-3 px-4">
+                            {l.destination ? (
+                              <span className="flex items-center gap-1.5 text-sm">
+                                <MapPinned size={13} className="text-muted-foreground" />
+                                {l.destination}
+                              </span>
+                            ) : <span className="text-muted-foreground">—</span>}
+                          </td>
+                          <td className="py-3 px-4 text-muted-foreground font-mono text-xs">{l.ipAddress || '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* V6: LOYALTY HUB LINK */}
+          <TabsContent value="loyalty-admin">
+            <div className="bg-white rounded-2xl border border-border p-8 text-center">
+              <div className="text-5xl mb-4">🏆</div>
+              <h2 className="font-serif text-2xl font-bold text-[#1e3a5f] mb-2">Loyalty Hub</h2>
+              <p className="text-muted-foreground mb-6">Manage the full loyalty programme, rewards, member points, vouchers, and multiplier events from the dedicated Loyalty Hub.</p>
+              <a href="/admin/loyalty" className="inline-flex items-center gap-2 bg-[#1e3a5f] text-white px-8 py-3 rounded-xl font-semibold hover:bg-[#24487a] transition-colors">
+                Open Loyalty Hub →
+              </a>
+            </div>
+          </TabsContent>
+
+          {/* V10: LOYALTY EARN RULES */}
+          <TabsContent value="loyalty-rules">
+            <div className="bg-white rounded-2xl border border-border p-6">
+              <LoyaltyRulesSection />
+            </div>
+          </TabsContent>
+
+          {/* GDPR REQUESTS */}
+          <TabsContent value="gdpr">
+            <GdprAdminSection />
+          </TabsContent>
+
+          {/* V6: SETTINGS */}
+          <TabsContent value="settings">
+            <div className="bg-white rounded-2xl border border-border p-6 space-y-6">
+              <h2 className="font-serif text-xl font-semibold">⚙️ Site Settings</h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {[
+                  { key: 'sos_whatsapp_number', label: '🆘 SOS Emergency WhatsApp Number', placeholder: '07534168295' },
+                  { key: 'sos_mobile_number', label: '🆘 SOS Emergency Mobile Number', placeholder: '07534168295' },
+                  { key: 'live_chat_whatsapp', label: '💬 Live Chat WhatsApp Number', placeholder: '07495823953' },
+                  { key: 'openai_api_key', label: '🤖 OpenAI API Key', placeholder: 'sk-proj-...' },
+                  { key: 'aviationstack_api_key', label: '✈️ AviationStack API Key', placeholder: 'Your API key' },
+                  { key: 'admin_email', label: '📧 Admin Email', placeholder: 'hello@cbtravel.uk' },
+                ].map(({ key, label, placeholder }) => (
+                  <div key={key} className="space-y-1.5">
+                    <Label className="text-sm">{label}</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder={placeholder}
+                        defaultValue={(allSettings as any)?.[key] || ''}
+                        onChange={e => setSettingsForm(p => ({ ...p, [key]: e.target.value }))}
+                        className="rounded-xl"
+                      />
+                      <Button size="sm" className="rounded-xl shrink-0" onClick={async () => {
+                        if (settingsForm[key] !== undefined) {
+                          await setSettingMut.mutateAsync({ key, value: settingsForm[key] });
+                          toast.success('Saved!');
+                          refetchSettings();
+                        }
+                      }}>Save</Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { key: 'ai_features_enabled', label: '🤖 AI Features' },
+                  { key: 'whatsapp_chat_enabled', label: '💬 WhatsApp Chat Button' },
+                  { key: 'smart_notifications_7day', label: '📬 7-Day Notifications' },
+                  { key: 'smart_notifications_48hr', label: '⏰ 48hr Notifications' },
+                  { key: 'smart_notifications_dayof', label: '🌅 Day-of Notifications' },
+                ].map(({ key, label }) => (
+                  <div key={key} className="flex items-center justify-between p-3 border rounded-xl bg-muted/10">
+                    <Label className="text-xs font-medium">{label}</Label>
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-sm toggle-primary"
+                      defaultChecked={(allSettings as any)?.[key] !== 'false'}
+                      onChange={async e => {
+                        await setSettingMut.mutateAsync({ key, value: e.target.checked ? 'true' : 'false' });
+                        toast.success('Updated!');
+                      }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
+
+          <TabsContent value="destination-guides">
+            <AdminDestinationGuides />
+          </TabsContent>
+
+          <TabsContent value="community">
+            <AdminCommunityManager />
+          </TabsContent>
+
+          <TabsContent value="notifications">
+            <AdminNotificationsManager />
+          </TabsContent>
+
+<TabsContent value="command">
+  <AdminCommandCenter onTabChange={setActiveTab} />
+</TabsContent>
+
+<TabsContent value="passports">
+  <div>
+    <div className="flex items-center justify-between mb-5">
+      <div>
+        <h2 className="font-serif text-xl font-semibold">Passport Manager</h2>
+        <p className="text-sm text-muted-foreground mt-1">Monitor passport validity and risk for all clients</p>
+      </div>
+    </div>
+    <AdminPassportManager />
+  </div>
+</TabsContent>
+
+<TabsContent value="payments">
+  <div>
+    <div className="flex items-center justify-between mb-5">
+      <div>
+        <h2 className="font-serif text-xl font-semibold">Payment Plans</h2>
+        <p className="text-sm text-muted-foreground mt-1">Financial control centre — track balances, risks, and cash flow</p>
+      </div>
+    </div>
+    <AdminPaymentPlans />
+  </div>
+</TabsContent>
+
+            <TabsContent value="ai-assistant">
+  <AdminAIAssistant />
+</TabsContent>
+
+<TabsContent value="booking-emails">
+  <AdminBookingEmailsHub />
+</TabsContent>
+
+<TabsContent value="social-hub">
+  <AdminSocialHub />
+</TabsContent>
+
+<TabsContent value="spotlight">
+  <AdminDestinationSpotlight />
+</TabsContent>
+
+<TabsContent value="travel-hacks">
+  <AdminTravelHacks />
+</TabsContent>
+  </Tabs>          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+function NavButton({ label, value, isActive, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
+        isActive
+          ? 'bg-primary text-primary-foreground'
+          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+      }`}
+    >
+      {label.replace('-', ' ')}
+    </button>
+  );
+}
+
+function Menu({ className }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+    </svg>
+  );
+}
+
+export default AdminDashboard;
