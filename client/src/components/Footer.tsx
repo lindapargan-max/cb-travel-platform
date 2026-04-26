@@ -85,10 +85,10 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="mailto:hello@travelcb.co.uk" className="flex items-start gap-3 group">
+                <a href="mailto:hello@cbtravel.uk" className="flex items-start gap-3 group">
                   <Mail size={15} className="text-yellow-400 mt-0.5 flex-shrink-0" />
                   <span className="text-white/65 group-hover:text-white text-sm font-light transition-colors">
-                    hello@travelcb.co.uk
+                    hello@cbtravel.uk
                   </span>
                 </a>
               </li>

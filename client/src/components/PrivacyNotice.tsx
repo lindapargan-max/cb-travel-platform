@@ -34,7 +34,7 @@ const NOTICE_CONFIG: Record<
     retention:
       "Your email address will be retained for as long as you remain subscribed. If you unsubscribe or are inactive for 12 months, your data will be deleted.",
     extra:
-      "Subscribing to our newsletter is entirely optional. You can unsubscribe at any time by clicking the unsubscribe link in any email or by contacting us at privacy@travelcb.co.uk.",
+      "Subscribing to our newsletter is entirely optional. You can unsubscribe at any time by clicking the unsubscribe link in any email or by contacting us at privacy@cbtravel.uk.",
   },
   contact: {
     title: "Privacy Notice — Contact Form",
@@ -100,11 +100,11 @@ export default function PrivacyNotice({ context, compact = false }: PrivacyNotic
         </Link>
         . To exercise your rights, contact us at{" "}
         <a
-          href="mailto:privacy@travelcb.co.uk"
+          href="mailto:privacy@cbtravel.uk"
           className="underline"
           style={{ color: "#d4af37" }}
         >
-          privacy@travelcb.co.uk
+          privacy@cbtravel.uk
         </a>
         .
       </p>
