@@ -221,7 +221,7 @@ window.addEventListener('load', function() {
     ${result.practicalTips.map(t => `<div class="practical-item">${t}</div>`).join('')}
   </div>` : ''}
   <div class="footer">
-    <p>Created with <span class="footer-brand">${agencyName || 'CB Travel'}</span> AI Itinerary Studio · Powered by <span class="footer-brand">CB Travel</span> · travelcb.co.uk</p>
+    <p>Created with <span class="footer-brand">${agencyName || 'CB Travel'}</span> AI Itinerary Studio · Powered by <span class="footer-brand">CB Travel</span> · cbtravel.uk</p>
     <p style="margin-top:4px">All itineraries are AI-generated suggestions. Please verify all details before booking.</p>
   </div>
 </body>

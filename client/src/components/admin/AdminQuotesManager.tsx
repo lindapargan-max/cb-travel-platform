@@ -198,7 +198,7 @@ function SendPreviewModal({
   onConfirm: () => void;
   isSending: boolean;
 }) {
-  const portalUrl = `https://www.travelcb.co.uk/quote/${quote.quoteRef}`;
+  const portalUrl = `https://cbtravel.uk/quote/${quote.quoteRef}`;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg border border-border">
@@ -1296,7 +1296,7 @@ export default function AdminQuotesManager() {
               <tbody>
                 {quotes.map((quote: AdminQuote, idx: number) => {
                   const isExpanded = expandedId === quote.id;
-                  const portalUrl = `https://www.travelcb.co.uk/quote/${quote.quoteRef}`;
+                  const portalUrl = `https://cbtravel.uk/quote/${quote.quoteRef}`;
                   const isSent = quote.status === "sent" || quote.status === "viewed" || quote.status === "accepted" || quote.status === "intake_submitted" || quote.status === "converted";
                   return (
                     <>

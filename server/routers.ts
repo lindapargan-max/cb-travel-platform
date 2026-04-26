@@ -899,7 +899,7 @@ export const appRouter = router({
         }
         // Generate a secure set-password link (24h expiry) — user sets their own password
         const token = await createSetPasswordToken(newUser.id, input.email);
-        const SITE_URL = process.env.SITE_URL || "https://www.travelcb.co.uk";
+        const SITE_URL = process.env.SITE_URL || "https://cbtravel.uk";
         const setPasswordUrl = `${SITE_URL}/set-password?token=${token}&email=${encodeURIComponent(input.email)}`;
         try {
           const promoCode = await createWelcomePromoCode(newUser.id, input.email);
@@ -942,7 +942,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const user = await getUserById(input.userId);
         if (!user || !user.email) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found or has no email address' });
-        const SITE_URL = process.env.SITE_URL || 'https://www.travelcb.co.uk';
+        const SITE_URL = process.env.SITE_URL || 'https://cbtravel.uk';
         const token = await createPasswordResetToken(user.id, user.email);
         const url = `${SITE_URL}/set-password?token=${token}&email=${encodeURIComponent(user.email)}`;
         await sendSetPasswordEmail(user.email, user.name || 'there', url);
@@ -1486,7 +1486,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
                 pointsSpent: redemption.pointsCost || 0,
                 issuedDate,
                 expiryDate,
-                verifyUrl: 'https://www.travelcb.co.uk/dashboard',
+                verifyUrl: 'https://cbtravel.uk/dashboard',
               }).catch(() => null);
               await sendLoyaltyRewardEmail(
                 redemption.email,
@@ -1721,7 +1721,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
       const userId = (ctx as any).user?.id;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
       const code = await ensureReferralCode(userId);
-      return { code, link: `${process.env.SITE_URL || 'https://www.travelcb.co.uk'}/refer/${code}` };
+      return { code, link: `${process.env.SITE_URL || 'https://cbtravel.uk'}/refer/${code}` };
     }),
     validate: publicProcedure
       .input(z.string())
@@ -1908,7 +1908,7 @@ IMPORTANT: Return ONLY valid JSON, no markdown code blocks.`;
         if (!apiKey) return { answer: "Please contact us at hello@cbtravel.uk or call 07495 823953.", canAnswer: false };
         const faqItems = await getAllFaqItemsForAI();
         const faqContext = faqItems.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
-        const systemPrompt = `You are a helpful assistant for CB Travel, a UK travel agency based at travelcb.co.uk. Answer questions helpfully and concisely based on the FAQ data below.
+        const systemPrompt = `You are a helpful assistant for CB Travel, a UK travel agency based at cbtravel.uk. Answer questions helpfully and concisely based on the FAQ data below.
 
 If you cannot answer confidently from the FAQ data, suggest the user emails hello@cbtravel.uk or calls 07495 823953.
 
@@ -1916,7 +1916,7 @@ Key facts:
 - Company: CB Travel
 - Email: hello@cbtravel.uk
 - Phone: 07495 823953
-- Website: travelcb.co.uk
+- Website: cbtravel.uk
 
 FAQ Data:
 ${faqContext}`;
@@ -2038,7 +2038,7 @@ ${faqContext}`;
         if (!booking) throw new TRPCError({ code: "NOT_FOUND" });
         if (!isAdmin && booking.clientId !== userId) throw new TRPCError({ code: "FORBIDDEN" });
         const QRCode = await import("qrcode");
-        const url = `${process.env.SITE_URL || 'https://www.travelcb.co.uk'}/dashboard`;
+        const url = `${process.env.SITE_URL || 'https://cbtravel.uk'}/dashboard`;
         const dataUrl = await QRCode.default.toDataURL(url, { width: 300, margin: 2, color: { dark: '#1e3a5f', light: '#ffffff' } });
         return { dataUrl, url };
       }),
@@ -2417,7 +2417,7 @@ ${faqContext}`;
         const quote = await getAdminQuoteById(input.id);
         if (!quote) throw new Error("Quote not found");
 
-        const quoteLink = `${process.env.SITE_URL || "https://www.travelcb.co.uk"}/quote/${quote.quoteRef}`;
+        const quoteLink = `${process.env.SITE_URL || "https://cbtravel.uk"}/quote/${quote.quoteRef}`;
         const firstName = (quote.clientName || "").split(" ")[0] || "Valued Client";
 
         if (input.previewOnly) {
@@ -2468,7 +2468,7 @@ ${faqContext}`;
         const quote = await getAdminQuoteById(input.id);
         if (!quote) throw new Error("Quote not found");
 
-        const quoteLink = `${process.env.SITE_URL || "https://www.travelcb.co.uk"}/quote/${quote.quoteRef}`;
+        const quoteLink = `${process.env.SITE_URL || "https://cbtravel.uk"}/quote/${quote.quoteRef}`;
         const firstName = (quote.clientName || "").split(" ")[0] || "Valued Client";
 
         const { sendAdminQuoteEmail } = await import("./emails");

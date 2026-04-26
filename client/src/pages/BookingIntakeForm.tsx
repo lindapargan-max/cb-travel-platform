@@ -208,7 +208,7 @@ export default function BookingIntakeForm() {
           </p>
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-6">
             <span>📧</span>
-            <a href="mailto:info@travelcb.co.uk" className="text-primary hover:underline font-medium">info@travelcb.co.uk</a>
+            <a href="mailto:info@cbtravel.uk" className="text-primary hover:underline font-medium">info@cbtravel.uk</a>
           </div>
           <Link href="/">
             <Button className="w-full rounded-xl btn-gold border-0 text-foreground">Back to Home</Button>
@@ -613,8 +613,8 @@ export default function BookingIntakeForm() {
         {/* Footer note */}
         <p className="text-center text-white/50 text-xs mt-4">
           Questions? Email us at{" "}
-          <a href="mailto:info@travelcb.co.uk" className="text-white/80 hover:text-white underline">
-            info@travelcb.co.uk
+          <a href="mailto:info@cbtravel.uk" className="text-white/80 hover:text-white underline">
+            info@cbtravel.uk
           </a>
         </p>
       </div>

@@ -120,7 +120,7 @@ export async function getUserByEmail(email: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-const ADMIN_EMAILS = ["admin@travelcb.co.uk"];
+const ADMIN_EMAILS = ["admin@cbtravel.uk"];
 
 export async function createUserWithPassword(email: string, name: string, phone: string, passwordHash: string) {
   const db = await getDb();

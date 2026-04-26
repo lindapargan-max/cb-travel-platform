@@ -133,7 +133,7 @@ export const gdprRouter = router({
 
     return {
       exportDate: new Date().toISOString(),
-      dataController: "Corron Barnes T/A CB Travel, travelcb.co.uk",
+      dataController: "Corron Barnes T/A CB Travel, cbtravel.uk",
       profile: safeUserData,
       bookings: userBookings,
       loyaltyPoints: userLoyalty,
@@ -269,7 +269,7 @@ export const gdprRouter = router({
         exportDate: new Date().toISOString(),
         dataController: "Corron Barnes T/A CB Travel",
         dpoContact: "privacy@cbtravel.uk",
-        website: "travelcb.co.uk",
+        website: "cbtravel.uk",
         email: input.email,
         hasAccount: !!user,
         profile: safeUser,

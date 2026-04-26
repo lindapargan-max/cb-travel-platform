@@ -3,7 +3,7 @@ import { Resend } from "resend";
 const resend = new Resend(process.env.RESEND_API_KEY);
 const FROM = "CB Travel <noreply@cbtravel.uk>";
 const ADMIN_EMAIL = "hello@cbtravel.uk";
-const SITE_URL = process.env.SITE_URL || "https://www.travelcb.co.uk";
+const SITE_URL = process.env.SITE_URL || "https://cbtravel.uk";
 
 type Attachment = { filename: string; content: Buffer | string; contentType?: string };
 
@@ -110,7 +110,7 @@ function baseTemplate(content: string, preheader?: string) {
                 &nbsp;&nbsp;·&nbsp;&nbsp;
                 <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">hello@cbtravel.uk</a>
                 &nbsp;&nbsp;·&nbsp;&nbsp;
-                <a href="${SITE_URL}" style="color:#d4af37;text-decoration:none;font-weight:600;">travelcb.co.uk</a>
+                <a href="${SITE_URL}" style="color:#d4af37;text-decoration:none;font-weight:600;">cbtravel.uk</a>
               </p>
               <p style="margin:0 0 14px;font-size:12px;font-family:'Segoe UI',Arial,sans-serif;">
                 <a href="https://wa.me/447534168295" style="color:#4ade80;text-decoration:none;font-weight:600;">💬 WhatsApp Us</a>
@@ -930,7 +930,7 @@ export async function sendPostHolidayReviewEmail(
   bookingRef: string
 ) {
   const firstName = name.split(" ")[0];
-  const trustpilotUrl = `https://uk.trustpilot.com/review/travelcb.co.uk`;
+  const trustpilotUrl = `https://uk.trustpilot.com/review/cbtravel.uk`;
   const html = baseTemplate(`
     ${h2(`We hope ${destination} was everything you dreamed of! 🌴`)}
     ${p(`Hi ${firstName}, your holiday has come to an end — and we truly hope every single moment was magical.`)}
@@ -1168,7 +1168,7 @@ export async function sendAdminQuoteEmail(
             &nbsp;·&nbsp;
             <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">hello@cbtravel.uk</a>
             &nbsp;·&nbsp;
-            <a href="https://www.travelcb.co.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">travelcb.co.uk</a>
+            <a href="https://cbtravel.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">cbtravel.uk</a>
           </p>
           <p style="margin:0;color:#4a6080;font-size:11px;font-family:'Segoe UI',Arial,sans-serif;">&copy; 2026 CB Travel &nbsp;·&nbsp; Luxury Travel Concierge</p>
         </td></tr>
@@ -1258,7 +1258,7 @@ export async function sendPaymentReminderEmail(
           <p style="margin:0 0 24px;font-size:15px;color:#374151;line-height:1.85;font-family:'Segoe UI',Arial,sans-serif;">To make a payment or if you have any questions about your balance, please don't hesitate to get in touch — we're here to make your travel experience as seamless as possible.</p>
 
           <div style="text-align:center;margin:24px 0;">
-            <a href="https://www.travelcb.co.uk/dashboard" style="display:inline-block;background:linear-gradient(135deg,#0b2240 0%,#1e3a5f 100%);color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:15px 44px;border-radius:50px;font-family:'Segoe UI',Arial,sans-serif;box-shadow:0 4px 18px rgba(11,34,64,0.30);">View My Booking &rarr;</a>
+            <a href="https://cbtravel.uk/dashboard" style="display:inline-block;background:linear-gradient(135deg,#0b2240 0%,#1e3a5f 100%);color:#ffffff;text-decoration:none;font-size:15px;font-weight:600;padding:15px 44px;border-radius:50px;font-family:'Segoe UI',Arial,sans-serif;box-shadow:0 4px 18px rgba(11,34,64,0.30);">View My Booking &rarr;</a>
           </div>
 
           <p style="margin:0;font-size:14px;color:#6b7280;font-style:italic;font-family:'Segoe UI',Arial,sans-serif;">Warm regards,<br/><strong style="color:#0b2240;font-style:normal;">Corron at CB Travel</strong></p>
@@ -1270,7 +1270,7 @@ export async function sendPaymentReminderEmail(
             &nbsp;·&nbsp;
             <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">hello@cbtravel.uk</a>
             &nbsp;·&nbsp;
-            <a href="https://www.travelcb.co.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">travelcb.co.uk</a>
+            <a href="https://cbtravel.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">cbtravel.uk</a>
           </p>
           <p style="margin:0;color:#4a6080;font-size:11px;font-family:'Segoe UI',Arial,sans-serif;">&copy; 2026 CB Travel &nbsp;·&nbsp; Luxury Travel Concierge</p>
         </td></tr>

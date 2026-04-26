@@ -98,7 +98,7 @@ const FAQ_CATEGORIES = [
     items: [
       {
         q: "What support is available during my holiday?",
-        a: "We provide support throughout your journey. If you experience any issues while travelling, contact us directly on 07495 823953 or email hello@travelcb.co.uk and we'll do everything we can to assist.",
+        a: "We provide support throughout your journey. If you experience any issues while travelling, contact us directly on 07495 823953 or email hello@cbtravel.uk and we'll do everything we can to assist.",
       },
       {
         q: "What should I do in an emergency while abroad?",
@@ -106,7 +106,7 @@ const FAQ_CATEGORIES = [
       },
       {
         q: "How do I make a complaint?",
-        a: "We take all feedback seriously. If you're unhappy with any aspect of our service, please contact us at hello@travelcb.co.uk with full details. We aim to acknowledge all complaints within 48 hours and resolve them within 14 days.",
+        a: "We take all feedback seriously. If you're unhappy with any aspect of our service, please contact us at hello@cbtravel.uk with full details. We aim to acknowledge all complaints within 48 hours and resolve them within 14 days.",
       },
     ],
   },
@@ -200,10 +200,10 @@ export default function FAQ() {
                   07495 823953
                 </Button>
               </a>
-              <a href="mailto:hello@travelcb.co.uk">
+              <a href="mailto:hello@cbtravel.uk">
                 <Button className="rounded-full border-2 border-white/30 text-white hover:bg-white/10 gap-2 px-8 bg-transparent">
                   <Mail size={15} />
-                  hello@travelcb.co.uk
+                  hello@cbtravel.uk
                 </Button>
               </a>
               <Link href="/quote-request">

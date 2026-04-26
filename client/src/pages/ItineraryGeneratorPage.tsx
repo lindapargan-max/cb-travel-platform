@@ -169,8 +169,8 @@ export default function ItineraryGeneratorPage() {
 
               <p className="text-center text-white/25 text-[12px] mt-6 leading-relaxed">
                 Don't have access?{' '}
-                <a href="mailto:hello@travelcb.co.uk" className="text-[#d4af37]/60 hover:text-[#d4af37] transition-colors">
-                  hello@travelcb.co.uk
+                <a href="mailto:hello@cbtravel.uk" className="text-[#d4af37]/60 hover:text-[#d4af37] transition-colors">
+                  hello@cbtravel.uk
                 </a>
               </p>
             </div>
@@ -287,12 +287,12 @@ export default function ItineraryGeneratorPage() {
         <p className="text-white/20 text-[12px]">
           Powered by{' '}
           <a
-            href="https://travelcb.co.uk"
+            href="https://cbtravel.uk"
             target="_blank"
             rel="noopener noreferrer"
             className="text-[#d4af37]/50 hover:text-[#d4af37] transition-colors"
           >
-            CB Travel · travelcb.co.uk
+            CB Travel · cbtravel.uk
           </a>
         </p>
       </footer>

@@ -52,17 +52,17 @@ export default function CookiePolicy() {
               2. Who We Are
             </h2>
             <p className="text-gray-700 leading-relaxed">
-              This website, <strong>travelcb.co.uk</strong>, is operated by{" "}
+              This website, <strong>cbtravel.uk</strong>, is operated by{" "}
               <strong>CB Travel (Corron Barnes T/A CB Travel)</strong>, a sole trader travel agency
               operating under JLT Group (Janine Loves Travel) as an authorised independent travel agent.
               If you have any questions about our use of cookies, please contact us
               at{" "}
               <a
-                href="mailto:privacy@travelcb.co.uk"
+                href="mailto:privacy@cbtravel.uk"
                 className="underline font-medium"
                 style={{ color: "#d4af37" }}
               >
-                privacy@travelcb.co.uk
+                privacy@cbtravel.uk
               </a>
               .
             </p>
@@ -262,7 +262,7 @@ export default function CookiePolicy() {
               <code className="text-xs bg-gray-100 px-1 py-0.5 rounded">
                 cb_cookie_consent
               </code>{" "}
-              entry from your browser's local storage for travelcb.co.uk, which will have the same effect.
+              entry from your browser's local storage for cbtravel.uk, which will have the same effect.
             </p>
             <p className="text-gray-700 leading-relaxed">
               You can also control and delete cookies through your browser settings.
@@ -385,21 +385,21 @@ export default function CookiePolicy() {
               <p className="text-gray-700 text-sm">
                 Email:{" "}
                 <a
-                  href="mailto:privacy@travelcb.co.uk"
+                  href="mailto:privacy@cbtravel.uk"
                   className="underline"
                   style={{ color: "#d4af37" }}
                 >
-                  privacy@travelcb.co.uk
+                  privacy@cbtravel.uk
                 </a>
               </p>
               <p className="text-gray-700 text-sm">
                 Website:{" "}
                 <a
-                  href="https://travelcb.co.uk"
+                  href="https://cbtravel.uk"
                   className="underline"
                   style={{ color: "#d4af37" }}
                 >
-                  travelcb.co.uk
+                  cbtravel.uk
                 </a>
               </p>
             </div>

@@ -928,13 +928,13 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground mt-1">Request a free personalised travel quote</p>
             </div>
           </Link>
-          <a href="mailto:hello@travelcb.co.uk">
+          <a href="mailto:hello@cbtravel.uk">
             <div className="group bg-white rounded-2xl border border-border p-5 shadow-sm hover:shadow-md transition-all cursor-pointer hover:border-primary/40">
               <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center mb-3 group-hover:bg-green-500 transition-all">
                 <MessageSquare size={18} className="text-green-600 group-hover:text-white" />
               </div>
               <p className="font-semibold text-foreground text-sm">Contact Us</p>
-              <p className="text-xs text-muted-foreground mt-1">Email our team at hello@travelcb.co.uk</p>
+              <p className="text-xs text-muted-foreground mt-1">Email our team at hello@cbtravel.uk</p>
             </div>
           </a>
           <Link href="/booking-intake">
@@ -1203,8 +1203,8 @@ export default function Dashboard() {
             CB Travel acts as the data controller for information held within this portal. Your data is used solely to manage your travel bookings and communicate
             relevant updates to you. You have the right to access, rectify, or request deletion of your personal data at any time.
             For privacy enquiries, contact us at{" "}
-            <a href="mailto:privacy@travelcb.co.uk" className="text-primary underline hover:text-primary/80">
-              privacy@travelcb.co.uk
+            <a href="mailto:privacy@cbtravel.uk" className="text-primary underline hover:text-primary/80">
+              privacy@cbtravel.uk
             </a>
             . We will never sell or share your data with third parties for marketing purposes.
           </p>
