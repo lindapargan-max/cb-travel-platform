@@ -2701,24 +2701,27 @@ ${faqContext}`;
   // ─── Destination Guides ───────────────────────────────────────────────────────
   guides: router({
     getAll: publicProcedure.query(async () => {
-      const db = await (await import('./db')).getDb();
+      const { getDb } = await import('./db');
       const { sql } = await import('drizzle-orm');
+      const db = await getDb();
       if (!db) return [];
       const rows = (await db.execute(sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, climate, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides WHERE published = true ORDER BY featured DESC, destination ASC`) as any)[0] as any[];
       return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
     }),
 
     getAllAdmin: adminProcedure.query(async () => {
-      const db = await (await import('./db')).getDb();
+      const { getDb } = await import('./db');
       const { sql } = await import('drizzle-orm');
+      const db = await getDb();
       if (!db) return [];
       const rows = (await db.execute(sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides ORDER BY createdAt DESC`) as any)[0] as any[];
       return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
     }),
 
     getBySlug: publicProcedure.input(z.object({ slug: z.string() })).query(async ({ input }) => {
-      const db = await (await import('./db')).getDb();
+      const { getDb } = await import('./db');
       const { sql } = await import('drizzle-orm');
+      const db = await getDb();
       if (!db) return null;
       const rows = (await db.execute(sql`SELECT * FROM destinationGuides WHERE slug = ${input.slug} AND published = true LIMIT 1`) as any)[0] as any[];
       if (!rows.length) return null;
@@ -2762,50 +2765,15 @@ ${faqContext}`;
       published: z.boolean().optional(),
       aiGenerated: z.boolean().optional(),
     })).mutation(async ({ input, ctx }) => {
-      const db = await (await import('./db')).getDb();
+      const { getDb } = await import('./db');
+      const { sql } = await import('drizzle-orm');
+      const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
       const slug = input.destination.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
-
-      const pool = (db as any)._.client as import('mysql2/promise').Pool;
-      await pool.execute(
-        `INSERT INTO destinationGuides (
-          slug, destination, country, region, continent,
-          tagline, overview, bestTimeToVisit, climate,
-          currency, language, timezone, flightTimeFromUK,
-          attractions, dining, accommodation, insiderTips,
-          gettingThere, visaInfo, curatedItinerary, tags,
-          heroImageBase64, heroImageMimeType,
-          featured, published, aiGenerated
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          slug,
-          input.destination,
-          input.country          ?? null,
-          input.region           ?? null,
-          input.continent        ?? null,
-          input.tagline          ?? null,
-          input.overview         ?? null,
-          input.bestTimeToVisit  ?? null,
-          input.climate          ?? null,
-          input.currency         ?? null,
-          input.language         ?? null,
-          input.timezone         ?? null,
-          input.flightTimeFromUK ?? null,
-          input.attractions      ? JSON.stringify(input.attractions)      : null,
-          input.dining           ? JSON.stringify(input.dining)           : null,
-          input.accommodation    ? JSON.stringify(input.accommodation)    : null,
-          input.insiderTips      ? JSON.stringify(input.insiderTips)      : null,
-          input.gettingThere     ?? null,
-          input.visaInfo         ?? null,
-          input.curatedItinerary ? JSON.stringify(input.curatedItinerary) : null,
-          input.tags             ? JSON.stringify(input.tags)             : null,
-          input.heroImageBase64  ?? null,
-          input.heroImageMimeType ?? null,
-          input.featured         ?? false,
-          input.published        ?? false,
-          input.aiGenerated      ?? false,
-        ]
-      );
+      await db.execute(sql`
+        INSERT INTO destinationGuides (slug, destination, country, region, continent, tagline, overview, bestTimeToVisit, climate, currency, language, timezone, flightTimeFromUK, attractions, dining, accommodation, insiderTips, gettingThere, visaInfo, curatedItinerary, tags, heroImageBase64, heroImageMimeType, featured, published, aiGenerated, createdBy)
+        VALUES (${slug}, ${input.destination}, ${input.country||null}, ${input.region||null}, ${input.continent||null}, ${input.tagline||null}, ${input.overview||null}, ${input.bestTimeToVisit||null}, ${input.climate||null}, ${input.currency||null}, ${input.language||null}, ${input.timezone||null}, ${input.flightTimeFromUK||null}, ${JSON.stringify(input.attractions||[])}, ${JSON.stringify(input.dining||[])}, ${JSON.stringify(input.accommodation||[])}, ${JSON.stringify(input.insiderTips||[])}, ${input.gettingThere||null}, ${input.visaInfo||null}, ${input.curatedItinerary ? JSON.stringify(input.curatedItinerary) : null}, ${JSON.stringify(input.tags||[])}, ${input.heroImageBase64||null}, ${input.heroImageMimeType||null}, ${input.featured??false}, ${input.published??false}, ${input.aiGenerated??false}, ${(ctx as any).user?.id||null})
+      `);
       return { ok: true };
     }),
 
@@ -2836,7 +2804,8 @@ ${faqContext}`;
       featured: z.boolean().optional(),
       published: z.boolean().optional(),
     })).mutation(async ({ input }) => {
-      const db = await (await import('./db')).getDb();
+      const { getDb } = await import('./db');
+      const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
       const fields: string[] = [];
       const vals: any[] = [];
@@ -2871,8 +2840,9 @@ ${faqContext}`;
     }),
 
     delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
-      const db = await (await import('./db')).getDb();
+      const { getDb } = await import('./db');
       const { sql } = await import('drizzle-orm');
+      const db = await getDb();
       if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
       await db.execute(sql`DELETE FROM destinationGuides WHERE id = ${input.id}`);
       return { ok: true };
