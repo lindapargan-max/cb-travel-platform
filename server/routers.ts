@@ -650,20 +650,12 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await deleteBookingPhoto(input.id);
-      } catch (e: any) {
-        console.error('[Guides Create] Error:', e);
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: e?.message || 'Failed to create guide' });
-      }
-    }),
+      }),
     updatePhotoCaption: adminMiddleware
       .input(z.object({ id: z.number(), caption: z.string() }))
       .mutation(async ({ input }) => {
         await updateBookingPhotoCaption(input.id, input.caption);
-      } catch (e: any) {
-        console.error('[Guides Create] Error:', e);
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: e?.message || 'Failed to create guide' });
-      }
-    }),
+      }),
 
     getChecklist: protectedProcedure
       .input(z.number())
