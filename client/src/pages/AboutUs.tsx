@@ -98,9 +98,9 @@ export default function AboutUs() {
                   <Phone size={15} className="text-primary flex-shrink-0" />
                   07495 823953
                 </a>
-                <a href="mailto:hello@travelcb.co.uk" className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors">
+                <a href="mailto:hello@cbtravel.uk" className="flex items-center gap-3 text-sm text-muted-foreground hover:text-primary transition-colors">
                   <Mail size={15} className="text-primary flex-shrink-0" />
-                  hello@travelcb.co.uk
+                  hello@cbtravel.uk
                 </a>
               </div>
 

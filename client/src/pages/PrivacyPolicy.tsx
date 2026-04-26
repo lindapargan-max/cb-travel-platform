@@ -42,11 +42,11 @@ export default function PrivacyPolicy() {
               collect, use, store, and share your personal data when you use our
               website at{" "}
               <a
-                href="https://travelcb.co.uk"
+                href="https://cbtravel.uk"
                 className="underline"
                 style={{ color: "#d4af37" }}
               >
-                travelcb.co.uk
+                cbtravel.uk
               </a>{" "}
               and our travel agency services.
             </p>
@@ -74,11 +74,11 @@ export default function PrivacyPolicy() {
               <p className="text-gray-700 mb-1">
                 <strong>Website:</strong>{" "}
                 <a
-                  href="https://travelcb.co.uk"
+                  href="https://cbtravel.uk"
                   className="underline"
                   style={{ color: "#d4af37" }}
                 >
-                  travelcb.co.uk
+                  cbtravel.uk
                 </a>
               </p>
               <p className="text-gray-700 mb-1">

@@ -1641,7 +1641,7 @@ function ComposeEmailSection({ allUsers }: { allUsers: any[] }) {
           />
         </div>
         <div className="flex items-center justify-between pt-2">
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail size={12} /> Emails are sent via CB Travel using noreply@travelcb.co.uk</p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail size={12} /> Emails are sent via CB Travel using noreply@cbtravel.uk</p>
           <Button
             className="rounded-xl btn-gold border-0 text-foreground gap-2"
             disabled={!recipientEmail || !subject || !message || sendEmail.isPending}
@@ -1764,8 +1764,8 @@ function GdprAdminSection() {
     <div class="section-title">Request Information</div>
     <div class="info-grid">
       <div class="info-item"><span class="info-label">Data Controller:</span><span class="info-value">Corron Barnes T/A CB Travel</span></div>
-      <div class="info-item"><span class="info-label">Website:</span><span class="info-value">travelcb.co.uk</span></div>
-      <div class="info-item"><span class="info-label">DPO Contact:</span><span class="info-value">privacy@travelcb.co.uk</span></div>
+      <div class="info-item"><span class="info-label">Website:</span><span class="info-value">cbtravel.uk</span></div>
+      <div class="info-item"><span class="info-label">DPO Contact:</span><span class="info-value">privacy@cbtravel.uk</span></div>
       <div class="info-item"><span class="info-label">Export Date:</span><span class="info-value">${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span></div>
       <div class="info-item"><span class="info-label">Data Subject:</span><span class="info-value">${data.email}</span></div>
       <div class="info-item"><span class="info-label">Account Status:</span><span class="info-value"><span class="badge ${data.hasAccount ? "badge-account" : "badge-no-account"}">${data.hasAccount ? "Registered Account" : "No Account Found"}</span></span></div>
@@ -1816,7 +1816,7 @@ function GdprAdminSection() {
 </div>
 
 <div class="footer">
-  <p><strong>Corron Barnes T/A CB Travel</strong> · travelcb.co.uk · privacy@travelcb.co.uk</p>
+  <p><strong>Corron Barnes T/A CB Travel</strong> · cbtravel.uk · privacy@cbtravel.uk</p>
   <p style="margin-top:4px;">This document has been produced in response to a Subject Access Request under UK GDPR Article 15.</p>
   <p>It contains all personal data held by CB Travel for the data subject identified above as of the export date.</p>
 </div>
@@ -2016,7 +2016,7 @@ function GdprAdminSection() {
           <li>All requests must be responded to within <strong className="text-foreground">30 calendar days</strong> of receipt.</li>
           <li>For SAR requests, click <strong className="text-foreground">Export PDF</strong> to generate a branded data export document containing all personal data held.</li>
           <li>For erasure requests, verify the data subject has no active bookings before processing deletion.</li>
-          <li>Data Controller: <strong className="text-foreground">Corron Barnes T/A CB Travel</strong> · DPO: privacy@travelcb.co.uk</li>
+          <li>Data Controller: <strong className="text-foreground">Corron Barnes T/A CB Travel</strong> · DPO: privacy@cbtravel.uk</li>
         </ul>
       </div>
     </div>
@@ -3085,7 +3085,7 @@ function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userB
                 <code className="text-xl font-bold font-mono text-primary tracking-wider">{user.referralCode || 'Not assigned'}</code>
                 {user.referralCode && (
                   <button
-                    onClick={() => { navigator.clipboard.writeText(`https://www.travelcb.co.uk/?ref=${user.referralCode}`); toast.success('Referral link copied!'); }}
+                    onClick={() => { navigator.clipboard.writeText(`https://cbtravel.uk/?ref=${user.referralCode}`); toast.success('Referral link copied!'); }}
                     className="text-xs text-primary hover:underline font-medium"
                   >
                     Copy link
@@ -4422,7 +4422,7 @@ export default function AdminDashboard() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm text-foreground">Access Password</h3>
-                    <p className="text-xs text-muted-foreground">Controls who can enter the AI Itinerary Generator at <code className="bg-muted px-1 rounded text-xs">travelcb.co.uk/itinerarygenerator</code></p>
+                    <p className="text-xs text-muted-foreground">Controls who can enter the AI Itinerary Generator at <code className="bg-muted px-1 rounded text-xs">cbtravel.uk/itinerarygenerator</code></p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -4458,7 +4458,7 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <h2 className="font-serif text-xl font-semibold text-[#1e3a5f]">Itinerary Generator Logs</h2>
-                      <p className="text-sm text-muted-foreground">Every login and generation at <code className="bg-muted px-1 rounded text-xs">travelcb.co.uk/itinerarygenerator</code></p>
+                      <p className="text-sm text-muted-foreground">Every login and generation at <code className="bg-muted px-1 rounded text-xs">cbtravel.uk/itinerarygenerator</code></p>
                     </div>
                   </div>
                   <div className="flex gap-3">
@@ -4565,7 +4565,7 @@ export default function AdminDashboard() {
                   { key: 'live_chat_whatsapp', label: '💬 Live Chat WhatsApp Number', placeholder: '07495823953' },
                   { key: 'openai_api_key', label: '🤖 OpenAI API Key', placeholder: 'sk-proj-...' },
                   { key: 'aviationstack_api_key', label: '✈️ AviationStack API Key', placeholder: 'Your API key' },
-                  { key: 'admin_email', label: '📧 Admin Email', placeholder: 'hello@travelcb.co.uk' },
+                  { key: 'admin_email', label: '📧 Admin Email', placeholder: 'hello@cbtravel.uk' },
                 ].map(({ key, label, placeholder }) => (
                   <div key={key} className="space-y-1.5">
                     <Label className="text-sm">{label}</Label>

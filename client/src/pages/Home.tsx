@@ -801,10 +801,10 @@ export default function Home() {
                   07495 823953
                 </Button>
               </a>
-              <a href="mailto:hello@travelcb.co.uk">
+              <a href="mailto:hello@cbtravel.uk">
                 <Button variant="outline" className="rounded-full border-primary text-primary hover:bg-primary hover:text-white gap-2 px-6">
                   <Mail size={15} />
-                  hello@travelcb.co.uk
+                  hello@cbtravel.uk
                 </Button>
               </a>
               <Link href="/quote-request">

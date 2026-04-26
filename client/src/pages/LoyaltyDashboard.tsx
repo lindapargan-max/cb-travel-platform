@@ -499,7 +499,7 @@ export default function LoyaltyDashboard() {
                       </span>
                       {r.status === "active" && (
                         <p className="text-xs text-muted-foreground text-right">
-                          Email <span className="text-foreground font-medium">hello@travelcb.co.uk</span> to redeem
+                          Email <span className="text-foreground font-medium">hello@cbtravel.uk</span> to redeem
                         </p>
                       )}
                     </div>

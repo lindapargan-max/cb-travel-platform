@@ -138,7 +138,7 @@ export async function generateVoucherImage(data: VoucherData): Promise<Buffer> {
   <text x="500" y="462" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#555555">WhatsApp: 07534 168295</text>
 
   <!-- Issued date footer note -->
-  <text x="760" y="462" text-anchor="end" font-family="Arial, sans-serif" font-size="9" fill="#aaaaaa">Issued: ${escapeXml(data.issuedDate)} · travelcb.co.uk</text>
+  <text x="760" y="462" text-anchor="end" font-family="Arial, sans-serif" font-size="9" fill="#aaaaaa">Issued: ${escapeXml(data.issuedDate)} · cbtravel.uk</text>
 </svg>`;
 
   const pngBuffer = await sharp(Buffer.from(svg)).png({ quality: 95 }).toBuffer();

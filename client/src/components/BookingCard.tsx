@@ -618,7 +618,7 @@ window.addEventListener('load', function(){
     doc.setFont('helvetica','normal');
     doc.setFontSize(8);
     doc.setTextColor(120,120,120);
-    doc.text('CB Travel — hello@travelcb.co.uk — www.travelcb.co.uk', W/2, footerY + 5, { align:'center' });
+    doc.text('CB Travel — hello@cbtravel.uk — cbtravel.uk', W/2, footerY + 5, { align:'center' });
     doc.text('This confirmation is subject to our full booking terms & conditions.', W/2, footerY + 10, { align:'center' });
     doc.text('Page 1', PR, footerY + 10, { align:'right' });
 
@@ -894,7 +894,7 @@ window.addEventListener('load', function(){
             <div className="text-center py-8 text-muted-foreground">
               <p className="text-4xl mb-2">✈️</p>
               <p className="text-sm">Flight tracking number not set for this booking.</p>
-              <p className="text-xs mt-1">Contact hello@travelcb.co.uk to add it.</p>
+              <p className="text-xs mt-1">Contact hello@cbtravel.uk to add it.</p>
             </div>
           )}
         </TabsContent>

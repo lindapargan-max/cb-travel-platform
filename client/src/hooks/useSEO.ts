@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 
-const DEFAULT_OG_IMAGE = 'https://www.travelcb.co.uk/icons/icon-512.png';
+const DEFAULT_OG_IMAGE = 'https://cbtravel.uk/icons/icon-512.png';
 const SITE_NAME = 'CB Travel';
 
 interface SEOProps {
