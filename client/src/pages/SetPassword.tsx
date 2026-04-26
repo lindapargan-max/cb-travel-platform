@@ -21,7 +21,7 @@ export default function SetPassword() {
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
       <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center">
         <h1 className="text-2xl font-bold text-red-600 mb-3">Invalid Link</h1>
-        <p className="text-slate-600">This link is invalid or has expired. Please contact <a href="mailto:hello@travelcb.co.uk" className="text-[#1e3a5f] underline">hello@travelcb.co.uk</a> for a new one.</p>
+        <p className="text-slate-600">This link is invalid or has expired. Please contact <a href="mailto:hello@cbtravel.uk" className="text-[#1e3a5f] underline">hello@cbtravel.uk</a> for a new one.</p>
       </div>
     </div>
   );

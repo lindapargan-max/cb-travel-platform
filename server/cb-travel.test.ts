@@ -44,7 +44,7 @@ function createAuthContext(): { ctx: TrpcContext; clearedCookies: CookieCall[] }
   const user: AuthenticatedUser = {
     id: 1,
     openId: "local_test_user",
-    email: "test@travelcb.co.uk",
+    email: "test@cbtravel.uk",
     name: "Test User",
     loginMethod: "password",
     role: "user",
@@ -90,7 +90,7 @@ describe("auth.me", () => {
     const caller = appRouter.createCaller(ctx);
     const me = await caller.auth.me();
     expect(me).not.toBeNull();
-    expect(me?.email).toBe("test@travelcb.co.uk");
+    expect(me?.email).toBe("test@cbtravel.uk");
     expect(me?.role).toBe("user");
   });
 
@@ -120,7 +120,7 @@ describe("admin access control", () => {
     const adminUser: AuthenticatedUser = {
       id: 2,
       openId: "local_admin_user",
-      email: "admin@travelcb.co.uk",
+      email: "admin@cbtravel.uk",
       name: "Admin",
       loginMethod: "password",
       role: "admin",

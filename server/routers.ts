@@ -1903,18 +1903,18 @@ IMPORTANT: Return ONLY valid JSON, no markdown code blocks.`;
       }))
       .mutation(async ({ input }) => {
         const aiEnabled = (await getAppSetting('ai_features_enabled')) !== 'false';
-        if (!aiEnabled) return { answer: "Our team is here to help! Please email hello@travelcb.co.uk or call 07495 823953.", canAnswer: false };
+        if (!aiEnabled) return { answer: "Our team is here to help! Please email hello@cbtravel.uk or call 07495 823953.", canAnswer: false };
         const apiKey = process.env.GROQ_API_KEY || (await getAppSetting('groq_api_key'));
-        if (!apiKey) return { answer: "Please contact us at hello@travelcb.co.uk or call 07495 823953.", canAnswer: false };
+        if (!apiKey) return { answer: "Please contact us at hello@cbtravel.uk or call 07495 823953.", canAnswer: false };
         const faqItems = await getAllFaqItemsForAI();
         const faqContext = faqItems.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
         const systemPrompt = `You are a helpful assistant for CB Travel, a UK travel agency based at travelcb.co.uk. Answer questions helpfully and concisely based on the FAQ data below.
 
-If you cannot answer confidently from the FAQ data, suggest the user emails hello@travelcb.co.uk or calls 07495 823953.
+If you cannot answer confidently from the FAQ data, suggest the user emails hello@cbtravel.uk or calls 07495 823953.
 
 Key facts:
 - Company: CB Travel
-- Email: hello@travelcb.co.uk
+- Email: hello@cbtravel.uk
 - Phone: 07495 823953
 - Website: travelcb.co.uk
 
@@ -1941,10 +1941,10 @@ ${faqContext}`;
         });
         if (!resp.ok) {
           console.error("[AI] Groq error:", await resp.text());
-          return { answer: "Please contact us at hello@travelcb.co.uk or call 07495 823953.", canAnswer: false };
+          return { answer: "Please contact us at hello@cbtravel.uk or call 07495 823953.", canAnswer: false };
         }
         const data = await resp.json() as any;
-        const answer = data.choices?.[0]?.message?.content || "Please contact us at hello@travelcb.co.uk";
+        const answer = data.choices?.[0]?.message?.content || "Please contact us at hello@cbtravel.uk";
         return { answer, canAnswer: true };
       }),
 
