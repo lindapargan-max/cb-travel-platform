@@ -134,7 +134,7 @@ export async function generateVoucherImage(data: VoucherData): Promise<Buffer> {
   <text x="150" y="462" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="#888888" letter-spacing="1">AUTHORISED SIGNATURE — CB TRAVEL</text>
 
   <!-- How to redeem -->
-  <text x="500" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#555555">Email: hello@travelcb.co.uk</text>
+  <text x="500" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#555555">Email: hello@cbtravel.uk</text>
   <text x="500" y="462" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#555555">WhatsApp: 07534 168295</text>
 
   <!-- Issued date footer note -->

@@ -314,7 +314,7 @@ export default function QuotePage() {
               >
                 Accept This Quote <ArrowRight size={16} className="ml-1" />
               </Button>
-              <a href={`mailto:info@travelcb.co.uk?subject=Quote Changes - ${quote.quoteRef}`} className="flex-1">
+              <a href={`mailto:info@cbtravel.uk?subject=Quote Changes - ${quote.quoteRef}`} className="flex-1">
                 <Button variant="outline" className="w-full rounded-xl">
                   Request Changes
                 </Button>

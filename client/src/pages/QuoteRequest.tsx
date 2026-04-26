@@ -504,11 +504,11 @@ export default function QuoteRequest() {
                       <p className="font-semibold text-sm group-hover:text-yellow-400 transition-colors">07495 823953</p>
                     </div>
                   </a>
-                  <a href="mailto:hello@travelcb.co.uk" className="flex items-center gap-3 group">
+                  <a href="mailto:hello@cbtravel.uk" className="flex items-center gap-3 group">
                     <div className="w-9 h-9 bg-white/10 rounded-xl flex items-center justify-center flex-shrink-0"><Mail size={15} /></div>
                     <div>
                       <p className="text-xs text-white/60">Email us</p>
-                      <p className="font-semibold text-sm group-hover:text-yellow-400 transition-colors">hello@travelcb.co.uk</p>
+                      <p className="font-semibold text-sm group-hover:text-yellow-400 transition-colors">hello@cbtravel.uk</p>
                     </div>
                   </a>
                   <div className="flex items-center gap-3">

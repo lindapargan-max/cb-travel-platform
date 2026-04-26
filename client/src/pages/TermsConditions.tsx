@@ -80,8 +80,8 @@ export default function TermsConditions() {
               Please read these terms carefully before making a booking. By proceeding with a
               booking, you confirm that you have read, understood, and agree to be bound by these
               Terms &amp; Conditions. If you have any questions, please contact us at{" "}
-              <a href="mailto:hello@travelcb.co.uk" className="font-semibold underline">
-                hello@travelcb.co.uk
+              <a href="mailto:hello@cbtravel.uk" className="font-semibold underline">
+                hello@cbtravel.uk
               </a>{" "}
               or call{" "}
               <a href="tel:07495823953" className="font-semibold underline">
@@ -173,10 +173,10 @@ export default function TermsConditions() {
             </p>
             <div className="flex flex-wrap gap-4">
               <a
-                href="mailto:hello@travelcb.co.uk"
+                href="mailto:hello@cbtravel.uk"
                 className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline"
               >
-                hello@travelcb.co.uk
+                hello@cbtravel.uk
               </a>
               <span className="text-muted-foreground">·</span>
               <a

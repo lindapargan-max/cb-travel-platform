@@ -1,8 +1,8 @@
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM = "CB Travel <noreply@travelcb.co.uk>";
-const ADMIN_EMAIL = "hello@travelcb.co.uk";
+const FROM = "CB Travel <noreply@cbtravel.uk>";
+const ADMIN_EMAIL = "hello@cbtravel.uk";
 const SITE_URL = process.env.SITE_URL || "https://www.travelcb.co.uk";
 
 type Attachment = { filename: string; content: Buffer | string; contentType?: string };
@@ -108,7 +108,7 @@ function baseTemplate(content: string, preheader?: string) {
               <p style="margin:0 0 10px;font-size:13px;font-family:'Segoe UI',Arial,sans-serif;">
                 <a href="tel:07495823953" style="color:#d4af37;text-decoration:none;font-weight:600;">07495 823953</a>
                 &nbsp;&nbsp;·&nbsp;&nbsp;
-                <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">hello@travelcb.co.uk</a>
+                <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">hello@cbtravel.uk</a>
                 &nbsp;&nbsp;·&nbsp;&nbsp;
                 <a href="${SITE_URL}" style="color:#d4af37;text-decoration:none;font-weight:600;">travelcb.co.uk</a>
               </p>
@@ -118,7 +118,7 @@ function baseTemplate(content: string, preheader?: string) {
               <p style="margin:0;font-size:11px;color:#4a6080;font-family:'Segoe UI',Arial,sans-serif;line-height:1.7;">
                 &copy; 2026 CB Travel. Registered in England &amp; Wales.<br/>
                 Your personal data is handled in accordance with UK GDPR and the Data Protection Act 2018.<br/>
-                <a href="mailto:privacy@travelcb.co.uk" style="color:#5a7090;text-decoration:underline;">privacy@travelcb.co.uk</a>
+                <a href="mailto:privacy@cbtravel.uk" style="color:#5a7090;text-decoration:underline;">privacy@cbtravel.uk</a>
               </p>
             </td>
           </tr>
@@ -223,7 +223,7 @@ export async function sendSetPasswordEmail(to: string, name: string, setPassword
       <li>Loyalty rewards programme</li>
       <li>Tailored quotes &amp; passport manager</li>
     </ul>
-    ${p(`Questions? Reach us at <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">hello@travelcb.co.uk</a> or call <a href="tel:07495823953" style="color:#d4af37;font-weight:600;">07495 823953</a>.`)}
+    ${p(`Questions? Reach us at <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">hello@cbtravel.uk</a> or call <a href="tel:07495823953" style="color:#d4af37;font-weight:600;">07495 823953</a>.`)}
     <p style="margin:24px 0 0;font-size:14px;color:#6b7280;font-family:'Segoe UI',Arial,sans-serif;font-style:italic;">Warm regards,<br/><strong style="color:#0b2240;font-style:normal;">Corron at CB Travel</strong></p>
   `, `Welcome to CB Travel — set your password to access your personal travel portal`);
   await send(to, `Welcome to CB Travel — Set Your Password ✈️`, html, "set_password");
@@ -242,7 +242,7 @@ export async function sendWelcomeWithPromoEmail(to: string, name: string, setPas
     ${p(`<em style="font-size:13px;color:#9ca3af;">Link valid for 24 hours.</em>`)}
     ${divider()}
     ${promoBox(promoCode, `£${promoAmount} off your first booking`, "Your Welcome Gift", "Valid for 12 months · One use only")}
-    ${p(`Any questions? <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">hello@travelcb.co.uk</a>`)}
+    ${p(`Any questions? <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">hello@cbtravel.uk</a>`)}
     <p style="margin:24px 0 0;font-size:14px;color:#6b7280;font-family:'Segoe UI',Arial,sans-serif;font-style:italic;">Warm regards,<br/><strong style="color:#0b2240;font-style:normal;">Corron at CB Travel</strong></p>
   `, `Welcome to CB Travel — your £${promoAmount} gift is waiting inside`);
   await send(to, `Welcome to CB Travel — Set Your Password & Your £${promoAmount} Gift 🎁`, html, "welcome_promo");
@@ -353,7 +353,7 @@ export async function sendQuoteRequestConfirmationEmail(to: string, name: string
     ${p(`One of our travel specialists will be in touch within 24 hours to begin designing your perfect trip.`)}
     ${alertBox(`In the meantime, feel free to explore our <a href="${SITE_URL}" style="color:#92400e;font-weight:600;">website</a> for inspiration, or reply to this email with any additional details you'd like us to know.`, "amber")}
     ${btn("Explore CB Travel →", SITE_URL)}
-    ${p(`Questions? <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">hello@travelcb.co.uk</a> · <a href="tel:07495823953" style="color:#d4af37;font-weight:600;">07495 823953</a>`)}
+    ${p(`Questions? <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">hello@cbtravel.uk</a> · <a href="tel:07495823953" style="color:#d4af37;font-weight:600;">07495 823953</a>`)}
     <p style="margin:24px 0 0;font-size:14px;color:#6b7280;font-family:'Segoe UI',Arial,sans-serif;font-style:italic;">Warm regards,<br/><strong style="color:#0b2240;font-style:normal;">Corron at CB Travel</strong></p>
   `, `We've received your quote request for ${destination} — watch your inbox`);
   await send(to, `Quote Request Received — ${destination} | CB Travel`, html, "quote_request");
@@ -403,7 +403,7 @@ export async function sendIntakeFormConfirmationEmail(to: string, name: string, 
     ${infoTable(infoRow("Reference", `<span style="font-family:'Courier New',monospace;">${submissionRef}</span>`))}
     ${p(`We'll be in touch to confirm your booking, answer any questions, and arrange payment. You'll hear from us very soon.`)}
     ${btn("Log In to Your Portal →", `${SITE_URL}/login`)}
-    ${p(`Any questions? Just reply to this email. <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">hello@travelcb.co.uk</a>`)}
+    ${p(`Any questions? Just reply to this email. <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">hello@cbtravel.uk</a>`)}
     <p style="margin:24px 0 0;font-size:14px;color:#6b7280;font-family:'Segoe UI',Arial,sans-serif;font-style:italic;">Warm regards,<br/><strong style="color:#0b2240;font-style:normal;">Corron at CB Travel</strong></p>
   `, `We've received your booking form — ref ${submissionRef}`);
   await send(to, `Booking Request Received — Ref: ${submissionRef} | CB Travel`, html, "intake_form");
@@ -439,7 +439,7 @@ export async function sendAccountDisabledEmail(to: string, name: string) {
     ${p(`Hi ${firstName}, your CB Travel account has been temporarily suspended.`)}
     ${p(`If you believe this is an error, or would like to understand more, please get in touch with us directly:`)}
     ${infoTable(
-      infoRow("Email", `<a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">hello@travelcb.co.uk</a>`) +
+      infoRow("Email", `<a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">hello@cbtravel.uk</a>`) +
       infoRow("Phone", `<a href="tel:07495823953" style="color:#d4af37;font-weight:600;">07495 823953</a>`)
     )}
     ${p(`We aim to resolve any account issues as quickly as possible.`)}
@@ -454,7 +454,7 @@ export async function sendAccountEnabledEmail(to: string, name: string) {
     ${h2(`Great news, ${firstName}! 🎉`)}
     ${p(`Your CB Travel account has been re-activated — you can now log in and access everything as normal.`)}
     ${btn("Log In to Your Portal →", `${SITE_URL}/login`)}
-    ${p(`Welcome back! If you have any questions, we're always here. <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">hello@travelcb.co.uk</a>`)}
+    ${p(`Welcome back! If you have any questions, we're always here. <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">hello@cbtravel.uk</a>`)}
     <p style="margin:24px 0 0;font-size:14px;color:#6b7280;font-family:'Segoe UI',Arial,sans-serif;font-style:italic;">Warm regards,<br/><strong style="color:#0b2240;font-style:normal;">Corron at CB Travel</strong></p>
   `, `Your CB Travel account has been re-activated`);
   await send(to, `CB Travel — Your Account Has Been Re-Activated`, html, "account_enabled");
@@ -468,7 +468,7 @@ export async function sendCustomEmail(to: string, name: string, subject: string,
     ${h2(`Hi ${firstName},`)}
     ${body.split("\n").filter(l => l.trim()).map(line => p(line)).join("")}
     ${divider()}
-    ${p(`Questions? Reply to this email or contact us at <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">hello@travelcb.co.uk</a>`)}
+    ${p(`Questions? Reply to this email or contact us at <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">hello@cbtravel.uk</a>`)}
     <p style="margin:24px 0 0;font-size:14px;color:#6b7280;font-family:'Segoe UI',Arial,sans-serif;font-style:italic;">Warm regards,<br/><strong style="color:#0b2240;font-style:normal;">Corron at CB Travel</strong></p>
   `);
   await send(to, subject, html, "custom");
@@ -567,7 +567,7 @@ export async function sendReferralWelcomeEmail(to: string, name: string, promoCo
     ${promoBox(promoCode, `£10 off your first booking`, "Welcome Gift — From Your Friend", "Valid for 12 months · One use only")}
     ${p(`We can't wait to help you plan your perfect trip. Browse our latest deals or request a bespoke quote — we'll take it from there.`)}
     ${goldBtn("Explore CB Travel →", SITE_URL)}
-    ${p(`Any questions? <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">hello@travelcb.co.uk</a>`)}
+    ${p(`Any questions? <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">hello@cbtravel.uk</a>`)}
     <p style="margin:24px 0 0;font-size:14px;color:#6b7280;font-family:'Segoe UI',Arial,sans-serif;font-style:italic;">Warm regards,<br/><strong style="color:#0b2240;font-style:normal;">Corron at CB Travel</strong></p>
   `, `Welcome to CB Travel — your welcome gift from a friend is waiting`);
   await send(to, `Welcome to CB Travel — A Gift from Your Friend! 🎁`, html, "referral_welcome");
@@ -607,7 +607,7 @@ export async function sendLoyaltyRewardEmail(
       <div style="background:#fdf8ee;border:2px solid #d4af37;border-radius:14px;padding:20px;margin:0 0 20px;text-align:center;">
         <p style="margin:0 0 8px;font-size:15px;color:#0b2240;font-family:'Segoe UI',Arial,sans-serif;font-weight:700;">📋 How to Redeem</p>
         <p style="margin:0 0 10px;font-size:14px;color:#374151;font-family:'Segoe UI',Arial,sans-serif;line-height:1.7;">Simply <strong>mention your voucher reference</strong> when you next contact us to book. No printing needed!</p>
-        <p style="margin:0;font-size:13px;color:#6b7280;">📧 <a href="mailto:hello@travelcb.co.uk" style="color:#0b2240;font-weight:600;">hello@travelcb.co.uk</a> &nbsp;·&nbsp; 💬 <a href="https://wa.me/447534168295" style="color:#0b2240;font-weight:600;">WhatsApp</a></p>
+        <p style="margin:0;font-size:13px;color:#6b7280;">📧 <a href="mailto:hello@cbtravel.uk" style="color:#0b2240;font-weight:600;">hello@cbtravel.uk</a> &nbsp;·&nbsp; 💬 <a href="https://wa.me/447534168295" style="color:#0b2240;font-weight:600;">WhatsApp</a></p>
       </div>`;
 
   const html = baseTemplate(`
@@ -685,7 +685,7 @@ export async function sendNotification7Day(
       </ul>
     </div>
     ${btn("View My Trip →", `${SITE_URL}/dashboard`)}
-    ${p(`Questions? <a href="tel:07495823953" style="color:#d4af37;font-weight:600;">07495 823953</a> · <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">hello@travelcb.co.uk</a>`)}
+    ${p(`Questions? <a href="tel:07495823953" style="color:#d4af37;font-weight:600;">07495 823953</a> · <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">hello@cbtravel.uk</a>`)}
   `, `Your ${booking.destination} holiday is just 7 days away — check your checklist`);
   await send(to, `Your Holiday to ${booking.destination} is in 7 Days! 🌍 | CB Travel`, html, "notification_7day");
 }
@@ -736,7 +736,7 @@ export async function sendNotificationDeparture(
     <div style="background:linear-gradient(160deg,#0b2240 0%,#1a3a60 100%);border-radius:12px;padding:20px 24px;margin:20px 0;text-align:center;">
       <p style="margin:0 0 6px;color:#d4af37;font-size:13px;font-family:'Segoe UI',Arial,sans-serif;font-weight:700;letter-spacing:1px;">CB Travel — Emergency Contact</p>
       <p style="margin:0;color:#ffffff;font-size:20px;font-family:'Segoe UI',Arial,sans-serif;font-weight:700;"><a href="tel:07495823953" style="color:#ffffff;text-decoration:none;">07495 823953</a></p>
-      <p style="margin:4px 0 0;color:rgba(255,255,255,0.6);font-size:12px;">hello@travelcb.co.uk</p>
+      <p style="margin:4px 0 0;color:rgba(255,255,255,0.6);font-size:12px;">hello@cbtravel.uk</p>
     </div>
     ${p(`All your travel documents are in your portal. Have the most wonderful journey — bon voyage! 🥂`)}
     ${btn("View My Documents →", `${SITE_URL}/dashboard`)}
@@ -794,7 +794,7 @@ export async function sendDocumentPasswordEmail(to: string, name: string, docume
     )}
     ${alertBox(`Keep this password safe. Do not share it with anyone. It is unique to your document.`, "blue")}
     ${btn("View My Documents →", `${SITE_URL}/dashboard`)}
-    ${p(`Questions? Reply to this email or contact us at <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">hello@travelcb.co.uk</a>`)}
+    ${p(`Questions? Reply to this email or contact us at <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">hello@cbtravel.uk</a>`)}
     <p style="margin:24px 0 0;font-size:14px;color:#6b7280;font-family:'Segoe UI',Arial,sans-serif;font-style:italic;">Warm regards,<br/><strong style="color:#0b2240;font-style:normal;">Corron at CB Travel</strong></p>
   `, `Your secure document password for ${documentName}`);
   await send(to, `Your Secure Document Password — ${documentName} | CB Travel`, html, "document_password");
@@ -819,7 +819,7 @@ export async function sendRedemptionCancelledEmail(
     }
     ${p(`If you have any questions about this cancellation, we're always happy to help:`)}
     ${infoTable(
-      infoRow("Email", `<a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">hello@travelcb.co.uk</a>`) +
+      infoRow("Email", `<a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">hello@cbtravel.uk</a>`) +
       infoRow("WhatsApp", `<a href="https://wa.me/447534168295" style="color:#d4af37;font-weight:600;">07534 168295</a>`)
     )}
     ${btn("View My Loyalty Account →", `${SITE_URL}/loyalty`)}
@@ -859,7 +859,7 @@ export async function sendVoucherEmail(opts: {
     )}
     <div style="background:#fdf8ee;border:2px solid #d4af37;border-radius:12px;padding:20px 24px;margin:20px 0;">
       <p style="margin:0 0 10px;font-size:14px;color:#0b2240;font-family:'Segoe UI',Arial,sans-serif;font-weight:700;">📋 How to Redeem</p>
-      <p style="margin:0 0 6px;font-size:13px;color:#374151;font-family:'Segoe UI',Arial,sans-serif;">• Email <a href="mailto:hello@travelcb.co.uk" style="color:#0b2240;font-weight:600;">hello@travelcb.co.uk</a> with your voucher code</p>
+      <p style="margin:0 0 6px;font-size:13px;color:#374151;font-family:'Segoe UI',Arial,sans-serif;">• Email <a href="mailto:hello@cbtravel.uk" style="color:#0b2240;font-weight:600;">hello@cbtravel.uk</a> with your voucher code</p>
       <p style="margin:0 0 6px;font-size:13px;color:#374151;font-family:'Segoe UI',Arial,sans-serif;">• Or message us on <a href="https://wa.me/447534168295" style="color:#0b2240;font-weight:600;">WhatsApp</a></p>
       <p style="margin:0;font-size:13px;color:#374151;font-family:'Segoe UI',Arial,sans-serif;">• Your voucher image is attached to this email</p>
     </div>
@@ -946,7 +946,7 @@ export async function sendPostHolidayReviewEmail(
     </div>
     ${p(`You can also share private feedback through your portal — as a thank you, you'll receive a discount towards your next adventure.`)}
     ${btn("Share Private Feedback →", `${SITE_URL}/dashboard`)}
-    ${p(`Already thinking about your next trip? <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">Get in touch</a> — we'd love to help.`)}
+    ${p(`Already thinking about your next trip? <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">Get in touch</a> — we'd love to help.`)}
     <p style="margin:24px 0 0;font-size:14px;color:#6b7280;font-family:'Segoe UI',Arial,sans-serif;font-style:italic;">Warm regards,<br/><strong style="color:#0b2240;font-style:normal;">Corron at CB Travel</strong></p>
   `, `Welcome home from ${destination} — we'd love to hear about your trip`);
   await send(to, `How Was ${destination}, ${firstName}? We'd Love to Hear | CB Travel`, html, "post_holiday_review");
@@ -989,7 +989,7 @@ export async function sendLoyaltyPointsEmail(
     ${goldBtn("View My Loyalty Account →", `${SITE_URL}/loyalty`)}
     <p style="color:#9ca3af;font-size:12px;text-align:center;font-family:'Segoe UI',Arial,sans-serif;">
       Use your points to claim rewards in the CB Travel Loyalty Club.<br/>
-      Questions? <a href="mailto:hello@travelcb.co.uk" style="color:#6b7280;">hello@travelcb.co.uk</a>
+      Questions? <a href="mailto:hello@cbtravel.uk" style="color:#6b7280;">hello@cbtravel.uk</a>
     </p>
   `, `${isEarn ? `+${pointsAdded.toLocaleString()} points added to your CB Travel account` : "Your CB Travel loyalty points have been updated"}`);
   return send(
@@ -1025,7 +1025,7 @@ export async function sendTicketReplyEmail(
       <p style="color:#374151;font-size:15px;line-height:1.75;margin:0;white-space:pre-wrap;font-family:'Segoe UI',Arial,sans-serif;">${escHtml(adminMessage)}</p>
     </div>
     ${btn("View Full Thread →", `${SITE_URL}/dashboard`)}
-    ${p(`You can reply directly from your dashboard, or contact us at <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;font-weight:600;">hello@travelcb.co.uk</a>`)}
+    ${p(`You can reply directly from your dashboard, or contact us at <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;font-weight:600;">hello@cbtravel.uk</a>`)}
   `, `Our team has replied to your support ticket — ${ticketSubject}`);
   return send(to, `Re: ${ticketSubject} — CB Travel Support`, html, "ticket_reply");
 }
@@ -1166,7 +1166,7 @@ export async function sendAdminQuoteEmail(
           <p style="margin:0 0 8px;font-size:13px;font-family:'Segoe UI',Arial,sans-serif;">
             <a href="tel:07495823953" style="color:#d4af37;text-decoration:none;font-weight:600;">07495 823953</a>
             &nbsp;·&nbsp;
-            <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">hello@travelcb.co.uk</a>
+            <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">hello@cbtravel.uk</a>
             &nbsp;·&nbsp;
             <a href="https://www.travelcb.co.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">travelcb.co.uk</a>
           </p>
@@ -1268,7 +1268,7 @@ export async function sendPaymentReminderEmail(
           <p style="margin:0 0 8px;font-size:13px;font-family:'Segoe UI',Arial,sans-serif;">
             <a href="tel:07495823953" style="color:#d4af37;text-decoration:none;font-weight:600;">07495 823953</a>
             &nbsp;·&nbsp;
-            <a href="mailto:hello@travelcb.co.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">hello@travelcb.co.uk</a>
+            <a href="mailto:hello@cbtravel.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">hello@cbtravel.uk</a>
             &nbsp;·&nbsp;
             <a href="https://www.travelcb.co.uk" style="color:#d4af37;text-decoration:none;font-weight:600;">travelcb.co.uk</a>
           </p>

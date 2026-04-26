@@ -84,11 +84,11 @@ export default function PrivacyPolicy() {
               <p className="text-gray-700 mb-1">
                 <strong>Privacy Contact:</strong>{" "}
                 <a
-                  href="mailto:privacy@travelcb.co.uk"
+                  href="mailto:privacy@cbtravel.uk"
                   className="underline"
                   style={{ color: "#d4af37" }}
                 >
-                  privacy@travelcb.co.uk
+                  privacy@cbtravel.uk
                 </a>
               </p>
               <p className="text-gray-700">
@@ -632,11 +632,11 @@ export default function PrivacyPolicy() {
                   <li>
                     Or email{" "}
                     <a
-                      href="mailto:privacy@travelcb.co.uk"
+                      href="mailto:privacy@cbtravel.uk"
                       className="underline"
                       style={{ color: "#d4af37" }}
                     >
-                      privacy@travelcb.co.uk
+                      privacy@cbtravel.uk
                     </a>
                   </li>
                 </ul>
@@ -674,11 +674,11 @@ export default function PrivacyPolicy() {
                   <li>
                     Or email{" "}
                     <a
-                      href="mailto:privacy@travelcb.co.uk"
+                      href="mailto:privacy@cbtravel.uk"
                       className="underline"
                       style={{ color: "#d4af37" }}
                     >
-                      privacy@travelcb.co.uk
+                      privacy@cbtravel.uk
                     </a>
                   </li>
                 </ul>
@@ -703,11 +703,11 @@ export default function PrivacyPolicy() {
                   For any other privacy-related queries or to exercise any other
                   right, please contact us at{" "}
                   <a
-                    href="mailto:privacy@travelcb.co.uk"
+                    href="mailto:privacy@cbtravel.uk"
                     className="underline"
                     style={{ color: "#d4af37" }}
                   >
-                    privacy@travelcb.co.uk
+                    privacy@cbtravel.uk
                   </a>
                   .
                 </p>
@@ -830,11 +830,11 @@ export default function PrivacyPolicy() {
               concerns before you contact the ICO, so please get in touch with us
               first at{" "}
               <a
-                href="mailto:privacy@travelcb.co.uk"
+                href="mailto:privacy@cbtravel.uk"
                 className="underline"
                 style={{ color: "#d4af37" }}
               >
-                privacy@travelcb.co.uk
+                privacy@cbtravel.uk
               </a>
               .
             </p>
