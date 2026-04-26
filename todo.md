@@ -10,7 +10,7 @@
 ## Global UI
 - [x] Stunning CSS theme (deep navy/gold luxury palette, Playfair Display + Inter fonts)
 - [x] Responsive navigation with logo, links, auth buttons
-- [x] Footer with contact info (07495 823953, hello@travelcb.co.uk), links, subscribe
+- [x] Footer with contact info (07495 823953, hello@cbtravel.uk), links, subscribe
 - [x] Remove all Manus watermarks/branding
 - [x] CB Travel logo uploaded to CDN and used in nav/footer
 
@@ -27,7 +27,7 @@
 - [x] Register page (email, phone number, password only)
 - [x] Login page (email + password)
 - [x] Protected routes for dashboard and admin
-- [x] Admin email auto-assignment (admin@travelcb.co.uk)
+- [x] Admin email auto-assignment (admin@cbtravel.uk)
 
 ## User Dashboard
 - [x] "My Bookings" tab - list of bookings with reference, status, amounts paid/remaining
@@ -47,7 +47,7 @@
 - [x] Send booking link to client (client can view their booking)
 
 ## Additional Pages
-- [x] Quote Request page (full form, sends to hello@travelcb.co.uk)
+- [x] Quote Request page (full form, sends to hello@cbtravel.uk)
 - [x] Privacy Policy page (custom, CB Travel branded)
 - [x] Terms & Conditions page (with provided content, CB Travel branded)
 - [x] FAQ page (dedicated page)
