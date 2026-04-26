@@ -120,7 +120,7 @@ export async function getUserByEmail(email: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-const ADMIN_EMAILS = ["admin@cbtravel.uk"];
+const ADMIN_EMAILS = ["admin@travelcb.co.uk"];
 
 export async function createUserWithPassword(email: string, name: string, phone: string, passwordHash: string) {
   const db = await getDb();
@@ -2695,9 +2695,17 @@ export async function getAllDestinationGuides() {
   const db = await getDb();
   if (!db) return [];
   const rows = (await db.execute(
-    sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, climate, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides ORDER BY createdAt DESC`
+    sql`SELECT id, slug, destination, country, region, continent, tagline, overview, bestTimeToVisit, climate, currency, language, timezone, flightTimeFromUK, attractions, dining, accommodation, insiderTips, gettingThere, visaInfo, curatedItinerary, tags, heroImageBase64, heroImageMimeType, featured, published, viewCount, aiGenerated, createdAt, createdBy FROM destinationGuides ORDER BY createdAt DESC`
   ) as any)[0] as any[];
-  return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
+  return rows.map((r: any) => ({
+    ...r,
+    tags: r.tags ? JSON.parse(r.tags) : [],
+    attractions: r.attractions ? JSON.parse(r.attractions) : [],
+    dining: r.dining ? JSON.parse(r.dining) : [],
+    accommodation: r.accommodation ? JSON.parse(r.accommodation) : [],
+    insiderTips: r.insiderTips ? JSON.parse(r.insiderTips) : [],
+    curatedItinerary: r.curatedItinerary ? JSON.parse(r.curatedItinerary) : null,
+  }));
 }
 
 export async function getPublishedDestinationGuides() {
