@@ -1432,7 +1432,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
             let currentPoints = input.points;
             let tier = 'bronze';
             try {
-              const { getDb } = await import('./db');
+              const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
               const { sql } = await import('drizzle-orm');
               const db = await getDb();
               if (db) {
@@ -2744,18 +2744,66 @@ ${faqContext}`;
         const { getDb } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
-        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-        const slug = input.destination.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
-        console.log('[Guides Create] Inserting guide:', { destination: input.destination, slug });
+        if (!db) {
+          const errMsg = 'Database connection unavailable';
+          console.error('[Guides Create] Database Error:', errMsg);
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: errMsg });
+        }
+        
+        // Generate unique slug with collision handling
+        let slug: string;
+        try {
+          slug = await generateUniqueDestinationGuideSlug(input.destination);
+        } catch (slugErr: any) {
+          console.error('[Guides Create] Slug Generation Error:', slugErr);
+          throw new TRPCError({ 
+            code: 'BAD_REQUEST', 
+            message: slugErr?.message || 'Invalid destination name for guide' 
+          });
+        }
+        
+        console.log('[Guides Create] Inserting guide:', { destination: input.destination, slug, userId: (ctx as any).user?.id });
         const result = await db.execute(sql`
           INSERT INTO destinationGuides (slug, destination, country, region, continent, tagline, overview, bestTimeToVisit, climate, currency, language, timezone, flightTimeFromUK, attractions, dining, accommodation, insiderTips, gettingThere, visaInfo, curatedItinerary, tags, heroImageBase64, heroImageMimeType, featured, published, aiGenerated, createdBy)
           VALUES (${slug}, ${input.destination}, ${input.country||null}, ${input.region||null}, ${input.continent||null}, ${input.tagline||null}, ${input.overview||null}, ${input.bestTimeToVisit||null}, ${input.climate||null}, ${input.currency||null}, ${input.language||null}, ${input.timezone||null}, ${input.flightTimeFromUK||null}, ${JSON.stringify(input.attractions||[])}, ${JSON.stringify(input.dining||[])}, ${JSON.stringify(input.accommodation||[])}, ${JSON.stringify(input.insiderTips||[])}, ${input.gettingThere||null}, ${input.visaInfo||null}, ${input.curatedItinerary ? JSON.stringify(input.curatedItinerary) : null}, ${JSON.stringify(input.tags||[])}, ${input.heroImageBase64||null}, ${input.heroImageMimeType||null}, ${input.featured??false}, ${input.published??false}, ${input.aiGenerated??false}, ${(ctx as any).user?.id||null})
         `);
-        console.log('[Guides Create] Insert result:', result);
-        return { ok: true };
+        console.log('[Guides Create] Insert successful:', { insertId: (result as any)?.insertId, slug });
+        
+        // Verify the insert by fetching the created guide
+        const rows = (await db.execute(
+          sql`SELECT id, slug, destination, country, region, continent, tagline, overview, bestTimeToVisit, climate, currency, language, timezone, flightTimeFromUK, attractions, dining, accommodation, insiderTips, gettingThere, visaInfo, curatedItinerary, tags, heroImageBase64, heroImageMimeType, featured, published, viewCount, aiGenerated, createdAt, createdBy FROM destinationGuides WHERE slug = ${slug} LIMIT 1`
+        ) as any)[0] as any[];
+        
+        if (!rows || rows.length === 0) {
+          console.error('[Guides Create] Verification failed - guide not found after insert');
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Guide created but verification failed' });
+        }
+        
+        const createdGuide = rows[0];
+        // Parse JSON fields
+        if (createdGuide.tags) createdGuide.tags = JSON.parse(createdGuide.tags);
+        if (createdGuide.attractions) createdGuide.attractions = JSON.parse(createdGuide.attractions);
+        if (createdGuide.dining) createdGuide.dining = JSON.parse(createdGuide.dining);
+        if (createdGuide.accommodation) createdGuide.accommodation = JSON.parse(createdGuide.accommodation);
+        if (createdGuide.insiderTips) createdGuide.insiderTips = JSON.parse(createdGuide.insiderTips);
+        if (createdGuide.curatedItinerary) createdGuide.curatedItinerary = JSON.parse(createdGuide.curatedItinerary);
+        
+        console.log('[Guides Create] Complete:', { id: createdGuide.id, destination: createdGuide.destination, slug });
+        return { ok: true, guide: createdGuide };
       } catch (e: any) {
-        console.error('[Guides Create] Error:', e);
-        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: e?.message || 'Failed to create guide' });
+        console.error('[Guides Create] Error:', {
+          message: e?.message,
+          code: e?.code,
+          cause: e?.cause,
+          stack: e?.stack?.split('\n')[0]
+        });
+        
+        // Re-throw TRPCError as-is, otherwise wrap it
+        if (e instanceof TRPCError) throw e;
+        throw new TRPCError({ 
+          code: 'INTERNAL_SERVER_ERROR', 
+          message: e?.message || 'Failed to create guide' 
+        });
       }
     }),
 

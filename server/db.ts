@@ -2691,6 +2691,48 @@ export async function ensureDestinationGuidesTable() {
 
 // ─── Destination Guides CRUD helpers ─────────────────────────────────────────
 
+export async function generateUniqueDestinationGuideSlug(destination: string): Promise<string> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Generate base slug from destination name
+  const baseSlug = destination
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')  // Remove special characters
+    .replace(/\s+/g, '-')          // Replace spaces with hyphens
+    .replace(/-+/g, '-')           // Normalize multiple hyphens
+    .trim();
+  
+  if (!baseSlug) throw new Error("Destination name must contain alphanumeric characters");
+  
+  // Check if base slug exists
+  const existing = (await db.execute(
+    sql`SELECT COUNT(*) as count FROM destinationGuides WHERE slug = ${baseSlug}`
+  ) as any)[0] as any[];
+  
+  if (existing.length > 0 && existing[0].count === 0) {
+    // Base slug is available
+    return baseSlug;
+  }
+  
+  // Base slug exists, find next available numbered slug
+  let counter = 1;
+  while (counter < 1000) {
+    const candidateSlug = `${baseSlug}-${counter}`;
+    const checkResult = (await db.execute(
+      sql`SELECT COUNT(*) as count FROM destinationGuides WHERE slug = ${candidateSlug}`
+    ) as any)[0] as any[];
+    
+    if (checkResult.length > 0 && checkResult[0].count === 0) {
+      return candidateSlug;
+    }
+    counter++;
+  }
+  
+  // Fallback: append timestamp
+  return `${baseSlug}-${Date.now()}`;
+}
+
 export async function getAllDestinationGuides() {
   const db = await getDb();
   if (!db) return [];
