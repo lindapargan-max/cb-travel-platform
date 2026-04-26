@@ -1540,7 +1540,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
     getLeaderboard: adminProcedure.query(async () => {
       // Override db.ts which selects non-existent column 'currentPoints' — actual column is 'points'
       try {
-        const { getDb } = await import('./db');
+        const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
         if (!db) return [];
@@ -1558,7 +1558,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
     getAllRedemptionsAdmin: adminProcedure.query(async () => getAllRedemptionsAdmin()),
     getTaskCentre: adminProcedure.query(async () => {
       try {
-        const { getDb } = await import('./db');
+        const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
         if (!db) return { pendingRedemptions: 0, openTickets: 0, newQuotes: 0, newIntake: 0, pendingBookings: 0 };
@@ -2006,7 +2006,7 @@ ${faqContext}`;
     // Admin: get access logs
     getItineraryAccessLogs: adminMiddleware.query(async () => {
       try {
-        const { getDb } = await import('./db');
+        const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
         if (!db) return [];
@@ -2105,7 +2105,7 @@ ${faqContext}`;
       .mutation(async ({ input, ctx }) => {
         const userId = (ctx as any).user?.id;
         if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
-        const { getDb } = await import('./db');
+        const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
@@ -2136,7 +2136,7 @@ ${faqContext}`;
       .mutation(async ({ input, ctx }) => {
         const userId = (ctx as any).user?.id;
         if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
-        const { getDb } = await import('./db');
+        const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
@@ -2741,7 +2741,7 @@ ${faqContext}`;
       aiGenerated: z.boolean().optional(),
     })).mutation(async ({ input, ctx }) => {
       try {
-        const { getDb } = await import('./db');
+        const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
         if (!db) {
