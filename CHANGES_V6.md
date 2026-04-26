@@ -123,7 +123,7 @@ A comprehensive update to the CB Travel platform introducing 22 new features, 3 
 - **File new:** `client/src/components/SOSButton.tsx` — red SOS button on active/upcoming bookings
 - **File changed:** `client/src/pages/Dashboard.tsx` — added to booking details
 - **File changed:** `server/routers.ts` — `sos.trigger` mutation
-- **File changed:** `server/emails.ts` — `sendSOSAlertEmail` — emails hello@travelcb.co.uk with 🆘 alert
+- **File changed:** `server/emails.ts` — `sendSOSAlertEmail` — emails hello@cbtravel.uk with 🆘 alert
 - Modal shows: local emergency number, police, British Embassy, WhatsApp tap-to-call, admin mobile
 - Logs to `auditLogs` with `actorType: 'client'`
 
@@ -174,7 +174,7 @@ A comprehensive update to the CB Travel platform introducing 22 new features, 3 
 - **File new:** `client/src/components/AIChatbot.tsx` — floating chat bubble (bottom-left)
 - **File changed:** `server/routers.ts` — `ai.chatbotAnswer` uses FAQ items from DB via OpenAI
 - **File changed:** `client/src/App.tsx` — added globally
-- Admin toggle via `ai_features_enabled`. Falls back to "email hello@travelcb.co.uk".
+- Admin toggle via `ai_features_enabled`. Falls back to "email hello@cbtravel.uk".
 
 ### FEAT-25: QR Code Generator
 - **File new:** `client/src/components/QRCodeDisplay.tsx`
@@ -187,7 +187,7 @@ A comprehensive update to the CB Travel platform introducing 22 new features, 3 
 - **File changed:** `server/emails.ts` — complete visual redesign
 - Navy header (#1e3a5f), gold accent (#e8b84b), white card body
 - Font: 'Segoe UI', Arial, sans-serif
-- Footer: "CB Travel | hello@travelcb.co.uk | travelcb.co.uk | © 2026 CB Travel"
+- Footer: "CB Travel | hello@cbtravel.uk | www.cbtravel.uk | © 2026 CB Travel"
 - Applied to ALL 20+ email templates including loyalty, SOS, birthday, notifications
 
 ---
