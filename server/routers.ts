@@ -650,14 +650,20 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input }) => {
         await deleteBookingPhoto(input.id);
-        return { ok: true };
-      }),
+      } catch (e: any) {
+        console.error('[Guides Create] Error:', e);
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: e?.message || 'Failed to create guide' });
+      }
+    }),
     updatePhotoCaption: adminMiddleware
       .input(z.object({ id: z.number(), caption: z.string() }))
       .mutation(async ({ input }) => {
         await updateBookingPhotoCaption(input.id, input.caption);
-        return { ok: true };
-      }),
+      } catch (e: any) {
+        console.error('[Guides Create] Error:', e);
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: e?.message || 'Failed to create guide' });
+      }
+    }),
 
     getChecklist: protectedProcedure
       .input(z.number())
@@ -2765,16 +2771,21 @@ ${faqContext}`;
       published: z.boolean().optional(),
       aiGenerated: z.boolean().optional(),
     })).mutation(async ({ input, ctx }) => {
-      const { getDb } = await import('./db');
-      const { sql } = await import('drizzle-orm');
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-      const slug = input.destination.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
-      await db.execute(sql`
-        INSERT INTO destinationGuides (slug, destination, country, region, continent, tagline, overview, bestTimeToVisit, climate, currency, language, timezone, flightTimeFromUK, attractions, dining, accommodation, insiderTips, gettingThere, visaInfo, curatedItinerary, tags, heroImageBase64, heroImageMimeType, featured, published, aiGenerated, createdBy)
-        VALUES (${slug}, ${input.destination}, ${input.country||null}, ${input.region||null}, ${input.continent||null}, ${input.tagline||null}, ${input.overview||null}, ${input.bestTimeToVisit||null}, ${input.climate||null}, ${input.currency||null}, ${input.language||null}, ${input.timezone||null}, ${input.flightTimeFromUK||null}, ${JSON.stringify(input.attractions||[])}, ${JSON.stringify(input.dining||[])}, ${JSON.stringify(input.accommodation||[])}, ${JSON.stringify(input.insiderTips||[])}, ${input.gettingThere||null}, ${input.visaInfo||null}, ${input.curatedItinerary ? JSON.stringify(input.curatedItinerary) : null}, ${JSON.stringify(input.tags||[])}, ${input.heroImageBase64||null}, ${input.heroImageMimeType||null}, ${input.featured??false}, ${input.published??false}, ${input.aiGenerated??false}, ${(ctx as any).user?.id||null})
-      `);
-      return { ok: true };
+      try {
+        const { getDb } = await import('./db');
+        const { sql } = await import('drizzle-orm');
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        const slug = input.destination.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+        await db.execute(sql`
+          INSERT INTO destinationGuides (slug, destination, country, region, continent, tagline, overview, bestTimeToVisit, climate, currency, language, timezone, flightTimeFromUK, attractions, dining, accommodation, insiderTips, gettingThere, visaInfo, curatedItinerary, tags, heroImageBase64, heroImageMimeType, featured, published, aiGenerated, createdBy)
+          VALUES (${slug}, ${input.destination}, ${input.country||null}, ${input.region||null}, ${input.continent||null}, ${input.tagline||null}, ${input.overview||null}, ${input.bestTimeToVisit||null}, ${input.climate||null}, ${input.currency||null}, ${input.language||null}, ${input.timezone||null}, ${input.flightTimeFromUK||null}, ${JSON.stringify(input.attractions||[])}, ${JSON.stringify(input.dining||[])}, ${JSON.stringify(input.accommodation||[])}, ${JSON.stringify(input.insiderTips||[])}, ${input.gettingThere||null}, ${input.visaInfo||null}, ${input.curatedItinerary ? JSON.stringify(input.curatedItinerary) : null}, ${JSON.stringify(input.tags||[])}, ${input.heroImageBase64||null}, ${input.heroImageMimeType||null}, ${input.featured??false}, ${input.published??false}, ${input.aiGenerated??false}, ${(ctx as any).user?.id||null})
+        `);
+        return { ok: true };
+      } catch (e: any) {
+        console.error('[Guides Create] Error:', e);
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: e?.message || 'Failed to create guide' });
+      }
     }),
 
     update: adminProcedure.input(z.object({
