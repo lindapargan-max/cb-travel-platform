@@ -53,7 +53,7 @@ export const gdprRouter = router({
       const requestId = result[0].insertId;
 
       await sendNotificationEmail(
-        "privacy@travelcb.co.uk",
+        "privacy@cbtravel.uk",
         `[GDPR] New Subject Access Request #${requestId}`,
         `New SAR from ${input.name} (${input.email}). Must respond within 30 days.`
       );
@@ -97,7 +97,7 @@ export const gdprRouter = router({
       const requestId = result[0].insertId;
 
       await sendNotificationEmail(
-        "privacy@travelcb.co.uk",
+        "privacy@cbtravel.uk",
         `[GDPR] New Erasure Request #${requestId}`,
         `New erasure request from ${input.name} (${input.email}). Must respond within 30 days.`
       );
@@ -159,7 +159,7 @@ export const gdprRouter = router({
     });
 
     await sendNotificationEmail(
-      "privacy@travelcb.co.uk",
+      "privacy@cbtravel.uk",
       `[GDPR] Account Deletion Request — User #${userId}`,
       `User #${userId} (${ctx.user.email}) has requested account deletion.`
     );
@@ -268,7 +268,7 @@ export const gdprRouter = router({
       return {
         exportDate: new Date().toISOString(),
         dataController: "Corron Barnes T/A CB Travel",
-        dpoContact: "privacy@travelcb.co.uk",
+        dpoContact: "privacy@cbtravel.uk",
         website: "travelcb.co.uk",
         email: input.email,
         hasAccount: !!user,
