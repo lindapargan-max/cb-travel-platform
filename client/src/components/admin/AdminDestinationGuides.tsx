@@ -9,10 +9,21 @@ const CONTINENTS = ["Europe", "Asia", "Africa", "Americas", "Middle East", "Ocea
 
 export default function AdminDestinationGuides() {
   const { data: guides = [], isLoading, refetch } = trpc.guides.getAllAdmin.useQuery();
-  const createMut = trpc.guides.create.useMutation({ onSuccess: () => { refetch(); setShowModal(false); toast.success("Guide created!"); }, onError: (e) => toast.error(e.message || "Failed to create guide") });
-  const updateMut = trpc.guides.update.useMutation({ onSuccess: () => { refetch(); setEditing(null); toast.success("Guide updated!"); }, onError: (e) => toast.error(e.message || "Failed to update guide") });
-  const deleteMut = trpc.guides.delete.useMutation({ onSuccess: () => { refetch(); toast.success("Guide deleted."); }, onError: (e) => toast.error(e.message || "Failed to delete guide") });
-  const generateMut = trpc.guides.generateContent.useMutation();
+  const createMut = trpc.guides.create.useMutation({
+    onSuccess: () => { refetch(); setShowModal(false); toast.success("Guide created!"); },
+    onError: (e) => toast.error(e.message || "Failed to create guide"),
+  });
+  const updateMut = trpc.guides.update.useMutation({
+    onSuccess: () => { refetch(); setEditing(null); toast.success("Guide updated!"); },
+    onError: (e) => toast.error(e.message || "Failed to update guide"),
+  });
+  const deleteMut = trpc.guides.delete.useMutation({
+    onSuccess: () => { refetch(); toast.success("Guide deleted."); },
+    onError: (e) => toast.error(e.message || "Failed to delete guide"),
+  });
+  const generateMut = trpc.guides.generateContent.useMutation({
+    onError: (e) => toast.error(e.message || "AI generation failed"),
+  });
 
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<any>(null);
@@ -92,8 +103,8 @@ export default function AdminDestinationGuides() {
     try {
       if (editing) { await updateMut.mutateAsync({ id: editing.id, ...payload }); }
       else { await createMut.mutateAsync(payload); }
-    } catch (e: any) {
-      toast.error(e?.message || "Something went wrong — please try again");
+    } catch (err: any) {
+      toast.error(err?.message || "Something went wrong — please try again");
     }
   }
 
