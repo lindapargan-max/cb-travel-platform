@@ -6,6 +6,14 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { gdprRouter } from "./gdpr-router";
+import {
+  aiAssistantRouter,
+  emailTemplatesRouter,
+  bookingEmailsRouter,
+  socialHubRouter,
+  destinationSpotlightRouter,
+  travelHacksRouter,
+} from "./admin-extensions-router";
 import { getJLTTerms, clearJLTTermsCache } from "./jlt-terms";
 import {
   sendWelcomeEmail,

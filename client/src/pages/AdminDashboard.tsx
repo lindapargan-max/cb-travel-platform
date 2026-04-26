@@ -39,6 +39,11 @@ import AdminQuotesManager from "@/components/admin/AdminQuotesManager";
 import AdminCommunityManager from "@/components/admin/AdminCommunityManager";
 import AdminDestinationGuides from "@/components/admin/AdminDestinationGuides";
 import AdminNotificationsManager from "@/components/admin/AdminNotificationsManager";
+import AdminAIAssistant from "@/components/admin/AdminAIAssistant";
+import AdminBookingEmailsHub from "@/components/admin/AdminBookingEmailsHub";
+import AdminSocialHub from "@/components/admin/AdminSocialHub";
+import AdminDestinationSpotlight from "@/components/admin/AdminDestinationSpotlight";
+import AdminTravelHacks from "@/components/admin/AdminTravelHacks";
 import { useSEO } from '@/hooks/useSEO';
 
 function StatusBadge({ status }: { status: string }) {
@@ -4653,7 +4658,26 @@ export default function AdminDashboard() {
   </div>
 </TabsContent>
 
-            </Tabs>
+            <TabsContent value="ai-assistant">
+  <AdminAIAssistant />
+</TabsContent>
+
+<TabsContent value="booking-emails">
+  <AdminBookingEmailsHub />
+</TabsContent>
+
+<TabsContent value="social-hub">
+  <AdminSocialHub />
+</TabsContent>
+
+<TabsContent value="spotlight">
+  <AdminDestinationSpotlight />
+</TabsContent>
+
+<TabsContent value="travel-hacks">
+  <AdminTravelHacks />
+</TabsContent>
+  </Tabs>
           </div>
         </main>
       </div>
