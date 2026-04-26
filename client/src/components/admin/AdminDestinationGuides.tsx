@@ -21,6 +21,10 @@ export default function AdminDestinationGuides() {
     onSuccess: () => { refetch(); toast.success("Guide deleted."); },
     onError: (e) => toast.error(e.message || "Failed to delete guide"),
   });
+  const publishMut = trpc.guides.publish.useMutation({
+    onSuccess: () => { refetch(); toast.success("Guide published!"); },
+    onError: (e) => toast.error(e.message || "Failed to publish guide"),
+  });
   const generateMut = trpc.guides.generateContent.useMutation({
     onError: (e) => toast.error(e.message || "AI generation failed"),
   });
@@ -206,7 +210,8 @@ export default function AdminDestinationGuides() {
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] text-muted-foreground">👁 {g.viewCount || 0} views</p>
                   <div className="flex gap-1.5">
-                    <button onClick={() => window.open(`/destinations/${g.slug}`, '_blank')} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted transition-colors">Preview</button>
+                    {!g.published && <button onClick={() => { if (confirm(`Publish "${g.destination}" to make it visible on the public site?`)) publishMut.mutate({ id: g.id }); }} className="text-xs text-emerald-600 hover:text-emerald-700 px-2 py-1 rounded hover:bg-emerald-50 transition-colors font-semibold">Publish</button>}
+                    {g.published && <button onClick={() => window.open(`/destinations/${g.slug}`, '_blank')} className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded hover:bg-muted transition-colors">Preview</button>}
                     <button onClick={() => openEdit(g)} className="text-xs text-[#0b2240] hover:text-[#d4af37] px-2 py-1 rounded hover:bg-muted transition-colors font-semibold">Edit</button>
                     <button onClick={() => { if (confirm(`Delete "${g.destination}"?`)) deleteMut.mutate({ id: g.id }); }} className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 transition-colors">Delete</button>
                   </div>
