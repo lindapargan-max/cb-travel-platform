@@ -3329,108 +3329,141 @@ function AdminDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="px-4 lg:px-8 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Tab Navigation */}
-          <TabsList className="flex flex-wrap gap-1 h-auto bg-muted/50 p-1.5 rounded-2xl mb-6 w-full">
-            <TabsTrigger value="command" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <LayoutDashboard size={13} /> Command
+      <div className="flex min-h-[calc(100vh-65px)]">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex w-full" orientation="vertical">
+
+          {/* LEFT SIDEBAR */}
+          <TabsList className="flex flex-col h-auto w-64 shrink-0 bg-muted/40 border-r border-border p-3 gap-0.5 rounded-none sticky top-[65px] self-start overflow-y-auto" style={{ maxHeight: 'calc(100vh - 65px)' }}>
+
+            {/* Overview */}
+            <div className="px-2 pt-2 pb-1">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Overview</p>
+            </div>
+            <TabsTrigger value="command" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <LayoutDashboard size={15} /> Command Centre
             </TabsTrigger>
-            <TabsTrigger value="bookings" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Package size={13} /> Bookings
+
+            {/* Bookings & Clients */}
+            <div className="px-2 pt-4 pb-1">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Bookings & Clients</p>
+            </div>
+            <TabsTrigger value="bookings" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Package size={15} /> Bookings
             </TabsTrigger>
-            <TabsTrigger value="deals" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Tag size={13} /> Deals
+            <TabsTrigger value="quotes" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <FileText size={15} /> Quotes
             </TabsTrigger>
-            <TabsTrigger value="quotes" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <FileText size={13} /> Quotes
+            <TabsTrigger value="quotes-manager" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <ClipboardList size={15} /> Quote Manager
             </TabsTrigger>
-            <TabsTrigger value="quotes-manager" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <ClipboardList size={13} /> Quote Manager
+            <TabsTrigger value="accounts" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Users size={15} /> Accounts
             </TabsTrigger>
-            <TabsTrigger value="accounts" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Users size={13} /> Accounts
+            <TabsTrigger value="intake" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <UserPlus size={15} /> Intake
             </TabsTrigger>
-            <TabsTrigger value="intake" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <UserPlus size={13} /> Intake
+            <TabsTrigger value="client-notes" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <MessageSquare size={15} /> CRM Notes
             </TabsTrigger>
-            <TabsTrigger value="client-notes" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <MessageSquare size={13} /> CRM Notes
+            <TabsTrigger value="passports" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Globe size={15} /> Passports
             </TabsTrigger>
-            <TabsTrigger value="subscribers" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Mail size={13} /> Subscribers
+            <TabsTrigger value="payments" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <CreditCard size={15} /> Payment Plans
             </TabsTrigger>
-            <TabsTrigger value="passports" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Globe size={13} /> Passports
+
+            {/* Content & Marketing */}
+            <div className="px-2 pt-4 pb-1">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Content & Marketing</p>
+            </div>
+            <TabsTrigger value="deals" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Tag size={15} /> Deals
             </TabsTrigger>
-            <TabsTrigger value="payments" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <CreditCard size={13} /> Payments
+            <TabsTrigger value="destinations" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <MapPin size={15} /> Destinations
             </TabsTrigger>
-            <TabsTrigger value="destinations" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <MapPin size={13} /> Destinations
+            <TabsTrigger value="destination-guides" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <MapPinned size={15} /> Dest. Guides
             </TabsTrigger>
-            <TabsTrigger value="destination-guides" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <MapPinned size={13} /> Dest. Guides
+            <TabsTrigger value="spotlight" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Star size={15} /> Destination Spotlight
             </TabsTrigger>
-            <TabsTrigger value="spotlight" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Star size={13} /> Spotlight
+            <TabsTrigger value="travel-hacks" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <TrendingUp size={15} /> Travel Hacks
             </TabsTrigger>
-            <TabsTrigger value="travel-hacks" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <TrendingUp size={13} /> Travel Hacks
+            <TabsTrigger value="faq" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <HelpCircle size={15} /> FAQ
             </TabsTrigger>
-            <TabsTrigger value="faq" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <HelpCircle size={13} /> FAQ
+            <TabsTrigger value="testimonials" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Star size={15} /> Testimonials
             </TabsTrigger>
-            <TabsTrigger value="testimonials" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Star size={13} /> Testimonials
+            <TabsTrigger value="community" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Users2 size={15} /> Community
             </TabsTrigger>
-            <TabsTrigger value="community" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Users2 size={13} /> Community
+            <TabsTrigger value="social-hub" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Heart size={15} /> Social Hub
             </TabsTrigger>
-            <TabsTrigger value="social-hub" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Heart size={13} /> Social Hub
+            <TabsTrigger value="ai-assistant" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Monitor size={15} /> AI Assistant
             </TabsTrigger>
-            <TabsTrigger value="campaigns" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Send size={13} /> Campaigns
+
+            {/* Communications */}
+            <div className="px-2 pt-4 pb-1">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Communications</p>
+            </div>
+            <TabsTrigger value="subscribers" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Mail size={15} /> Subscribers
             </TabsTrigger>
-            <TabsTrigger value="emails" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <MailCheck size={13} /> Emails
+            <TabsTrigger value="campaigns" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Send size={15} /> Campaigns
             </TabsTrigger>
-            <TabsTrigger value="booking-emails" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Mail size={13} /> Booking Emails
+            <TabsTrigger value="emails" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <MailCheck size={15} /> Emails
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Bell size={13} /> Notifications
+            <TabsTrigger value="booking-emails" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Mail size={15} /> Booking Emails
             </TabsTrigger>
-            <TabsTrigger value="support" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <HelpCircle size={13} /> Support
+            <TabsTrigger value="notifications" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Bell size={15} /> Notifications
             </TabsTrigger>
-            <TabsTrigger value="ai-assistant" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Monitor size={13} /> AI Assistant
+            <TabsTrigger value="support" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <HelpCircle size={15} /> Support
             </TabsTrigger>
-            <TabsTrigger value="promos" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Percent size={13} /> Promos
+
+            {/* Loyalty & Promos */}
+            <div className="px-2 pt-4 pb-1">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">Loyalty & Promos</p>
+            </div>
+            <TabsTrigger value="promos" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Percent size={15} /> Promos
             </TabsTrigger>
-            <TabsTrigger value="loyalty-rules" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Star size={13} /> Loyalty Rules
+            <TabsTrigger value="loyalty-rules" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Star size={15} /> Loyalty Rules
             </TabsTrigger>
-            <TabsTrigger value="loyalty-admin" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Trophy size={13} /> Loyalty Hub
+            <TabsTrigger value="loyalty-admin" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Trophy size={15} /> Loyalty Hub
             </TabsTrigger>
-            <TabsTrigger value="audit" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <BarChart3 size={13} /> Audit Log
+
+            {/* System */}
+            <div className="px-2 pt-4 pb-1">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">System</p>
+            </div>
+            <TabsTrigger value="audit" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <BarChart3 size={15} /> Audit Log
             </TabsTrigger>
-            <TabsTrigger value="itinerary-logs" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Clock size={13} /> Itinerary Logs
+            <TabsTrigger value="itinerary-logs" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Clock size={15} /> Itinerary Logs
             </TabsTrigger>
-            <TabsTrigger value="gdpr" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Shield size={13} /> GDPR
+            <TabsTrigger value="gdpr" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Shield size={15} /> GDPR
             </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
-              <Settings size={13} /> Settings
+            <TabsTrigger value="settings" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2.5 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
+              <Settings size={15} /> Settings
             </TabsTrigger>
           </TabsList>
 
+          {/* MAIN CONTENT AREA */}
+          <div className="flex-1 p-6 min-w-0">
           <div className="max-w-7xl">
           <TabsContent value="bookings">
             {/* Bookings mini stats */}
@@ -4574,6 +4607,7 @@ function AdminDashboard() {
 <TabsContent value="travel-hacks">
   <AdminTravelHacks />
 </TabsContent>
+          </div>
           </div>
         </Tabs>
       </div>
