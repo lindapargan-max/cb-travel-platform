@@ -2645,10 +2645,8 @@ export async function ensureDestinationGuidesTable() {
   try {
     const db = await getDb();
     if (!db) return;
-    // Drop the broken/incomplete table and recreate it with all columns defined
-    // in the schema. This table holds only AI-generated guide content and has no
-    // critical user data, so a clean rebuild is safe.
-    await db.execute(sql.raw(`DROP TABLE IF EXISTS destinationGuides`));
+    // Create the table only if it does not already exist — never drop it, as
+    // that would destroy all saved guides on every server restart.
     await db.execute(sql.raw(`
       CREATE TABLE IF NOT EXISTS destinationGuides (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -2685,10 +2683,106 @@ export async function ensureDestinationGuidesTable() {
         UNIQUE KEY slugIdx (slug)
       )
     `));
-    console.log('[DB] ensureDestinationGuidesTable: table recreated with full schema');
+    console.log('[DB] ensureDestinationGuidesTable: table ready');
   } catch (e) {
     console.error('[DB] ensureDestinationGuidesTable error:', e);
   }
+}
+
+// ─── Destination Guides CRUD helpers ─────────────────────────────────────────
+
+export async function getAllDestinationGuides() {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = (await db.execute(
+    sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, climate, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides ORDER BY createdAt DESC`
+  ) as any)[0] as any[];
+  return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
+}
+
+export async function getPublishedDestinationGuides() {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = (await db.execute(
+    sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, climate, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides WHERE published = true ORDER BY featured DESC, destination ASC`
+  ) as any)[0] as any[];
+  return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
+}
+
+export async function getDestinationGuideBySlug(slug: string) {
+  const db = await getDb();
+  if (!db) return null;
+  const rows = (await db.execute(
+    sql`SELECT * FROM destinationGuides WHERE slug = ${slug} AND published = true LIMIT 1`
+  ) as any)[0] as any[];
+  if (!rows.length) return null;
+  const r = rows[0];
+  await db.execute(sql`UPDATE destinationGuides SET viewCount = viewCount + 1 WHERE id = ${r.id}`);
+  return {
+    ...r,
+    attractions: r.attractions ? JSON.parse(r.attractions) : [],
+    dining: r.dining ? JSON.parse(r.dining) : [],
+    accommodation: r.accommodation ? JSON.parse(r.accommodation) : [],
+    insiderTips: r.insiderTips ? JSON.parse(r.insiderTips) : [],
+    curatedItinerary: r.curatedItinerary ? JSON.parse(r.curatedItinerary) : null,
+    tags: r.tags ? JSON.parse(r.tags) : [],
+  };
+}
+
+export async function updateDestinationGuide(id: number, data: Partial<{
+  destination: string; country: string; region: string; continent: string;
+  tagline: string; overview: string; bestTimeToVisit: string; climate: string;
+  currency: string; language: string; timezone: string; flightTimeFromUK: string;
+  attractions: any[]; dining: any[]; accommodation: any[]; insiderTips: string[];
+  gettingThere: string; visaInfo: string; curatedItinerary: any; tags: string[];
+  heroImageBase64: string; heroImageMimeType: string; featured: boolean; published: boolean;
+}>) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const fields: string[] = [];
+  const vals: any[] = [];
+  if (data.destination !== undefined) { fields.push("destination = ?"); vals.push(data.destination); }
+  if (data.country !== undefined) { fields.push("country = ?"); vals.push(data.country); }
+  if (data.region !== undefined) { fields.push("region = ?"); vals.push(data.region); }
+  if (data.continent !== undefined) { fields.push("continent = ?"); vals.push(data.continent); }
+  if (data.tagline !== undefined) { fields.push("tagline = ?"); vals.push(data.tagline); }
+  if (data.overview !== undefined) { fields.push("overview = ?"); vals.push(data.overview); }
+  if (data.bestTimeToVisit !== undefined) { fields.push("bestTimeToVisit = ?"); vals.push(data.bestTimeToVisit); }
+  if (data.climate !== undefined) { fields.push("climate = ?"); vals.push(data.climate); }
+  if (data.currency !== undefined) { fields.push("currency = ?"); vals.push(data.currency); }
+  if (data.language !== undefined) { fields.push("language = ?"); vals.push(data.language); }
+  if (data.timezone !== undefined) { fields.push("timezone = ?"); vals.push(data.timezone); }
+  if (data.flightTimeFromUK !== undefined) { fields.push("flightTimeFromUK = ?"); vals.push(data.flightTimeFromUK); }
+  if (data.attractions !== undefined) { fields.push("attractions = ?"); vals.push(JSON.stringify(data.attractions)); }
+  if (data.dining !== undefined) { fields.push("dining = ?"); vals.push(JSON.stringify(data.dining)); }
+  if (data.accommodation !== undefined) { fields.push("accommodation = ?"); vals.push(JSON.stringify(data.accommodation)); }
+  if (data.insiderTips !== undefined) { fields.push("insiderTips = ?"); vals.push(JSON.stringify(data.insiderTips)); }
+  if (data.gettingThere !== undefined) { fields.push("gettingThere = ?"); vals.push(data.gettingThere); }
+  if (data.visaInfo !== undefined) { fields.push("visaInfo = ?"); vals.push(data.visaInfo); }
+  if (data.curatedItinerary !== undefined) { fields.push("curatedItinerary = ?"); vals.push(JSON.stringify(data.curatedItinerary)); }
+  if (data.tags !== undefined) { fields.push("tags = ?"); vals.push(JSON.stringify(data.tags)); }
+  if (data.heroImageBase64 !== undefined) { fields.push("heroImageBase64 = ?"); vals.push(data.heroImageBase64); }
+  if (data.heroImageMimeType !== undefined) { fields.push("heroImageMimeType = ?"); vals.push(data.heroImageMimeType); }
+  if (data.featured !== undefined) { fields.push("featured = ?"); vals.push(data.featured); }
+  if (data.published !== undefined) { fields.push("published = ?"); vals.push(data.published); }
+  if (!fields.length) return { success: true };
+  vals.push(id);
+  await db.execute(`UPDATE destinationGuides SET ${fields.join(", ")} WHERE id = ?`, vals);
+  return { success: true };
+}
+
+export async function publishDestinationGuide(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.execute(sql`UPDATE destinationGuides SET published = true WHERE id = ${id}`);
+  return { success: true };
+}
+
+export async function deleteDestinationGuide(id: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.execute(sql`DELETE FROM destinationGuides WHERE id = ${id}`);
+  return { success: true };
 }
 
 // ─── Destination Guide Column Migration ───────────────────────────────────────

@@ -2699,41 +2699,18 @@ ${faqContext}`;
   // ─── Destination Guides ───────────────────────────────────────────────────────
   guides: router({
     getAll: publicProcedure.query(async () => {
-      const { getDb } = await import('./db');
-      const { sql } = await import('drizzle-orm');
-      const db = await getDb();
-      if (!db) return [];
-      const rows = (await db.execute(sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, climate, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides WHERE published = true ORDER BY featured DESC, destination ASC`) as any)[0] as any[];
-      return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
+      const { getPublishedDestinationGuides } = await import('./db');
+      return getPublishedDestinationGuides();
     }),
 
     getAllAdmin: adminProcedure.query(async () => {
-      const { getDb } = await import('./db');
-      const { sql } = await import('drizzle-orm');
-      const db = await getDb();
-      if (!db) return [];
-      const rows = (await db.execute(sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides ORDER BY createdAt DESC`) as any)[0] as any[];
-      return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
+      const { getAllDestinationGuides } = await import('./db');
+      return getAllDestinationGuides();
     }),
 
     getBySlug: publicProcedure.input(z.object({ slug: z.string() })).query(async ({ input }) => {
-      const { getDb } = await import('./db');
-      const { sql } = await import('drizzle-orm');
-      const db = await getDb();
-      if (!db) return null;
-      const rows = (await db.execute(sql`SELECT * FROM destinationGuides WHERE slug = ${input.slug} AND published = true LIMIT 1`) as any)[0] as any[];
-      if (!rows.length) return null;
-      const r = rows[0];
-      await db.execute(sql`UPDATE destinationGuides SET viewCount = viewCount + 1 WHERE id = ${r.id}`);
-      return {
-        ...r,
-        attractions: r.attractions ? JSON.parse(r.attractions) : [],
-        dining: r.dining ? JSON.parse(r.dining) : [],
-        accommodation: r.accommodation ? JSON.parse(r.accommodation) : [],
-        insiderTips: r.insiderTips ? JSON.parse(r.insiderTips) : [],
-        curatedItinerary: r.curatedItinerary ? JSON.parse(r.curatedItinerary) : null,
-        tags: r.tags ? JSON.parse(r.tags) : [],
-      };
+      const { getDestinationGuideBySlug } = await import('./db');
+      return getDestinationGuideBySlug(input.slug);
     }),
 
     create: adminProcedure.input(z.object({
@@ -2809,48 +2786,33 @@ ${faqContext}`;
       featured: z.boolean().optional(),
       published: z.boolean().optional(),
     })).mutation(async ({ input }) => {
-      const { getDb } = await import('./db');
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-      const fields: string[] = [];
-      const vals: any[] = [];
-      if (input.destination !== undefined) { fields.push('destination = ?'); vals.push(input.destination); }
-      if (input.country !== undefined) { fields.push('country = ?'); vals.push(input.country); }
-      if (input.region !== undefined) { fields.push('region = ?'); vals.push(input.region); }
-      if (input.continent !== undefined) { fields.push('continent = ?'); vals.push(input.continent); }
-      if (input.tagline !== undefined) { fields.push('tagline = ?'); vals.push(input.tagline); }
-      if (input.overview !== undefined) { fields.push('overview = ?'); vals.push(input.overview); }
-      if (input.bestTimeToVisit !== undefined) { fields.push('bestTimeToVisit = ?'); vals.push(input.bestTimeToVisit); }
-      if (input.climate !== undefined) { fields.push('climate = ?'); vals.push(input.climate); }
-      if (input.currency !== undefined) { fields.push('currency = ?'); vals.push(input.currency); }
-      if (input.language !== undefined) { fields.push('language = ?'); vals.push(input.language); }
-      if (input.timezone !== undefined) { fields.push('timezone = ?'); vals.push(input.timezone); }
-      if (input.flightTimeFromUK !== undefined) { fields.push('flightTimeFromUK = ?'); vals.push(input.flightTimeFromUK); }
-      if (input.attractions !== undefined) { fields.push('attractions = ?'); vals.push(JSON.stringify(input.attractions)); }
-      if (input.dining !== undefined) { fields.push('dining = ?'); vals.push(JSON.stringify(input.dining)); }
-      if (input.accommodation !== undefined) { fields.push('accommodation = ?'); vals.push(JSON.stringify(input.accommodation)); }
-      if (input.insiderTips !== undefined) { fields.push('insiderTips = ?'); vals.push(JSON.stringify(input.insiderTips)); }
-      if (input.gettingThere !== undefined) { fields.push('gettingThere = ?'); vals.push(input.gettingThere); }
-      if (input.visaInfo !== undefined) { fields.push('visaInfo = ?'); vals.push(input.visaInfo); }
-      if (input.curatedItinerary !== undefined) { fields.push('curatedItinerary = ?'); vals.push(JSON.stringify(input.curatedItinerary)); }
-      if (input.tags !== undefined) { fields.push('tags = ?'); vals.push(JSON.stringify(input.tags)); }
-      if (input.heroImageBase64 !== undefined) { fields.push('heroImageBase64 = ?'); vals.push(input.heroImageBase64); }
-      if (input.heroImageMimeType !== undefined) { fields.push('heroImageMimeType = ?'); vals.push(input.heroImageMimeType); }
-      if (input.featured !== undefined) { fields.push('featured = ?'); vals.push(input.featured); }
-      if (input.published !== undefined) { fields.push('published = ?'); vals.push(input.published); }
-      if (!fields.length) return { ok: true };
-      vals.push(input.id);
-      await db.execute(`UPDATE destinationGuides SET ${fields.join(', ')} WHERE id = ?`, vals);
+      const { updateDestinationGuide } = await import('./db');
+      const { id, ...data } = input;
+      await updateDestinationGuide(id, data);
       return { ok: true };
     }),
 
     delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
-      const { getDb } = await import('./db');
-      const { sql } = await import('drizzle-orm');
-      const db = await getDb();
-      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
-      await db.execute(sql`DELETE FROM destinationGuides WHERE id = ${input.id}`);
+      const { deleteDestinationGuide } = await import('./db');
+      await deleteDestinationGuide(input.id);
       return { ok: true };
+    }),
+
+    publish: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
+      const { publishDestinationGuide } = await import('./db');
+      await publishDestinationGuide(input.id);
+      return { ok: true };
+    }),
+
+    // Aliases used by the destinationGuides router contract
+    list: publicProcedure.query(async () => {
+      const { getPublishedDestinationGuides } = await import('./db');
+      return getPublishedDestinationGuides();
+    }),
+
+    listAdmin: adminProcedure.query(async () => {
+      const { getAllDestinationGuides } = await import('./db');
+      return getAllDestinationGuides();
     }),
 
     generateContent: adminProcedure.input(z.object({
