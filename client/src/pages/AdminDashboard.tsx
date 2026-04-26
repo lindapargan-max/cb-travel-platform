@@ -27,7 +27,7 @@ import {
   AlertCircle, RefreshCw, Shield, Lock, UserX, UserCheck, HelpCircle,
   KeyRound, UserPlus, Tag, Copy, Percent, ClipboardList, ExternalLink, ArrowRight,
   ChevronDown, ChevronRight, ChevronLeft, Send, MessageSquare, MailCheck, Ticket, Users2, UserMinus, UserRound,
-  Settings, Info, Check, User, CopyPlus, LayoutDashboard, Heart, Bell, Search, SlidersHorizontal, Monitor, MapPinned
+  Settings, Info, Check, User, CopyPlus, LayoutDashboard, Heart, Bell, Search, SlidersHorizontal, Monitor, MapPinned, Trophy
 } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
@@ -3205,8 +3205,7 @@ function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userB
 
 function AdminDashboard() {
   useSEO({ title: "Admin Dashboard" });
-  const [activeTab, setActiveTab] = useState("bookings");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState("command");
 
   // ── Data fetching ──────────────────────────────────────────────────────────
   const utils = trpc.useUtils();
@@ -3312,120 +3311,127 @@ function AdminDashboard() {
   const [settingsForm, setSettingsForm] = useState<Record<string, string>>({});
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Sidebar Navigation */}
-      <aside className={`${
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } fixed lg:static left-0 top-0 bottom-0 w-64 bg-muted/40 border-r border-border overflow-y-auto transition-transform duration-300 z-40 lg:z-0`}>
-        <div className="p-4 space-y-4">
-          <div className="px-3 py-2 mb-4">
-            <h2 className="font-bold text-lg">Admin Panel</h2>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-40">
+        <div className="px-4 lg:px-8 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+              <LayoutDashboard size={16} className="text-primary-foreground" />
+            </div>
+            <h1 className="text-xl font-bold text-foreground">Admin Dashboard</h1>
           </div>
-          
-          {/* Navigation Sections */}
-          <div className="space-y-6">
-            {/* Core Operations */}
-            <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Core Operations</h3>
-              <div className="space-y-1">
-                {['bookings', 'deals', 'quotes', 'quotes-manager'].map(tab => (
-                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
-                ))}
-              </div>
-            </div>
-
-            {/* Customer Management */}
-            <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Customer Management</h3>
-              <div className="space-y-1">
-                {['accounts', 'intake', 'client-notes', 'subscribers'].map(tab => (
-                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
-                ))}
-              </div>
-            </div>
-
-            {/* Content & Community */}
-            <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Content & Marketing</h3>
-              <div className="space-y-1">
-                {[
-                  { value: 'destinations', label: 'destinations' },
-                  { value: 'destination-guides', label: 'destination-guides' },
-                  { value: 'spotlight', label: 'Destination Spotlight' },
-                  { value: 'travel-hacks', label: 'travel-hacks' },
-                  { value: 'faq', label: 'faq' },
-                  { value: 'testimonials', label: 'testimonials' },
-                ].map(tab => (
-                  <NavButton key={tab.value} label={tab.label} value={tab.value} isActive={activeTab === tab.value} onClick={() => { setActiveTab(tab.value); setSidebarOpen(false); }} />
-                ))}
-              </div>
-            </div>
-
-            {/* Community & Social */}
-            <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Community & Social</h3>
-              <div className="space-y-1">
-                {['community', 'social-hub', 'campaigns'].map(tab => (
-                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
-                ))}
-              </div>
-            </div>
-
-            {/* Communications */}
-            <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Communications</h3>
-              <div className="space-y-1">
-                {['emails', 'booking-emails', 'notifications', 'support'].map(tab => (
-                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
-                ))}
-              </div>
-            </div>
-
-            {/* AI & Automation */}
-            <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">AI & Automation</h3>
-              <div className="space-y-1">
-                {['ai-assistant', 'command'].map(tab => (
-                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
-                ))}
-              </div>
-            </div>
-
-            {/* Administration */}
-            <div>
-              <h3 className="text-xs font-semibold text-muted-foreground uppercase px-3 mb-2">Administration</h3>
-              <div className="space-y-1">
-                {['loyalty-rules', 'loyalty-admin', 'promos', 'audit', 'itinerary-logs', 'gdpr', 'settings'].map(tab => (
-                  <NavButton key={tab} label={tab} value={tab} isActive={activeTab === tab} onClick={() => { setActiveTab(tab); setSidebarOpen(false); }} />
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Mobile Overlay */}
-      {sidebarOpen && <div className="fixed inset-0 bg-black/50 z-30 lg:hidden" onClick={() => setSidebarOpen(false)} />}
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="border-b border-border bg-background/95 backdrop-blur p-4 lg:p-6 flex items-center justify-between">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} className="lg:hidden p-2 hover:bg-muted rounded-lg">
-            <Menu className="w-5 h-5" />
-          </button>
-          <h1 className="text-2xl font-bold capitalize">{activeTab.replace('-', ' ')}</h1>
           <Badge variant="outline" className="gap-2">
             <span className="w-2 h-2 rounded-full bg-green-500" />
             System Online
           </Badge>
         </div>
+      </div>
 
-        {/* Tab Content */}
-        <div className="flex-1 overflow-y-auto p-4 lg:p-6">
+      {/* Main Content */}
+      <div className="px-4 lg:px-8 py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          {/* Tab Navigation */}
+          <TabsList className="flex flex-wrap gap-1 h-auto bg-muted/50 p-1.5 rounded-2xl mb-6 w-full">
+            <TabsTrigger value="command" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <LayoutDashboard size={13} /> Command
+            </TabsTrigger>
+            <TabsTrigger value="bookings" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Package size={13} /> Bookings
+            </TabsTrigger>
+            <TabsTrigger value="deals" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Tag size={13} /> Deals
+            </TabsTrigger>
+            <TabsTrigger value="quotes" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <FileText size={13} /> Quotes
+            </TabsTrigger>
+            <TabsTrigger value="quotes-manager" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <ClipboardList size={13} /> Quote Manager
+            </TabsTrigger>
+            <TabsTrigger value="accounts" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Users size={13} /> Accounts
+            </TabsTrigger>
+            <TabsTrigger value="intake" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <UserPlus size={13} /> Intake
+            </TabsTrigger>
+            <TabsTrigger value="client-notes" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <MessageSquare size={13} /> CRM Notes
+            </TabsTrigger>
+            <TabsTrigger value="subscribers" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Mail size={13} /> Subscribers
+            </TabsTrigger>
+            <TabsTrigger value="passports" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Globe size={13} /> Passports
+            </TabsTrigger>
+            <TabsTrigger value="payments" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <CreditCard size={13} /> Payments
+            </TabsTrigger>
+            <TabsTrigger value="destinations" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <MapPin size={13} /> Destinations
+            </TabsTrigger>
+            <TabsTrigger value="destination-guides" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <MapPinned size={13} /> Dest. Guides
+            </TabsTrigger>
+            <TabsTrigger value="spotlight" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Star size={13} /> Spotlight
+            </TabsTrigger>
+            <TabsTrigger value="travel-hacks" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <TrendingUp size={13} /> Travel Hacks
+            </TabsTrigger>
+            <TabsTrigger value="faq" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <HelpCircle size={13} /> FAQ
+            </TabsTrigger>
+            <TabsTrigger value="testimonials" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Star size={13} /> Testimonials
+            </TabsTrigger>
+            <TabsTrigger value="community" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Users2 size={13} /> Community
+            </TabsTrigger>
+            <TabsTrigger value="social-hub" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Heart size={13} /> Social Hub
+            </TabsTrigger>
+            <TabsTrigger value="campaigns" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Send size={13} /> Campaigns
+            </TabsTrigger>
+            <TabsTrigger value="emails" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <MailCheck size={13} /> Emails
+            </TabsTrigger>
+            <TabsTrigger value="booking-emails" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Mail size={13} /> Booking Emails
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Bell size={13} /> Notifications
+            </TabsTrigger>
+            <TabsTrigger value="support" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <HelpCircle size={13} /> Support
+            </TabsTrigger>
+            <TabsTrigger value="ai-assistant" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Monitor size={13} /> AI Assistant
+            </TabsTrigger>
+            <TabsTrigger value="promos" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Percent size={13} /> Promos
+            </TabsTrigger>
+            <TabsTrigger value="loyalty-rules" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Star size={13} /> Loyalty Rules
+            </TabsTrigger>
+            <TabsTrigger value="loyalty-admin" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Trophy size={13} /> Loyalty Hub
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <BarChart3 size={13} /> Audit Log
+            </TabsTrigger>
+            <TabsTrigger value="itinerary-logs" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Clock size={13} /> Itinerary Logs
+            </TabsTrigger>
+            <TabsTrigger value="gdpr" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Shield size={13} /> GDPR
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center gap-1.5 rounded-xl text-xs font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm">
+              <Settings size={13} /> Settings
+            </TabsTrigger>
+          </TabsList>
+
           <div className="max-w-7xl">
-<Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="hidden" />
           <TabsContent value="bookings">
             {/* Bookings mini stats */}
             {bookings && bookings.length > 0 && (() => {
@@ -4568,33 +4574,10 @@ function AdminDashboard() {
 <TabsContent value="travel-hacks">
   <AdminTravelHacks />
 </TabsContent>
-  </Tabs>          </div>
-        </div>
-      </main>
+          </div>
+        </Tabs>
+      </div>
     </div>
-  );
-}
-
-function NavButton({ label, value, isActive, onClick }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
-        isActive
-          ? 'bg-primary text-primary-foreground'
-          : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-      }`}
-    >
-      {label.replace('-', ' ')}
-    </button>
-  );
-}
-
-function Menu({ className }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-    </svg>
   );
 }
 
