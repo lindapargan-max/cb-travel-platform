@@ -6,14 +6,6 @@ import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
 import { gdprRouter } from "./gdpr-router";
-import {
-  aiAssistantRouter,
-  emailTemplatesRouter,
-  bookingEmailsRouter,
-  socialHubRouter,
-  destinationSpotlightRouter,
-  travelHacksRouter,
-} from "./admin-extensions-router";
 import { getJLTTerms, clearJLTTermsCache } from "./jlt-terms";
 import {
   sendWelcomeEmail,
@@ -191,6 +183,12 @@ import {
   updateLoyaltyRule,
   getPointsForEvent,
   deleteBooking,
+  listAIConversations,
+  createAIConversation,
+  getAIConversationMessages,
+  addAIMessage,
+  renameAIConversation,
+  deleteAIConversation,
 } from "./db";
 
 const adminMiddleware = protectedProcedure.use(({ ctx, next }) => {
@@ -907,7 +905,7 @@ export const appRouter = router({
         }
         // Generate a secure set-password link (24h expiry) — user sets their own password
         const token = await createSetPasswordToken(newUser.id, input.email);
-        const SITE_URL = process.env.SITE_URL || "https://cbtravel.uk";
+        const SITE_URL = process.env.SITE_URL || "https://www.travelcb.co.uk";
         const setPasswordUrl = `${SITE_URL}/set-password?token=${token}&email=${encodeURIComponent(input.email)}`;
         try {
           const promoCode = await createWelcomePromoCode(newUser.id, input.email);
@@ -950,7 +948,7 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const user = await getUserById(input.userId);
         if (!user || !user.email) throw new TRPCError({ code: 'NOT_FOUND', message: 'User not found or has no email address' });
-        const SITE_URL = process.env.SITE_URL || 'https://cbtravel.uk';
+        const SITE_URL = process.env.SITE_URL || 'https://www.travelcb.co.uk';
         const token = await createPasswordResetToken(user.id, user.email);
         const url = `${SITE_URL}/set-password?token=${token}&email=${encodeURIComponent(user.email)}`;
         await sendSetPasswordEmail(user.email, user.name || 'there', url);
@@ -1440,7 +1438,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
             let currentPoints = input.points;
             let tier = 'bronze';
             try {
-              const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
+              const { getDb } = await import('./db');
               const { sql } = await import('drizzle-orm');
               const db = await getDb();
               if (db) {
@@ -1494,7 +1492,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
                 pointsSpent: redemption.pointsCost || 0,
                 issuedDate,
                 expiryDate,
-                verifyUrl: 'https://cbtravel.uk/dashboard',
+                verifyUrl: 'https://www.travelcb.co.uk/dashboard',
               }).catch(() => null);
               await sendLoyaltyRewardEmail(
                 redemption.email,
@@ -1548,7 +1546,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
     getLeaderboard: adminProcedure.query(async () => {
       // Override db.ts which selects non-existent column 'currentPoints' — actual column is 'points'
       try {
-        const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
+        const { getDb } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
         if (!db) return [];
@@ -1566,7 +1564,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
     getAllRedemptionsAdmin: adminProcedure.query(async () => getAllRedemptionsAdmin()),
     getTaskCentre: adminProcedure.query(async () => {
       try {
-        const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
+        const { getDb } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
         if (!db) return { pendingRedemptions: 0, openTickets: 0, newQuotes: 0, newIntake: 0, pendingBookings: 0 };
@@ -1729,7 +1727,7 @@ Please log in and update your password as soon as possible.`, user.name).catch(c
       const userId = (ctx as any).user?.id;
       if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
       const code = await ensureReferralCode(userId);
-      return { code, link: `${process.env.SITE_URL || 'https://cbtravel.uk'}/refer/${code}` };
+      return { code, link: `${process.env.SITE_URL || 'https://www.travelcb.co.uk'}/refer/${code}` };
     }),
     validate: publicProcedure
       .input(z.string())
@@ -1911,20 +1909,20 @@ IMPORTANT: Return ONLY valid JSON, no markdown code blocks.`;
       }))
       .mutation(async ({ input }) => {
         const aiEnabled = (await getAppSetting('ai_features_enabled')) !== 'false';
-        if (!aiEnabled) return { answer: "Our team is here to help! Please email hello@cbtravel.uk or call 07495 823953.", canAnswer: false };
+        if (!aiEnabled) return { answer: "Our team is here to help! Please email hello@travelcb.co.uk or call 07495 823953.", canAnswer: false };
         const apiKey = process.env.GROQ_API_KEY || (await getAppSetting('groq_api_key'));
-        if (!apiKey) return { answer: "Please contact us at hello@cbtravel.uk or call 07495 823953.", canAnswer: false };
+        if (!apiKey) return { answer: "Please contact us at hello@travelcb.co.uk or call 07495 823953.", canAnswer: false };
         const faqItems = await getAllFaqItemsForAI();
         const faqContext = faqItems.map((f: any) => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n');
-        const systemPrompt = `You are a helpful assistant for CB Travel, a UK travel agency based at cbtravel.uk. Answer questions helpfully and concisely based on the FAQ data below.
+        const systemPrompt = `You are a helpful assistant for CB Travel, a UK travel agency based at travelcb.co.uk. Answer questions helpfully and concisely based on the FAQ data below.
 
-If you cannot answer confidently from the FAQ data, suggest the user emails hello@cbtravel.uk or calls 07495 823953.
+If you cannot answer confidently from the FAQ data, suggest the user emails hello@travelcb.co.uk or calls 07495 823953.
 
 Key facts:
 - Company: CB Travel
-- Email: hello@cbtravel.uk
+- Email: hello@travelcb.co.uk
 - Phone: 07495 823953
-- Website: cbtravel.uk
+- Website: travelcb.co.uk
 
 FAQ Data:
 ${faqContext}`;
@@ -1949,10 +1947,10 @@ ${faqContext}`;
         });
         if (!resp.ok) {
           console.error("[AI] Groq error:", await resp.text());
-          return { answer: "Please contact us at hello@cbtravel.uk or call 07495 823953.", canAnswer: false };
+          return { answer: "Please contact us at hello@travelcb.co.uk or call 07495 823953.", canAnswer: false };
         }
         const data = await resp.json() as any;
-        const answer = data.choices?.[0]?.message?.content || "Please contact us at hello@cbtravel.uk";
+        const answer = data.choices?.[0]?.message?.content || "Please contact us at hello@travelcb.co.uk";
         return { answer, canAnswer: true };
       }),
 
@@ -2014,7 +2012,7 @@ ${faqContext}`;
     // Admin: get access logs
     getItineraryAccessLogs: adminMiddleware.query(async () => {
       try {
-        const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
+        const { getDb } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
         if (!db) return [];
@@ -2046,7 +2044,7 @@ ${faqContext}`;
         if (!booking) throw new TRPCError({ code: "NOT_FOUND" });
         if (!isAdmin && booking.clientId !== userId) throw new TRPCError({ code: "FORBIDDEN" });
         const QRCode = await import("qrcode");
-        const url = `${process.env.SITE_URL || 'https://cbtravel.uk'}/dashboard`;
+        const url = `${process.env.SITE_URL || 'https://www.travelcb.co.uk'}/dashboard`;
         const dataUrl = await QRCode.default.toDataURL(url, { width: 300, margin: 2, color: { dark: '#1e3a5f', light: '#ffffff' } });
         return { dataUrl, url };
       }),
@@ -2113,7 +2111,7 @@ ${faqContext}`;
       .mutation(async ({ input, ctx }) => {
         const userId = (ctx as any).user?.id;
         if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
-        const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
+        const { getDb } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
@@ -2144,7 +2142,7 @@ ${faqContext}`;
       .mutation(async ({ input, ctx }) => {
         const userId = (ctx as any).user?.id;
         if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
-        const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
+        const { getDb } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
         if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
@@ -2425,7 +2423,7 @@ ${faqContext}`;
         const quote = await getAdminQuoteById(input.id);
         if (!quote) throw new Error("Quote not found");
 
-        const quoteLink = `${process.env.SITE_URL || "https://cbtravel.uk"}/quote/${quote.quoteRef}`;
+        const quoteLink = `${process.env.SITE_URL || "https://www.travelcb.co.uk"}/quote/${quote.quoteRef}`;
         const firstName = (quote.clientName || "").split(" ")[0] || "Valued Client";
 
         if (input.previewOnly) {
@@ -2476,7 +2474,7 @@ ${faqContext}`;
         const quote = await getAdminQuoteById(input.id);
         if (!quote) throw new Error("Quote not found");
 
-        const quoteLink = `${process.env.SITE_URL || "https://cbtravel.uk"}/quote/${quote.quoteRef}`;
+        const quoteLink = `${process.env.SITE_URL || "https://www.travelcb.co.uk"}/quote/${quote.quoteRef}`;
         const firstName = (quote.clientName || "").split(" ")[0] || "Valued Client";
 
         const { sendAdminQuoteEmail } = await import("./emails");
@@ -2707,18 +2705,41 @@ ${faqContext}`;
   // ─── Destination Guides ───────────────────────────────────────────────────────
   guides: router({
     getAll: publicProcedure.query(async () => {
-      const { getPublishedDestinationGuides } = await import('./db');
-      return getPublishedDestinationGuides();
+      const { getDb } = await import('./db');
+      const { sql } = await import('drizzle-orm');
+      const db = await getDb();
+      if (!db) return [];
+      const rows = (await db.execute(sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, climate, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides WHERE published = true ORDER BY featured DESC, destination ASC`) as any)[0] as any[];
+      return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
     }),
 
     getAllAdmin: adminProcedure.query(async () => {
-      const { getAllDestinationGuides } = await import('./db');
-      return getAllDestinationGuides();
+      const { getDb } = await import('./db');
+      const { sql } = await import('drizzle-orm');
+      const db = await getDb();
+      if (!db) return [];
+      const rows = (await db.execute(sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides ORDER BY createdAt DESC`) as any)[0] as any[];
+      return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
     }),
 
     getBySlug: publicProcedure.input(z.object({ slug: z.string() })).query(async ({ input }) => {
-      const { getDestinationGuideBySlug } = await import('./db');
-      return getDestinationGuideBySlug(input.slug);
+      const { getDb } = await import('./db');
+      const { sql } = await import('drizzle-orm');
+      const db = await getDb();
+      if (!db) return null;
+      const rows = (await db.execute(sql`SELECT * FROM destinationGuides WHERE slug = ${input.slug} AND published = true LIMIT 1`) as any)[0] as any[];
+      if (!rows.length) return null;
+      const r = rows[0];
+      await db.execute(sql`UPDATE destinationGuides SET viewCount = viewCount + 1 WHERE id = ${r.id}`);
+      return {
+        ...r,
+        attractions: r.attractions ? JSON.parse(r.attractions) : [],
+        dining: r.dining ? JSON.parse(r.dining) : [],
+        accommodation: r.accommodation ? JSON.parse(r.accommodation) : [],
+        insiderTips: r.insiderTips ? JSON.parse(r.insiderTips) : [],
+        curatedItinerary: r.curatedItinerary ? JSON.parse(r.curatedItinerary) : null,
+        tags: r.tags ? JSON.parse(r.tags) : [],
+      };
     }),
 
     create: adminProcedure.input(z.object({
@@ -2749,69 +2770,21 @@ ${faqContext}`;
       aiGenerated: z.boolean().optional(),
     })).mutation(async ({ input, ctx }) => {
       try {
-        const { getDb, generateUniqueDestinationGuideSlug } = await import('./db');
+        const { getDb } = await import('./db');
         const { sql } = await import('drizzle-orm');
         const db = await getDb();
-        if (!db) {
-          const errMsg = 'Database connection unavailable';
-          console.error('[Guides Create] Database Error:', errMsg);
-          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: errMsg });
-        }
-        
-        // Generate unique slug with collision handling
-        let slug: string;
-        try {
-          slug = await generateUniqueDestinationGuideSlug(input.destination);
-        } catch (slugErr: any) {
-          console.error('[Guides Create] Slug Generation Error:', slugErr);
-          throw new TRPCError({ 
-            code: 'BAD_REQUEST', 
-            message: slugErr?.message || 'Invalid destination name for guide' 
-          });
-        }
-        
-        console.log('[Guides Create] Inserting guide:', { destination: input.destination, slug, userId: (ctx as any).user?.id });
+        if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+        const slug = input.destination.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-').trim();
+        console.log('[Guides Create] Inserting guide:', { destination: input.destination, slug });
         const result = await db.execute(sql`
           INSERT INTO destinationGuides (slug, destination, country, region, continent, tagline, overview, bestTimeToVisit, climate, currency, language, timezone, flightTimeFromUK, attractions, dining, accommodation, insiderTips, gettingThere, visaInfo, curatedItinerary, tags, heroImageBase64, heroImageMimeType, featured, published, aiGenerated, createdBy)
           VALUES (${slug}, ${input.destination}, ${input.country||null}, ${input.region||null}, ${input.continent||null}, ${input.tagline||null}, ${input.overview||null}, ${input.bestTimeToVisit||null}, ${input.climate||null}, ${input.currency||null}, ${input.language||null}, ${input.timezone||null}, ${input.flightTimeFromUK||null}, ${JSON.stringify(input.attractions||[])}, ${JSON.stringify(input.dining||[])}, ${JSON.stringify(input.accommodation||[])}, ${JSON.stringify(input.insiderTips||[])}, ${input.gettingThere||null}, ${input.visaInfo||null}, ${input.curatedItinerary ? JSON.stringify(input.curatedItinerary) : null}, ${JSON.stringify(input.tags||[])}, ${input.heroImageBase64||null}, ${input.heroImageMimeType||null}, ${input.featured??false}, ${input.published??false}, ${input.aiGenerated??false}, ${(ctx as any).user?.id||null})
         `);
-        console.log('[Guides Create] Insert successful:', { insertId: (result as any)?.insertId, slug });
-        
-        // Verify the insert by fetching the created guide
-        const rows = (await db.execute(
-          sql`SELECT id, slug, destination, country, region, continent, tagline, overview, bestTimeToVisit, climate, currency, language, timezone, flightTimeFromUK, attractions, dining, accommodation, insiderTips, gettingThere, visaInfo, curatedItinerary, tags, heroImageBase64, heroImageMimeType, featured, published, viewCount, aiGenerated, createdAt, createdBy FROM destinationGuides WHERE slug = ${slug} LIMIT 1`
-        ) as any)[0] as any[];
-        
-        if (!rows || rows.length === 0) {
-          console.error('[Guides Create] Verification failed - guide not found after insert');
-          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Guide created but verification failed' });
-        }
-        
-        const createdGuide = rows[0];
-        // Parse JSON fields
-        if (createdGuide.tags) createdGuide.tags = JSON.parse(createdGuide.tags);
-        if (createdGuide.attractions) createdGuide.attractions = JSON.parse(createdGuide.attractions);
-        if (createdGuide.dining) createdGuide.dining = JSON.parse(createdGuide.dining);
-        if (createdGuide.accommodation) createdGuide.accommodation = JSON.parse(createdGuide.accommodation);
-        if (createdGuide.insiderTips) createdGuide.insiderTips = JSON.parse(createdGuide.insiderTips);
-        if (createdGuide.curatedItinerary) createdGuide.curatedItinerary = JSON.parse(createdGuide.curatedItinerary);
-        
-        console.log('[Guides Create] Complete:', { id: createdGuide.id, destination: createdGuide.destination, slug });
-        return { ok: true, guide: createdGuide };
+        console.log('[Guides Create] Insert result:', result);
+        return { ok: true };
       } catch (e: any) {
-        console.error('[Guides Create] Error:', {
-          message: e?.message,
-          code: e?.code,
-          cause: e?.cause,
-          stack: e?.stack?.split('\n')[0]
-        });
-        
-        // Re-throw TRPCError as-is, otherwise wrap it
-        if (e instanceof TRPCError) throw e;
-        throw new TRPCError({ 
-          code: 'INTERNAL_SERVER_ERROR', 
-          message: e?.message || 'Failed to create guide' 
-        });
+        console.error('[Guides Create] Error:', e);
+        throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: e?.message || 'Failed to create guide' });
       }
     }),
 
@@ -2842,33 +2815,48 @@ ${faqContext}`;
       featured: z.boolean().optional(),
       published: z.boolean().optional(),
     })).mutation(async ({ input }) => {
-      const { updateDestinationGuide } = await import('./db');
-      const { id, ...data } = input;
-      await updateDestinationGuide(id, data);
+      const { getDb } = await import('./db');
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      const fields: string[] = [];
+      const vals: any[] = [];
+      if (input.destination !== undefined) { fields.push('destination = ?'); vals.push(input.destination); }
+      if (input.country !== undefined) { fields.push('country = ?'); vals.push(input.country); }
+      if (input.region !== undefined) { fields.push('region = ?'); vals.push(input.region); }
+      if (input.continent !== undefined) { fields.push('continent = ?'); vals.push(input.continent); }
+      if (input.tagline !== undefined) { fields.push('tagline = ?'); vals.push(input.tagline); }
+      if (input.overview !== undefined) { fields.push('overview = ?'); vals.push(input.overview); }
+      if (input.bestTimeToVisit !== undefined) { fields.push('bestTimeToVisit = ?'); vals.push(input.bestTimeToVisit); }
+      if (input.climate !== undefined) { fields.push('climate = ?'); vals.push(input.climate); }
+      if (input.currency !== undefined) { fields.push('currency = ?'); vals.push(input.currency); }
+      if (input.language !== undefined) { fields.push('language = ?'); vals.push(input.language); }
+      if (input.timezone !== undefined) { fields.push('timezone = ?'); vals.push(input.timezone); }
+      if (input.flightTimeFromUK !== undefined) { fields.push('flightTimeFromUK = ?'); vals.push(input.flightTimeFromUK); }
+      if (input.attractions !== undefined) { fields.push('attractions = ?'); vals.push(JSON.stringify(input.attractions)); }
+      if (input.dining !== undefined) { fields.push('dining = ?'); vals.push(JSON.stringify(input.dining)); }
+      if (input.accommodation !== undefined) { fields.push('accommodation = ?'); vals.push(JSON.stringify(input.accommodation)); }
+      if (input.insiderTips !== undefined) { fields.push('insiderTips = ?'); vals.push(JSON.stringify(input.insiderTips)); }
+      if (input.gettingThere !== undefined) { fields.push('gettingThere = ?'); vals.push(input.gettingThere); }
+      if (input.visaInfo !== undefined) { fields.push('visaInfo = ?'); vals.push(input.visaInfo); }
+      if (input.curatedItinerary !== undefined) { fields.push('curatedItinerary = ?'); vals.push(JSON.stringify(input.curatedItinerary)); }
+      if (input.tags !== undefined) { fields.push('tags = ?'); vals.push(JSON.stringify(input.tags)); }
+      if (input.heroImageBase64 !== undefined) { fields.push('heroImageBase64 = ?'); vals.push(input.heroImageBase64); }
+      if (input.heroImageMimeType !== undefined) { fields.push('heroImageMimeType = ?'); vals.push(input.heroImageMimeType); }
+      if (input.featured !== undefined) { fields.push('featured = ?'); vals.push(input.featured); }
+      if (input.published !== undefined) { fields.push('published = ?'); vals.push(input.published); }
+      if (!fields.length) return { ok: true };
+      vals.push(input.id);
+      await db.execute(`UPDATE destinationGuides SET ${fields.join(', ')} WHERE id = ?`, vals);
       return { ok: true };
     }),
 
     delete: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
-      const { deleteDestinationGuide } = await import('./db');
-      await deleteDestinationGuide(input.id);
+      const { getDb } = await import('./db');
+      const { sql } = await import('drizzle-orm');
+      const db = await getDb();
+      if (!db) throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR' });
+      await db.execute(sql`DELETE FROM destinationGuides WHERE id = ${input.id}`);
       return { ok: true };
-    }),
-
-    publish: adminProcedure.input(z.object({ id: z.number() })).mutation(async ({ input }) => {
-      const { publishDestinationGuide } = await import('./db');
-      await publishDestinationGuide(input.id);
-      return { ok: true };
-    }),
-
-    // Aliases used by the destinationGuides router contract
-    list: publicProcedure.query(async () => {
-      const { getPublishedDestinationGuides } = await import('./db');
-      return getPublishedDestinationGuides();
-    }),
-
-    listAdmin: adminProcedure.query(async () => {
-      const { getAllDestinationGuides } = await import('./db');
-      return getAllDestinationGuides();
     }),
 
     generateContent: adminProcedure.input(z.object({
@@ -3145,13 +3133,157 @@ Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 
     }),
   }),
 
-  // ─── V13: Admin Extensions ────────────────────────────────────────────────────
-  aiAssistant: aiAssistantRouter,
-  emailTemplates: emailTemplatesRouter,
-  bookingEmails: bookingEmailsRouter,
-  socialHub: socialHubRouter,
-  destinationSpotlight: destinationSpotlightRouter,
-  travelHacks: travelHacksRouter,
+  // ─── AI Assistant (Groq-powered) ────────────────────────────────────────
+  aiAssistant: router({
+    listConversations: protectedProcedure.query(async ({ ctx }) => {
+      const userId = (ctx as any).user?.id;
+      if (!userId) return [];
+      return listAIConversations(userId);
+    }),
+
+    createConversation: protectedProcedure
+      .input(z.object({ title: z.string().optional() }).optional())
+      .mutation(async ({ ctx, input }) => {
+        const userId = (ctx as any).user?.id;
+        if (!userId) throw new TRPCError({ code: "UNAUTHORIZED" });
+        const conv = await createAIConversation(userId, input?.title || 'New chat');
+        return conv || { id: 0, userId, title: 'New chat', createdAt: new Date(), updatedAt: new Date() };
+      }),
+
+    getConversation: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        return getAIConversationMessages(input.id);
+      }),
+
+    renameConversation: protectedProcedure
+      .input(z.object({ id: z.number(), title: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        await renameAIConversation(input.id, input.title);
+        return { success: true };
+      }),
+
+    deleteConversation: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        await deleteAIConversation(input.id);
+        return { success: true };
+      }),
+
+    sendMessage: protectedProcedure
+      .input(z.object({ conversationId: z.number(), message: z.string().min(1) }))
+      .mutation(async ({ input }) => {
+        const { conversationId, message } = input;
+        
+        // Save user message
+        await addAIMessage(conversationId, 'user', message);
+        
+        // Get conversation history
+        const history = await getAIConversationMessages(conversationId);
+        
+        // Build messages for Groq
+        const groqMessages = history.map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+
+        try {
+          const groqApiKey = process.env.GROQ_API_KEY;
+          if (!groqApiKey) throw new Error('GROQ_API_KEY not set');
+
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${groqApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'llama-3.1-70b-versatile',
+              messages: groqMessages,
+              temperature: 0.7,
+              max_tokens: 1000,
+              system: `You are CB Travel's premium admin assistant. Help with travel bookings, client management, quotes, loyalty programs, and business analytics. Be concise, professional, and luxury-focused. Reference actual data when asked. Base your insights on real booking patterns, client preferences, and business metrics.`,
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            console.error('[AI] Groq API error:', error);
+            throw new Error(`Groq API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          const assistantMessage = data.choices[0]?.message?.content || 'I encountered an issue processing your request.';
+          
+          // Save assistant response
+          await addAIMessage(conversationId, 'assistant', assistantMessage);
+          
+          return { content: assistantMessage };
+        } catch (error) {
+          console.error('[AI] Send message error:', error);
+          const fallbackMessage = 'I apologize, I\'m having trouble connecting to my AI engine right now. Please try again in a moment.';
+          await addAIMessage(conversationId, 'assistant', fallbackMessage);
+          return { content: fallbackMessage };
+        }
+      }),
+
+    snapshot: protectedProcedure.query(async ({ ctx }) => {
+      try {
+        const userId = (ctx as any).user?.id;
+        if (!userId) return null;
+
+        // Get business snapshot data
+        const allBookings = await getAllBookings();
+        const allQuotes = await getAllQuoteRequests();
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        
+        const upcomingDepartures = allBookings
+          .filter((b: any) => {
+            try {
+              const departure = new Date(b.departureDate);
+              return departure >= today && departure.getTime() - today.getTime() < 14 * 24 * 60 * 60 * 1000;
+            } catch {
+              return false;
+            }
+          })
+          .slice(0, 5);
+
+        const outstandingBalances = allBookings
+          .filter((b: any) => (b.balance || 0) > 0)
+          .slice(0, 5);
+
+        const openQuotes = allQuotes.filter((q: any) => q.status === 'pending').length;
+
+        return {
+          upcomingDepartures: upcomingDepartures.map((b: any) => ({
+            clientName: b.clientName || 'Client',
+            destination: b.destination || 'TBD',
+            date: b.departureDate,
+          })),
+          outstandingBalances: outstandingBalances.map((b: any) => ({
+            clientName: b.clientName || 'Client',
+            amount: b.balance || 0,
+          })),
+          totals: {
+            openQuotes,
+            bookingsThisMonth: allBookings.filter((b: any) => {
+              try {
+                const created = new Date(b.createdAt);
+                return created.getMonth() === today.getMonth() && created.getFullYear() === today.getFullYear();
+              } catch {
+                return false;
+              }
+            }).length,
+          },
+        };
+      } catch (error) {
+        console.error('[AI] Snapshot error:', error);
+        return null;
+      }
+    }),
+  }),
 
 });
 

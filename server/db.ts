@@ -120,7 +120,7 @@ export async function getUserByEmail(email: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-const ADMIN_EMAILS = ["admin@cbtravel.uk"];
+const ADMIN_EMAILS = ["admin@travelcb.co.uk"];
 
 export async function createUserWithPassword(email: string, name: string, phone: string, passwordHash: string) {
   const db = await getDb();
@@ -2645,260 +2645,175 @@ export async function ensureDestinationGuidesTable() {
   try {
     const db = await getDb();
     if (!db) return;
-    // Create the table only if it does not already exist — never drop it, as
-    // that would destroy all saved guides on every server restart.
-    await db.execute(sql.raw(`
+    await db.execute(sql`
       CREATE TABLE IF NOT EXISTS destinationGuides (
         id INT AUTO_INCREMENT PRIMARY KEY,
-        slug VARCHAR(255) NOT NULL UNIQUE,
+        slug VARCHAR(100) NOT NULL UNIQUE,
         destination VARCHAR(255) NOT NULL,
-        country VARCHAR(255),
-        region VARCHAR(255),
-        continent VARCHAR(255),
-        tagline TEXT,
-        overview MEDIUMTEXT,
-        bestTimeToVisit MEDIUMTEXT,
-        climate MEDIUMTEXT,
-        currency VARCHAR(50),
-        language TEXT,
-        timezone VARCHAR(50),
+        country VARCHAR(100),
+        region VARCHAR(100),
+        continent VARCHAR(100),
+        heroImageBase64 LONGTEXT,
+        heroImageMimeType VARCHAR(50),
+        tagline VARCHAR(500),
+        overview TEXT,
+        bestTimeToVisit TEXT,
+        climate TEXT,
+        currency VARCHAR(100),
+        language VARCHAR(100),
+        timezone VARCHAR(100),
         flightTimeFromUK VARCHAR(100),
         attractions JSON,
         dining JSON,
         accommodation JSON,
         insiderTips JSON,
-        gettingThere MEDIUMTEXT,
-        visaInfo MEDIUMTEXT,
+        gettingThere TEXT,
+        visaInfo TEXT,
         curatedItinerary JSON,
         tags JSON,
-        heroImageBase64 MEDIUMTEXT,
-        heroImageMimeType VARCHAR(100),
         featured BOOLEAN NOT NULL DEFAULT false,
         published BOOLEAN NOT NULL DEFAULT false,
         viewCount INT NOT NULL DEFAULT 0,
         aiGenerated BOOLEAN NOT NULL DEFAULT false,
         createdBy INT,
-        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP NOT NULL,
-        UNIQUE KEY slugIdx (slug)
+        createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+        updatedAt TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW()
       )
-    `));
-    console.log('[DB] ensureDestinationGuidesTable: table ready');
+    `);
   } catch (e) {
     console.error('[DB] ensureDestinationGuidesTable error:', e);
   }
 }
 
-// ─── Destination Guides CRUD helpers ─────────────────────────────────────────
-
-export async function generateUniqueDestinationGuideSlug(destination: string): Promise<string> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  
-  // Generate base slug from destination name
-  const baseSlug = destination
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')  // Remove special characters
-    .replace(/\s+/g, '-')          // Replace spaces with hyphens
-    .replace(/-+/g, '-')           // Normalize multiple hyphens
-    .trim();
-  
-  if (!baseSlug) throw new Error("Destination name must contain alphanumeric characters");
-  
-  // Check if base slug exists
-  const existing = (await db.execute(
-    sql`SELECT COUNT(*) as count FROM destinationGuides WHERE slug = ${baseSlug}`
-  ) as any)[0] as any[];
-  
-  if (existing.length > 0 && existing[0].count === 0) {
-    // Base slug is available
-    return baseSlug;
-  }
-  
-  // Base slug exists, find next available numbered slug
-  let counter = 1;
-  while (counter < 1000) {
-    const candidateSlug = `${baseSlug}-${counter}`;
-    const checkResult = (await db.execute(
-      sql`SELECT COUNT(*) as count FROM destinationGuides WHERE slug = ${candidateSlug}`
-    ) as any)[0] as any[];
-    
-    if (checkResult.length > 0 && checkResult[0].count === 0) {
-      return candidateSlug;
-    }
-    counter++;
-  }
-  
-  // Fallback: append timestamp
-  return `${baseSlug}-${Date.now()}`;
-}
-
-export async function getAllDestinationGuides() {
-  const db = await getDb();
-  if (!db) return [];
-  const rows = (await db.execute(
-    sql`SELECT id, slug, destination, country, region, continent, tagline, overview, bestTimeToVisit, climate, currency, language, timezone, flightTimeFromUK, attractions, dining, accommodation, insiderTips, gettingThere, visaInfo, curatedItinerary, tags, heroImageBase64, heroImageMimeType, featured, published, viewCount, aiGenerated, createdAt, createdBy FROM destinationGuides ORDER BY createdAt DESC`
-  ) as any)[0] as any[];
-  return rows.map((r: any) => ({
-    ...r,
-    tags: r.tags ? JSON.parse(r.tags) : [],
-    attractions: r.attractions ? JSON.parse(r.attractions) : [],
-    dining: r.dining ? JSON.parse(r.dining) : [],
-    accommodation: r.accommodation ? JSON.parse(r.accommodation) : [],
-    insiderTips: r.insiderTips ? JSON.parse(r.insiderTips) : [],
-    curatedItinerary: r.curatedItinerary ? JSON.parse(r.curatedItinerary) : null,
-  }));
-}
-
-export async function getPublishedDestinationGuides() {
-  const db = await getDb();
-  if (!db) return [];
-  const rows = (await db.execute(
-    sql`SELECT id, slug, destination, country, region, continent, heroImageBase64, heroImageMimeType, tagline, bestTimeToVisit, climate, currency, language, flightTimeFromUK, tags, featured, published, viewCount, aiGenerated, createdAt FROM destinationGuides WHERE published = true ORDER BY featured DESC, destination ASC`
-  ) as any)[0] as any[];
-  return rows.map((r: any) => ({ ...r, tags: r.tags ? JSON.parse(r.tags) : [] }));
-}
-
-export async function getDestinationGuideBySlug(slug: string) {
-  const db = await getDb();
-  if (!db) return null;
-  const rows = (await db.execute(
-    sql`SELECT * FROM destinationGuides WHERE slug = ${slug} AND published = true LIMIT 1`
-  ) as any)[0] as any[];
-  if (!rows.length) return null;
-  const r = rows[0];
-  await db.execute(sql`UPDATE destinationGuides SET viewCount = viewCount + 1 WHERE id = ${r.id}`);
-  return {
-    ...r,
-    attractions: r.attractions ? JSON.parse(r.attractions) : [],
-    dining: r.dining ? JSON.parse(r.dining) : [],
-    accommodation: r.accommodation ? JSON.parse(r.accommodation) : [],
-    insiderTips: r.insiderTips ? JSON.parse(r.insiderTips) : [],
-    curatedItinerary: r.curatedItinerary ? JSON.parse(r.curatedItinerary) : null,
-    tags: r.tags ? JSON.parse(r.tags) : [],
-  };
-}
-
-export async function updateDestinationGuide(id: number, data: Partial<{
-  destination: string; country: string; region: string; continent: string;
-  tagline: string; overview: string; bestTimeToVisit: string; climate: string;
-  currency: string; language: string; timezone: string; flightTimeFromUK: string;
-  attractions: any[]; dining: any[]; accommodation: any[]; insiderTips: string[];
-  gettingThere: string; visaInfo: string; curatedItinerary: any; tags: string[];
-  heroImageBase64: string; heroImageMimeType: string; featured: boolean; published: boolean;
-}>) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  const fields: string[] = [];
-  const vals: any[] = [];
-  if (data.destination !== undefined) { fields.push("destination = ?"); vals.push(data.destination); }
-  if (data.country !== undefined) { fields.push("country = ?"); vals.push(data.country); }
-  if (data.region !== undefined) { fields.push("region = ?"); vals.push(data.region); }
-  if (data.continent !== undefined) { fields.push("continent = ?"); vals.push(data.continent); }
-  if (data.tagline !== undefined) { fields.push("tagline = ?"); vals.push(data.tagline); }
-  if (data.overview !== undefined) { fields.push("overview = ?"); vals.push(data.overview); }
-  if (data.bestTimeToVisit !== undefined) { fields.push("bestTimeToVisit = ?"); vals.push(data.bestTimeToVisit); }
-  if (data.climate !== undefined) { fields.push("climate = ?"); vals.push(data.climate); }
-  if (data.currency !== undefined) { fields.push("currency = ?"); vals.push(data.currency); }
-  if (data.language !== undefined) { fields.push("language = ?"); vals.push(data.language); }
-  if (data.timezone !== undefined) { fields.push("timezone = ?"); vals.push(data.timezone); }
-  if (data.flightTimeFromUK !== undefined) { fields.push("flightTimeFromUK = ?"); vals.push(data.flightTimeFromUK); }
-  if (data.attractions !== undefined) { fields.push("attractions = ?"); vals.push(JSON.stringify(data.attractions)); }
-  if (data.dining !== undefined) { fields.push("dining = ?"); vals.push(JSON.stringify(data.dining)); }
-  if (data.accommodation !== undefined) { fields.push("accommodation = ?"); vals.push(JSON.stringify(data.accommodation)); }
-  if (data.insiderTips !== undefined) { fields.push("insiderTips = ?"); vals.push(JSON.stringify(data.insiderTips)); }
-  if (data.gettingThere !== undefined) { fields.push("gettingThere = ?"); vals.push(data.gettingThere); }
-  if (data.visaInfo !== undefined) { fields.push("visaInfo = ?"); vals.push(data.visaInfo); }
-  if (data.curatedItinerary !== undefined) { fields.push("curatedItinerary = ?"); vals.push(JSON.stringify(data.curatedItinerary)); }
-  if (data.tags !== undefined) { fields.push("tags = ?"); vals.push(JSON.stringify(data.tags)); }
-  if (data.heroImageBase64 !== undefined) { fields.push("heroImageBase64 = ?"); vals.push(data.heroImageBase64); }
-  if (data.heroImageMimeType !== undefined) { fields.push("heroImageMimeType = ?"); vals.push(data.heroImageMimeType); }
-  if (data.featured !== undefined) { fields.push("featured = ?"); vals.push(data.featured); }
-  if (data.published !== undefined) { fields.push("published = ?"); vals.push(data.published); }
-  if (!fields.length) return { success: true };
-  vals.push(id);
-  await db.execute(`UPDATE destinationGuides SET ${fields.join(", ")} WHERE id = ?`, vals);
-  return { success: true };
-}
-
-export async function publishDestinationGuide(id: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.execute(sql`UPDATE destinationGuides SET published = true WHERE id = ${id}`);
-  return { success: true };
-}
-
-export async function deleteDestinationGuide(id: number) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-  await db.execute(sql`DELETE FROM destinationGuides WHERE id = ${id}`);
-  return { success: true };
-}
-
-// ─── Destination Guide Column Migration ───────────────────────────────────────
-
-export async function ensureDestinationGuideColumns() {
-  const db = await getDb();
-  if (!db) return;
-
-  const columns: Array<{ name: string; ddl: string }> = [
-    { name: "tagline",          ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS tagline TEXT" },
-    { name: "overview",         ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS overview MEDIUMTEXT" },
-    { name: "bestTimeToVisit",  ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS bestTimeToVisit MEDIUMTEXT" },
-    { name: "climate",          ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS climate MEDIUMTEXT" },
-    { name: "currency",         ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS currency VARCHAR(50)" },
-    { name: "language",         ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS language TEXT" },
-    { name: "timezone",         ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS timezone VARCHAR(50)" },
-    { name: "flightTimeFromUK", ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS flightTimeFromUK VARCHAR(100)" },
-    { name: "attractions",      ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS attractions JSON" },
-    { name: "dining",           ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS dining JSON" },
-    { name: "accommodation",    ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS accommodation JSON" },
-    { name: "insiderTips",      ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS insiderTips JSON" },
-    { name: "gettingThere",     ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS gettingThere MEDIUMTEXT" },
-    { name: "visaInfo",         ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS visaInfo MEDIUMTEXT" },
-    { name: "curatedItinerary", ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS curatedItinerary JSON" },
-    { name: "tags",             ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS tags JSON" },
-    { name: "viewCount",        ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS viewCount INT NOT NULL DEFAULT 0" },
-    { name: "aiGenerated",      ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS aiGenerated BOOLEAN NOT NULL DEFAULT false" },
-    { name: "createdBy",        ddl: "ALTER TABLE destinationGuides ADD COLUMN IF NOT EXISTS createdBy INT" },
-  ];
-
-  for (const col of columns) {
-    try {
-      await db.execute(sql.raw(col.ddl));
-      console.log(`[DB] ensureDestinationGuideColumns: added column ${col.name}`);
-    } catch (e: any) {
-      const msg: string = e?.message || String(e);
-      const code: string = e?.code || "";
-      // ER_DUP_FIELDNAME = column already exists — safe to ignore
-      if (code === "ER_DUP_FIELDNAME" || msg.includes("Duplicate column") || msg.includes("already exists")) {
-        // column already present, nothing to do
-      } else {
-        console.warn(`[DB] ensureDestinationGuideColumns warning (${col.name}):`, msg);
-      }
-    }
-  }
-}
-
-// ─── Destination Guides Schema Inspector ──────────────────────────────────────
-
-export async function logDestinationGuidesColumns(): Promise<string[]> {
+// ─── AI Assistant Tables ───────────────────────────────────────
+export async function ensureAITables() {
   try {
     const db = await getDb();
-    if (!db) {
-      console.warn('[DB] logDestinationGuidesColumns: no database connection');
-      return [];
-    }
-    const result = await db.execute(
-      sql`SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'destinationGuides' AND TABLE_SCHEMA = DATABASE()`
-    );
-    const rows = (result as any)[0] as Array<{ COLUMN_NAME: string }>;
-    const columns = rows.map((r) => r.COLUMN_NAME);
-    console.log('[DB] destinationGuides actual columns:', columns);
-    return columns;
+    if (!db) return;
+    // Conversations table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS aiConversations (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL,
+        title VARCHAR(255) DEFAULT 'New chat',
+        createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+        updatedAt TIMESTAMP NOT NULL DEFAULT NOW() ON UPDATE NOW(),
+        FOREIGN KEY (userId) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `);
+    // Messages table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS aiMessages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        conversationId INT NOT NULL,
+        role VARCHAR(20) NOT NULL,
+        content LONGTEXT NOT NULL,
+        createdAt TIMESTAMP NOT NULL DEFAULT NOW(),
+        FOREIGN KEY (conversationId) REFERENCES aiConversations(id) ON DELETE CASCADE
+      )
+    `);
   } catch (e) {
-    console.error('[DB] logDestinationGuidesColumns error:', e);
+    console.error('[DB] ensureAITables error:', e);
+  }
+}
+
+// AI Assistant functions
+export async function listAIConversations(userId: number) {
+  try {
+    const db = await getDb();
+    if (!db) return [];
+    const result = await db.execute(sql`
+      SELECT id, title, createdAt, updatedAt
+      FROM aiConversations
+      WHERE userId = ${userId}
+      ORDER BY updatedAt DESC
+      LIMIT 50
+    `);
+    return ((result as any)[0] || []) as Array<{ id: number; title: string; createdAt: Date; updatedAt: Date }>;
+  } catch (e) {
+    console.error('[DB] listAIConversations error:', e);
     return [];
+  }
+}
+
+export async function createAIConversation(userId: number, title: string = 'New chat') {
+  try {
+    const db = await getDb();
+    if (!db) return null;
+    const result = await db.execute(sql`
+      INSERT INTO aiConversations (userId, title)
+      VALUES (${userId}, ${title})
+    `);
+    const insertId = (result as any)[0]?.insertId;
+    return { id: insertId, userId, title, createdAt: new Date(), updatedAt: new Date() };
+  } catch (e) {
+    console.error('[DB] createAIConversation error:', e);
+    return null;
+  }
+}
+
+export async function getAIConversationMessages(conversationId: number) {
+  try {
+    const db = await getDb();
+    if (!db) return [];
+    const result = await db.execute(sql`
+      SELECT id, role, content, createdAt
+      FROM aiMessages
+      WHERE conversationId = ${conversationId}
+      ORDER BY createdAt ASC
+    `);
+    return ((result as any)[0] || []) as Array<{ id: number; role: string; content: string; createdAt: Date }>;
+  } catch (e) {
+    console.error('[DB] getAIConversationMessages error:', e);
+    return [];
+  }
+}
+
+export async function addAIMessage(conversationId: number, role: string, content: string) {
+  try {
+    const db = await getDb();
+    if (!db) return null;
+    const result = await db.execute(sql`
+      INSERT INTO aiMessages (conversationId, role, content)
+      VALUES (${conversationId}, ${role}, ${content})
+    `);
+    const insertId = (result as any)[0]?.insertId;
+    // Update conversation timestamp
+    await db.execute(sql`
+      UPDATE aiConversations SET updatedAt = NOW() WHERE id = ${conversationId}
+    `);
+    return { id: insertId, conversationId, role, content, createdAt: new Date() };
+  } catch (e) {
+    console.error('[DB] addAIMessage error:', e);
+    return null;
+  }
+}
+
+export async function renameAIConversation(conversationId: number, title: string) {
+  try {
+    const db = await getDb();
+    if (!db) return false;
+    await db.execute(sql`
+      UPDATE aiConversations SET title = ${title}, updatedAt = NOW() WHERE id = ${conversationId}
+    `);
+    return true;
+  } catch (e) {
+    console.error('[DB] renameAIConversation error:', e);
+    return false;
+  }
+}
+
+export async function deleteAIConversation(conversationId: number) {
+  try {
+    const db = await getDb();
+    if (!db) return false;
+    await db.execute(sql`
+      DELETE FROM aiConversations WHERE id = ${conversationId}
+    `);
+    return true;
+  } catch (e) {
+    console.error('[DB] deleteAIConversation error:', e);
+    return false;
   }
 }
 
@@ -2910,3 +2825,4 @@ ensureLoginHistoryTable().catch(console.error);
 ensureNotificationsTable().catch(console.error);
 ensureLoyaltyTables().catch(console.error);
 ensureDestinationGuidesTable().catch(console.error);
+ensureAITables().catch(console.error);
