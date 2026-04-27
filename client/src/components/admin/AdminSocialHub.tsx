@@ -1,338 +1,292 @@
-import { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { format, startOfWeek, addDays } from "date-fns";
+import { Copy, Trash2, Calendar, Zap, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import {
-  Sparkles, Calendar, Plus, Edit2, Trash2, Instagram, Facebook, Twitter, Linkedin,
-  Music2, Send, Copy, ChevronLeft, ChevronRight, FileText, Loader2,
-} from "lucide-react";
 
-type Platform = "instagram" | "facebook" | "twitter" | "tiktok" | "linkedin";
-
-const PLATFORM_META: Record<Platform, { icon: any; color: string; label: string }> = {
-  instagram: { icon: Instagram, color: "text-pink-600 bg-pink-50 border-pink-200", label: "Instagram" },
-  facebook:  { icon: Facebook,  color: "text-blue-600 bg-blue-50 border-blue-200", label: "Facebook" },
-  twitter:   { icon: Twitter,   color: "text-sky-600 bg-sky-50 border-sky-200", label: "X / Twitter" },
-  tiktok:    { icon: Music2,    color: "text-fuchsia-600 bg-fuchsia-50 border-fuchsia-200", label: "TikTok" },
-  linkedin:  { icon: Linkedin,  color: "text-indigo-600 bg-indigo-50 border-indigo-200", label: "LinkedIn" },
-};
-
-export default function AdminSocialHub() {
-  return (
-    <div className="space-y-6">
-      <header className="flex items-center justify-between">
-        <div>
-          <h2 className="font-serif text-2xl font-semibold flex items-center gap-2">
-            <Sparkles size={22} className="text-amber-600" /> Social Media Hub
-          </h2>
-          <p className="text-sm text-muted-foreground mt-1">Generate, schedule and review every social post.</p>
-        </div>
-      </header>
-
-      <Tabs defaultValue="generate">
-        <TabsList>
-          <TabsTrigger value="generate"><Sparkles size={14} className="mr-1.5" />Generate</TabsTrigger>
-          <TabsTrigger value="library"><FileText size={14} className="mr-1.5" />Library</TabsTrigger>
-          <TabsTrigger value="calendar"><Calendar size={14} className="mr-1.5" />Calendar</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="generate"><GenerateTab /></TabsContent>
-        <TabsContent value="library"><LibraryTab /></TabsContent>
-        <TabsContent value="calendar"><CalendarTab /></TabsContent>
-      </Tabs>
-    </div>
-  );
+interface Post {
+  id: number;
+  platform: string;
+  title?: string;
+  body: string;
+  caption?: string;
+  hashtags?: string;
+  imagePrompt?: string;
+  imageUrl?: string;
+  scheduledFor?: Date;
+  status: string;
+  tags?: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
-// ─── Generate Tab ─────────────────────────────────────────────────────────────
+const DAYS_OF_WEEK = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const PLATFORMS = ["facebook", "instagram", "twitter"];
 
-function GenerateTab() {
-  const utils = trpc.useUtils();
-  const [form, setForm] = useState({
-    platform: "instagram" as Platform, topic: "", destination: "", tone: "", callToAction: "",
-  });
-  const [result, setResult] = useState<any | null>(null);
-  const [scheduledFor, setScheduledFor] = useState<string>("");
+export function AdminSocialHub() {
+  const [selectedPlatform, setSelectedPlatform] = useState<string>("facebook");
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [showCopied, setShowCopied] = useState<number | null>(null);
 
-  const generate = trpc.socialHub.generate.useMutation({
-    onSuccess: (r) => { setResult(r); toast.success('Generated'); },
-    onError: (e) => toast.error(e.message),
+  const generateWeekMutation = trpc.socialHub.generateWeek.useMutation();
+  const getWeekPostsQuery = trpc.socialHub.getWeekPosts.useQuery({
+    platform: selectedPlatform as any,
+    status: "draft",
   });
-  const create = trpc.socialHub.create.useMutation({
-    onSuccess: () => {
-      toast.success('Saved to library');
-      utils.socialHub.list.invalidate();
-      setResult(null);
-      setForm({ platform: form.platform, topic: "", destination: "", tone: "", callToAction: "" });
-    },
-    onError: (e) => toast.error(e.message),
-  });
+  const deletePostMutation = trpc.socialHub.deletePost.useMutation();
+  const schedulePostMutation = trpc.socialHub.schedulePost.useMutation();
+
+  const handleGenerateWeek = useCallback(async () => {
+    setIsGenerating(true);
+    try {
+      const result = await generateWeekMutation.mutateAsync({
+        platform: selectedPlatform,
+        destinationCount: 3,
+      });
+      setPosts(result.posts);
+      toast.success(`Generated ${result.count} posts for the week!`);
+      getWeekPostsQuery.refetch();
+    } catch (error) {
+      toast.error("Failed to generate posts");
+      console.error(error);
+    } finally {
+      setIsGenerating(false);
+    }
+  }, [selectedPlatform, generateWeekMutation, getWeekPostsQuery]);
+
+  const handleCopyPost = (post: Post) => {
+    const text = `TITLE: ${post.title || "No Title"}
+
+CONTENT:
+${post.body}
+
+CAPTION:
+${post.caption || ""}
+
+HASHTAGS:
+${post.hashtags || ""}
+
+IMAGE PROMPT:
+${post.imagePrompt || ""}`;
+
+    navigator.clipboard.writeText(text);
+    setShowCopied(post.id);
+    toast.success("Post copied to clipboard!");
+    setTimeout(() => setShowCopied(null), 2000);
+  };
+
+  const handleDeletePost = async (id: number) => {
+    if (confirm("Delete this post?")) {
+      try {
+        await deletePostMutation.mutateAsync({ id });
+        setPosts(posts.filter((p) => p.id !== id));
+        toast.success("Post deleted");
+      } catch (error) {
+        toast.error("Failed to delete post");
+      }
+    }
+  };
+
+  const handleSchedulePost = async (id: number) => {
+    const post = posts.find((p) => p.id === id);
+    if (!post) return;
+
+    const dateStr = prompt("Schedule for (YYYY-MM-DD HH:MM):");
+    if (!dateStr) return;
+
+    try {
+      await schedulePostMutation.mutateAsync({
+        id,
+        scheduledFor: new Date(dateStr),
+      });
+      toast.success("Post scheduled!");
+      getWeekPostsQuery.refetch();
+    } catch (error) {
+      toast.error("Failed to schedule post");
+    }
+  };
+
+  // Organize posts by day of week
+  const postsByDay = DAYS_OF_WEEK.map((day, index) => ({
+    day,
+    posts: posts.length > index ? [posts[index]] : [],
+  }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Brief */}
-      <div className="bg-white rounded-2xl border border-border p-5 space-y-4">
-        <h3 className="font-semibold">Brief</h3>
-        <div>
-          <label className="text-xs font-semibold uppercase text-muted-foreground">Platform</label>
-          <Select value={form.platform} onValueChange={(v) => setForm({ ...form, platform: v as Platform })}>
-            <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {(Object.keys(PLATFORM_META) as Platform[]).map(p => (
-                <SelectItem key={p} value={p}>{PLATFORM_META[p].label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+    <div className="space-y-6 p-6 bg-gradient-to-br from-blue-50 to-indigo-50 min-h-screen rounded-lg">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h1 className="text-3xl font-bold text-gray-800">📱 Social Media Calendar</h1>
+        <div className="flex gap-2">
+          {PLATFORMS.map((platform) => (
+            <button
+              key={platform}
+              onClick={() => setSelectedPlatform(platform)}
+              className={`px-4 py-2 rounded-lg font-semibold transition ${
+                selectedPlatform === platform
+                  ? "bg-blue-600 text-white shadow-lg"
+                  : "bg-white text-gray-700 hover:bg-gray-100"
+              }`}
+            >
+              {platform.charAt(0).toUpperCase() + platform.slice(1)}
+            </button>
+          ))}
         </div>
-        <div>
-          <label className="text-xs font-semibold uppercase text-muted-foreground">Topic *</label>
-          <Textarea value={form.topic} onChange={(e) => setForm({ ...form, topic: e.target.value })}
-            placeholder="e.g. 5 reasons Maldives beats Bali this winter" rows={3} className="mt-1" />
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="text-xs font-semibold uppercase text-muted-foreground">Destination (optional)</label>
-            <Input value={form.destination} onChange={(e) => setForm({ ...form, destination: e.target.value })} className="mt-1" />
-          </div>
-          <div>
-            <label className="text-xs font-semibold uppercase text-muted-foreground">Tone (optional)</label>
-            <Input value={form.tone} onChange={(e) => setForm({ ...form, tone: e.target.value })} placeholder="warm, witty…" className="mt-1" />
-          </div>
-        </div>
-        <div>
-          <label className="text-xs font-semibold uppercase text-muted-foreground">CTA (optional)</label>
-          <Input value={form.callToAction} onChange={(e) => setForm({ ...form, callToAction: e.target.value })} placeholder="defaults to WhatsApp / email" className="mt-1" />
-        </div>
-        <Button
-          onClick={() => generate.mutate(form)}
-          disabled={!form.topic.trim() || generate.isPending}
-          className="w-full bg-navy-gradient text-white"
+      </div>
+
+      {/* Generate Button */}
+      <div className="flex gap-3">
+        <button
+          onClick={handleGenerateWeek}
+          disabled={isGenerating}
+          className="flex items-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 disabled:opacity-50 text-white px-6 py-3 rounded-lg font-bold shadow-lg transition transform hover:scale-105"
         >
-          {generate.isPending ? <><Loader2 size={14} className="mr-2 animate-spin" />Generating…</> : <><Sparkles size={14} className="mr-2" />Generate post</>}
-        </Button>
+          {isGenerating ? (
+            <>
+              <RefreshCw className="animate-spin" size={20} />
+              Generating...
+            </>
+          ) : (
+            <>
+              <Zap size={20} />
+              Generate This Week's Posts
+            </>
+          )}
+        </button>
+        <p className="text-sm text-gray-600 flex items-center">
+          Create 7 tailored posts with copy-paste content, hashtags, and image prompts
+        </p>
       </div>
 
-      {/* Result */}
-      <div className="bg-white rounded-2xl border border-border p-5 space-y-4">
-        <h3 className="font-semibold">Draft</h3>
-        {!result ? (
-          <p className="text-sm text-muted-foreground">Your generated post will appear here. Edit it freely before saving.</p>
-        ) : (
-          <>
-            <div>
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Title (internal)</label>
-              <Input value={result.title} onChange={(e) => setResult({ ...result, title: e.target.value })} className="mt-1" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Body</label>
-              <Textarea value={result.body} onChange={(e) => setResult({ ...result, body: e.target.value })} rows={6} className="mt-1" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Caption / Hook</label>
-              <Input value={result.caption} onChange={(e) => setResult({ ...result, caption: e.target.value })} className="mt-1" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Hashtags</label>
-              <Input value={result.hashtags} onChange={(e) => setResult({ ...result, hashtags: e.target.value })} className="mt-1" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Image prompt</label>
-              <Textarea value={result.imagePrompt} onChange={(e) => setResult({ ...result, imagePrompt: e.target.value })} rows={2} className="mt-1 text-xs" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold uppercase text-muted-foreground">Schedule for (optional)</label>
-              <Input type="datetime-local" value={scheduledFor} onChange={(e) => setScheduledFor(e.target.value)} className="mt-1" />
-            </div>
-            <div className="flex gap-2 pt-2 border-t">
-              <Button variant="outline" onClick={() => navigator.clipboard.writeText(`${result.body}\n\n${result.hashtags}`).then(() => toast.success('Copied'))}>
-                <Copy size={14} className="mr-1.5" /> Copy
-              </Button>
-              <Button
-                className="flex-1 bg-navy-gradient text-white"
-                onClick={() => create.mutate({
-                  platform: form.platform,
-                  title: result.title,
-                  body: result.body,
-                  caption: result.caption,
-                  hashtags: result.hashtags,
-                  imagePrompt: result.imagePrompt,
-                  scheduledFor: scheduledFor ? new Date(scheduledFor) : null,
-                  status: scheduledFor ? "scheduled" : "draft",
-                })}
-              >Save to library</Button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-// ─── Library Tab ─────────────────────────────────────────────────────────────
-
-function LibraryTab() {
-  const utils = trpc.useUtils();
-  const [filter, setFilter] = useState<"all" | "draft" | "scheduled" | "published">("all");
-  const listQ = trpc.socialHub.list.useQuery(filter === "all" ? {} : { status: filter });
-  const [editing, setEditing] = useState<any | null>(null);
-
-  const update = trpc.socialHub.update.useMutation({
-    onSuccess: () => { toast.success('Updated'); utils.socialHub.list.invalidate(); setEditing(null); },
-  });
-  const del = trpc.socialHub.delete.useMutation({
-    onSuccess: () => { toast.success('Deleted'); utils.socialHub.list.invalidate(); },
-  });
-
-  const items = listQ.data || [];
-
-  return (
-    <div className="space-y-4">
-      <div className="flex gap-2">
-        {(['all', 'draft', 'scheduled', 'published'] as const).map(f => (
-          <Button key={f} variant={filter === f ? "default" : "outline"} size="sm" onClick={() => setFilter(f)}>
-            {f.charAt(0).toUpperCase() + f.slice(1)}
-          </Button>
-        ))}
-      </div>
-
-      {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-12">No posts yet.</p>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {items.map((p: any) => {
-            const meta = PLATFORM_META[p.platform as Platform];
+      {/* Weekly Calendar Grid */}
+      {posts.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 gap-6">
+          {postsByDay.map((dayData, index) => {
+            const post = dayData.posts[0];
             return (
-              <div key={p.id} className="bg-white rounded-2xl border border-border p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium border ${meta.color}`}>
-                    <meta.icon size={12} /> {meta.label}
+              <div
+                key={dayData.day}
+                className="bg-white rounded-xl shadow-lg hover:shadow-xl transition overflow-hidden border-l-4 border-blue-500"
+              >
+                {/* Day Header */}
+                <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-4">
+                  <h2 className="text-xl font-bold">{dayData.day}</h2>
+                  <p className="text-blue-100 text-sm">
+                    {format(addDays(new Date(), index), "MMM d, yyyy")}
+                  </p>
+                </div>
+
+                {post ? (
+                  <div className="p-6 space-y-4">
+                    {/* Post Title */}
+                    {post.title && (
+                      <div className="bg-amber-50 p-3 rounded-lg border-l-4 border-amber-400">
+                        <p className="text-xs text-gray-600 font-semibold uppercase">Title</p>
+                        <p className="font-bold text-gray-800 text-lg">{post.title}</p>
+                      </div>
+                    )}
+
+                    {/* Main Content */}
+                    <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+                      <p className="text-xs text-gray-600 font-semibold uppercase">Content</p>
+                      <p className="text-gray-800 whitespace-pre-wrap text-sm leading-relaxed">
+                        {post.body}
+                      </p>
+                    </div>
+
+                    {/* Caption */}
+                    {post.caption && (
+                      <div className="bg-green-50 p-3 rounded-lg border-l-4 border-green-400">
+                        <p className="text-xs text-gray-600 font-semibold uppercase">Caption</p>
+                        <p className="text-gray-800 font-semibold">{post.caption}</p>
+                      </div>
+                    )}
+
+                    {/* Hashtags */}
+                    {post.hashtags && (
+                      <div className="bg-pink-50 p-3 rounded-lg border-l-4 border-pink-400">
+                        <p className="text-xs text-gray-600 font-semibold uppercase">Hashtags</p>
+                        <p className="text-pink-700 font-mono text-sm break-words">
+                          {post.hashtags}
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Image Prompt */}
+                    {post.imagePrompt && (
+                      <div className="bg-purple-50 p-3 rounded-lg border-l-4 border-purple-400">
+                        <p className="text-xs text-gray-600 font-semibold uppercase">Image Prompt</p>
+                        <p className="text-gray-800 text-sm italic">{post.imagePrompt}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          💡 Use this prompt in DALL-E, Midjourney, or your image editor
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Action Buttons */}
+                    <div className="flex gap-2 pt-4 border-t">
+                      <button
+                        onClick={() => handleCopyPost(post)}
+                        className={`flex items-center gap-2 px-4 py-2 rounded-lg font-semibold transition ${
+                          showCopied === post.id
+                            ? "bg-green-500 text-white"
+                            : "bg-blue-500 hover:bg-blue-600 text-white"
+                        }`}
+                      >
+                        <Copy size={16} />
+                        {showCopied === post.id ? "Copied!" : "Copy All"}
+                      </button>
+                      <button
+                        onClick={() => handleSchedulePost(post.id)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold bg-orange-500 hover:bg-orange-600 text-white transition"
+                      >
+                        <Calendar size={16} />
+                        Schedule
+                      </button>
+                      <button
+                        onClick={() => handleDeletePost(post.id)}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg font-semibold bg-red-500 hover:bg-red-600 text-white transition ml-auto"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                  <Badge variant="secondary" className="text-[10px]">{p.status}</Badge>
-                </div>
-                {p.title && <p className="font-semibold text-sm">{p.title}</p>}
-                <p className="text-sm text-muted-foreground line-clamp-3 whitespace-pre-wrap">{p.body}</p>
-                {p.scheduledFor && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1"><Calendar size={11} />{new Date(p.scheduledFor).toLocaleString('en-GB')}</p>
+                ) : (
+                  <div className="p-6 text-center text-gray-400">
+                    <p>No post yet. Generate the week to create content!</p>
+                  </div>
                 )}
-                <div className="flex gap-1.5 pt-2 border-t">
-                  <Button size="sm" variant="outline" onClick={() => setEditing(p)}><Edit2 size={12} className="mr-1" />Edit</Button>
-                  <Button size="sm" variant="outline" onClick={() => navigator.clipboard.writeText(`${p.body}\n\n${p.hashtags || ''}`).then(() => toast.success('Copied'))}><Copy size={12} className="mr-1" />Copy</Button>
-                  <Button size="sm" variant="ghost" onClick={() => { if (confirm('Delete post?')) del.mutate({ id: p.id }); }}><Trash2 size={12} className="text-red-600" /></Button>
-                </div>
               </div>
             );
           })}
         </div>
-      )}
-
-      {editing && (
-        <Dialog open onOpenChange={() => setEditing(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Edit post</DialogTitle></DialogHeader>
-            <div className="space-y-3">
-              <Input value={editing.title || ''} onChange={(e) => setEditing({ ...editing, title: e.target.value })} placeholder="Title" />
-              <Textarea value={editing.body} onChange={(e) => setEditing({ ...editing, body: e.target.value })} rows={6} />
-              <Input value={editing.hashtags || ''} onChange={(e) => setEditing({ ...editing, hashtags: e.target.value })} placeholder="Hashtags" />
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs">Status</label>
-                  <Select value={editing.status} onValueChange={(v) => setEditing({ ...editing, status: v })}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Draft</SelectItem>
-                      <SelectItem value="scheduled">Scheduled</SelectItem>
-                      <SelectItem value="published">Published</SelectItem>
-                      <SelectItem value="archived">Archived</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <label className="text-xs">Scheduled for</label>
-                  <Input type="datetime-local"
-                    value={editing.scheduledFor ? new Date(editing.scheduledFor).toISOString().slice(0, 16) : ''}
-                    onChange={(e) => setEditing({ ...editing, scheduledFor: e.target.value ? new Date(e.target.value).toISOString() : null })} />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-                <Button className="bg-navy-gradient text-white" onClick={() => update.mutate({
-                  id: editing.id, title: editing.title, body: editing.body, hashtags: editing.hashtags,
-                  status: editing.status, scheduledFor: editing.scheduledFor ? new Date(editing.scheduledFor) : null,
-                })}>Save</Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+      ) : (
+        <div className="bg-white rounded-xl shadow-lg p-12 text-center">
+          <Zap size={48} className="mx-auto text-gray-300 mb-4" />
+          <h3 className="text-xl font-bold text-gray-800 mb-2">
+            Ready to Generate This Week's Posts?
+          </h3>
+          <p className="text-gray-600 mb-6">
+            Click the button above to auto-generate 7 unique, platform-tailored posts with hashtags,
+            captions, and image prompts ready to go!
+          </p>
+          <div className="bg-blue-50 p-4 rounded-lg text-sm text-blue-900">
+            <p className="font-semibold mb-2">🎯 What you'll get:</p>
+            <ul className="text-left space-y-1">
+              <li>✨ Monday: Travel Hack</li>
+              <li>🌟 Tuesday: Destination Spotlight</li>
+              <li>📸 Wednesday: Customer Story</li>
+              <li>🎉 Thursday: Deal Alert</li>
+              <li>🏖️ Friday: Featured Destination</li>
+              <li>🎭 Saturday: Culture & Experience</li>
+              <li>🗺️ Sunday: Planning CTA</li>
+            </ul>
+          </div>
+        </div>
       )}
     </div>
   );
 }
 
-// ─── Calendar Tab ────────────────────────────────────────────────────────────
-
-function CalendarTab() {
-  const today = new Date();
-  const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth() + 1);
-
-  const calQ = trpc.socialHub.calendar.useQuery({ year, month });
-  const byDay = calQ.data?.byDay || {};
-
-  const firstDay = new Date(year, month - 1, 1);
-  const startOffset = (firstDay.getDay() + 6) % 7; // Monday-first
-  const daysInMonth = new Date(year, month, 0).getDate();
-
-  const cells: Array<{ day: number; iso: string } | null> = [];
-  for (let i = 0; i < startOffset; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) {
-    const iso = new Date(year, month - 1, d).toISOString().slice(0, 10);
-    cells.push({ day: d, iso });
-  }
-
-  const monthName = new Date(year, month - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-
-  const prev = () => { if (month === 1) { setMonth(12); setYear(year - 1); } else setMonth(month - 1); };
-  const next = () => { if (month === 12) { setMonth(1); setYear(year + 1); } else setMonth(month + 1); };
-
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <Button variant="outline" size="sm" onClick={prev}><ChevronLeft size={14} /></Button>
-        <h3 className="font-serif text-lg font-semibold">{monthName}</h3>
-        <Button variant="outline" size="sm" onClick={next}><ChevronRight size={14} /></Button>
-      </div>
-
-      <div className="grid grid-cols-7 gap-1 text-xs text-center font-semibold text-muted-foreground">
-        {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map(d => <div key={d} className="py-2">{d}</div>)}
-      </div>
-
-      <div className="grid grid-cols-7 gap-1">
-        {cells.map((c, i) => {
-          if (!c) return <div key={i} className="min-h-[100px]" />;
-          const posts = byDay[c.iso] || [];
-          const isToday = c.iso === today.toISOString().slice(0, 10);
-          return (
-            <div key={i} className={`min-h-[100px] rounded-lg border p-2 text-xs space-y-1 ${isToday ? 'border-amber-400 bg-amber-50/50' : 'border-border bg-white'}`}>
-              <div className={`font-semibold ${isToday ? 'text-amber-700' : 'text-muted-foreground'}`}>{c.day}</div>
-              {posts.slice(0, 3).map((p: any) => {
-                const meta = PLATFORM_META[p.platform as Platform];
-                return (
-                  <div key={p.id} className={`px-1.5 py-1 rounded text-[10px] truncate border ${meta.color}`} title={p.title || p.body}>
-                    <meta.icon size={9} className="inline mr-0.5" />{p.title || p.body.slice(0, 20)}
-                  </div>
-                );
-              })}
-              {posts.length > 3 && <div className="text-[10px] text-muted-foreground">+{posts.length - 3} more</div>}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+export default AdminSocialHub;
