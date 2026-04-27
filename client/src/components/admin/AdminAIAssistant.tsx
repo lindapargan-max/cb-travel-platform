@@ -146,7 +146,7 @@ export default function AdminAIAssistant() {
         </header>
 
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-4">
-          {activeId === null && messages.length === 0 && (
+          {messages.length === 0 && (
             <div className="max-w-2xl mx-auto text-center py-8">
               <div className="w-14 h-14 rounded-2xl bg-navy-gradient mx-auto mb-4 flex items-center justify-center">
                 <Sparkles size={22} className="text-amber-300" />

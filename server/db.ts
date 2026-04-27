@@ -2817,6 +2817,223 @@ export async function deleteAIConversation(conversationId: number) {
   }
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// FACEBOOK CALENDAR
+// ═══════════════════════════════════════════════════════════════════════════════
+
+export async function ensureFacebookCalendarTables() {
+  try {
+    const db = await getDb();
+    if (!db) return;
+    
+    // Scheduled posts table
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS facebookPosts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL,
+        postDate DATE NOT NULL,
+        dayOfWeek INT NOT NULL,
+        postType ENUM('travel_deal', 'destination', 'hack', 'roundup') NOT NULL,
+        title VARCHAR(255),
+        content LONGTEXT NOT NULL,
+        hashtagsStr VARCHAR(500),
+        imageUrl VARCHAR(500),
+        status ENUM('draft', 'scheduled', 'published', 'failed') DEFAULT 'draft',
+        facebookPostId VARCHAR(255),
+        publishedAt TIMESTAMP NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uk_date_type (postDate, postType)
+      )
+    `);
+    
+    // Travel deals repository (agent inputs)
+    await db.execute(sql`
+      CREATE TABLE IF NOT EXISTS travelDeals (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        userId INT NOT NULL,
+        dealTitle VARCHAR(255) NOT NULL,
+        dealDescription TEXT NOT NULL,
+        destination VARCHAR(100),
+        discount VARCHAR(100),
+        expiryDate DATE,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+    
+    console.log('[DB] Facebook calendar tables ensured');
+  } catch (e) {
+    console.error('[DB] ensureFacebookCalendarTables error:', e);
+  }
+}
+
+export async function getFacebookCalendarMonth(userId: number, year: number, month: number) {
+  try {
+    const db = await getDb();
+    if (!db) return [];
+    const result = await db.execute(sql`
+      SELECT * FROM facebookPosts 
+      WHERE userId = ${userId}
+      AND YEAR(postDate) = ${year}
+      AND MONTH(postDate) = ${month}
+      ORDER BY postDate ASC
+    `);
+    return (result as any)[0] || [];
+  } catch (e) {
+    console.error('[DB] getFacebookCalendarMonth error:', e);
+    return [];
+  }
+}
+
+export async function getFacebookPost(postId: number) {
+  try {
+    const db = await getDb();
+    if (!db) return null;
+    const result = await db.execute(sql`
+      SELECT * FROM facebookPosts WHERE id = ${postId}
+    `);
+    return (result as any)[0]?.[0] || null;
+  } catch (e) {
+    console.error('[DB] getFacebookPost error:', e);
+    return null;
+  }
+}
+
+export async function createFacebookPost(
+  userId: number,
+  postDate: string,
+  postType: string,
+  title: string,
+  content: string,
+  hashtags?: string
+) {
+  try {
+    const db = await getDb();
+    if (!db) return null;
+    const dateObj = new Date(postDate);
+    const dayOfWeek = dateObj.getDay();
+    
+    const result = await db.execute(sql`
+      INSERT INTO facebookPosts (userId, postDate, dayOfWeek, postType, title, content, hashtagsStr, status)
+      VALUES (${userId}, ${postDate}, ${dayOfWeek}, ${postType}, ${title}, ${content}, ${hashtags || ''}, 'draft')
+    `);
+    return (result as any)[0]?.insertId;
+  } catch (e) {
+    console.error('[DB] createFacebookPost error:', e);
+    return null;
+  }
+}
+
+export async function updateFacebookPost(
+  postId: number,
+  updates: {
+    title?: string;
+    content?: string;
+    hashtags?: string;
+    imageUrl?: string;
+    status?: string;
+  }
+) {
+  try {
+    const db = await getDb();
+    if (!db) return false;
+    
+    let updateClause = 'updatedAt = NOW()';
+    const params: any[] = [postId];
+    
+    if (updates.title) {
+      updateClause = `title = ?, ${updateClause}`;
+      params.unshift(updates.title);
+    }
+    if (updates.content) {
+      updateClause = `content = ?, ${updateClause}`;
+      params.unshift(updates.content);
+    }
+    if (updates.hashtags) {
+      updateClause = `hashtagsStr = ?, ${updateClause}`;
+      params.unshift(updates.hashtags);
+    }
+    if (updates.imageUrl) {
+      updateClause = `imageUrl = ?, ${updateClause}`;
+      params.unshift(updates.imageUrl);
+    }
+    if (updates.status) {
+      updateClause = `status = ?, ${updateClause}`;
+      params.unshift(updates.status);
+    }
+    
+    await db.execute(sql`UPDATE facebookPosts SET ${sql.raw(updateClause)} WHERE id = ?`, params);
+    return true;
+  } catch (e) {
+    console.error('[DB] updateFacebookPost error:', e);
+    return false;
+  }
+}
+
+export async function deleteFacebookPost(postId: number) {
+  try {
+    const db = await getDb();
+    if (!db) return false;
+    await db.execute(sql`DELETE FROM facebookPosts WHERE id = ${postId}`);
+    return true;
+  } catch (e) {
+    console.error('[DB] deleteFacebookPost error:', e);
+    return false;
+  }
+}
+
+export async function getTravelDeals(userId: number, limit = 10) {
+  try {
+    const db = await getDb();
+    if (!db) return [];
+    const result = await db.execute(sql`
+      SELECT * FROM travelDeals 
+      WHERE userId = ${userId}
+      ORDER BY createdAt DESC
+      LIMIT ${limit}
+    `);
+    return (result as any)[0] || [];
+  } catch (e) {
+    console.error('[DB] getTravelDeals error:', e);
+    return [];
+  }
+}
+
+export async function addTravelDeal(
+  userId: number,
+  title: string,
+  description: string,
+  destination?: string,
+  discount?: string,
+  expiryDate?: string
+) {
+  try {
+    const db = await getDb();
+    if (!db) return null;
+    const result = await db.execute(sql`
+      INSERT INTO travelDeals (userId, dealTitle, dealDescription, destination, discount, expiryDate)
+      VALUES (${userId}, ${title}, ${description}, ${destination || null}, ${discount || null}, ${expiryDate || null})
+    `);
+    return (result as any)[0]?.insertId;
+  } catch (e) {
+    console.error('[DB] addTravelDeal error:', e);
+    return null;
+  }
+}
+
+export async function deleteTravelDeal(dealId: number) {
+  try {
+    const db = await getDb();
+    if (!db) return false;
+    await db.execute(sql`DELETE FROM travelDeals WHERE id = ${dealId}`);
+    return true;
+  } catch (e) {
+    console.error('[DB] deleteTravelDeal error:', e);
+    return false;
+  }
+}
+
 // Run on module load
 ensureUserPassportColumns().catch(console.error);
 ensureCommunityPostsTable().catch(console.error);
@@ -2826,3 +3043,4 @@ ensureNotificationsTable().catch(console.error);
 ensureLoyaltyTables().catch(console.error);
 ensureDestinationGuidesTable().catch(console.error);
 ensureAITables().catch(console.error);
+ensureFacebookCalendarTables().catch(console.error);

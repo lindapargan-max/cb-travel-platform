@@ -189,6 +189,14 @@ import {
   addAIMessage,
   renameAIConversation,
   deleteAIConversation,
+  getFacebookCalendarMonth,
+  getFacebookPost,
+  createFacebookPost,
+  updateFacebookPost,
+  deleteFacebookPost,
+  getTravelDeals,
+  addTravelDeal,
+  deleteTravelDeal,
 } from "./db";
 
 const adminMiddleware = protectedProcedure.use(({ ctx, next }) => {
@@ -3199,10 +3207,15 @@ Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 
             },
             body: JSON.stringify({
               model: 'llama-3.1-70b-versatile',
-              messages: groqMessages,
+              messages: [
+                {
+                  role: 'system',
+                  content: `You are CB Travel's premium admin assistant. Help with travel bookings, client management, quotes, loyalty programs, and business analytics. Be concise, professional, and luxury-focused. Reference actual data when asked. Base your insights on real booking patterns, client preferences, and business metrics.`
+                },
+                ...groqMessages
+              ],
               temperature: 0.7,
               max_tokens: 1000,
-              system: `You are CB Travel's premium admin assistant. Help with travel bookings, client management, quotes, loyalty programs, and business analytics. Be concise, professional, and luxury-focused. Reference actual data when asked. Base your insights on real booking patterns, client preferences, and business metrics.`,
             }),
           });
 
@@ -3283,6 +3296,185 @@ Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 
         return null;
       }
     }),
+  }),
+
+  // ─── FACEBOOK CALENDAR
+  facebookCalendar: router({
+    getMonth: protectedProcedure
+      .input(z.object({ year: z.number(), month: z.number() }))
+      .query(async ({ input, ctx }) => {
+        const userId = (ctx as any).user?.id;
+        if (!userId) return [];
+        return await getFacebookCalendarMonth(userId, input.year, input.month);
+      }),
+
+    getPost: protectedProcedure
+      .input(z.number())
+      .query(async ({ input }) => {
+        return await getFacebookPost(input);
+      }),
+
+    generateContent: protectedProcedure
+      .input(z.object({
+        postDate: z.string(),
+        postType: z.enum(['travel_deal', 'destination', 'hack', 'roundup']),
+        dealId: z.number().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const userId = (ctx as any).user?.id;
+        if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
+
+        try {
+          const groqKey = process.env.GROQ_API_KEY;
+          if (!groqKey) throw new Error('Groq API key not configured');
+
+          let prompt = '';
+
+          if (input.postType === 'travel_deal') {
+            const deals = await getTravelDeals(userId, 5);
+            const deal = deals.find((d: any) => d.id === input.dealId);
+            if (!deal) throw new Error('Deal not found');
+            
+            prompt = `Create a luxurious, engaging Facebook post for a travel deal.
+Destination: ${deal.destination}
+Title: ${deal.dealTitle}
+Description: ${deal.dealDescription}
+Discount: ${deal.discount || 'Contact for pricing'}
+
+Make it premium, concise (under 150 chars for headline), with a clear CTA. Include relevant emojis. Suggest 3 hashtags.
+Format: HEADLINE\\nBODY\\nHASHTAGS`;
+          } else if (input.postType === 'destination') {
+            prompt = `Create a stunning, luxurious destination spotlight post for Facebook.
+Pick an interesting destination (you choose).
+Make it dreamy, aspirational, premium tone. Under 200 chars for headline.
+Include a travel insight or insider tip.
+Format: HEADLINE\\nBODY\\nLOCATION\\nHASHTAGS`;
+          } else if (input.postType === 'hack') {
+            prompt = `Create a valuable travel hack post for Facebook.
+Make it practical, clever, and useful.
+Something agents and travelers would actually use and share.
+Premium tone - not generic.
+Format: HEADLINE\\nTIP (2-3 sentences)\\nWHY_IT_MATTERS\\nHASHTAGS`;
+          } else if (input.postType === 'roundup') {
+            prompt = `Create a weekly roundup post for Sunday (week recap).
+Mention: exciting bookings, amazing destinations we've booked, travel inspiration, client stories (anonymized).
+Warm, community-focused tone.
+Make it feel like a newsletter wrap-up.
+Format: HEADLINE\\nWEEK_RECAP\\nLOOKING_FORWARD\\nHASHTAGS`;
+          }
+
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${groqKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'llama-3.1-70b-versatile',
+              messages: [
+                {
+                  role: 'system',
+                  content: 'You are a luxury travel brand social media expert creating premium Facebook posts for CB Travel, a high-end travel concierge. Keep posts engaging, warm, and aspirational. Always include emojis. Be concise.',
+                },
+                {
+                  role: 'user',
+                  content: prompt,
+                },
+              ],
+              temperature: 0.8,
+              max_tokens: 500,
+            }),
+          });
+
+          if (!response.ok) {
+            const err = await response.text();
+            console.error('[Facebook] Groq error:', err);
+            throw new Error(`Groq API error: ${response.status}`);
+          }
+
+          const data = await response.json();
+          const content = data.choices[0]?.message?.content || '';
+          
+          // Create the post in draft
+          const postId = await createFacebookPost(userId, input.postDate, input.postType, '', content);
+          
+          return { postId, content };
+        } catch (error) {
+          console.error('[Facebook] generateContent error:', error);
+          throw new TRPCError({ code: 'INTERNAL_SERVER_ERROR', message: 'Failed to generate content' });
+        }
+      }),
+
+    createPost: adminMiddleware
+      .input(z.object({
+        postDate: z.string(),
+        postType: z.enum(['travel_deal', 'destination', 'hack', 'roundup']),
+        title: z.string(),
+        content: z.string(),
+        hashtags: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const userId = (ctx as any).user?.id;
+        if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
+        
+        const postId = await createFacebookPost(userId, input.postDate, input.postType, input.title, input.content, input.hashtags);
+        return { postId };
+      }),
+
+    updatePost: adminMiddleware
+      .input(z.object({
+        postId: z.number(),
+        title: z.string().optional(),
+        content: z.string().optional(),
+        hashtags: z.string().optional(),
+        status: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await updateFacebookPost(input.postId, {
+          title: input.title,
+          content: input.content,
+          hashtags: input.hashtags,
+          status: input.status,
+        });
+        return { success: true };
+      }),
+
+    deletePost: adminMiddleware
+      .input(z.number())
+      .mutation(async ({ input }) => {
+        await deleteFacebookPost(input);
+        return { success: true };
+      }),
+
+    // Travel deals management
+    getTravelDeals: adminMiddleware.query(async ({ ctx }) => {
+      const userId = (ctx as any).user?.id;
+      if (!userId) return [];
+      return await getTravelDeals(userId);
+    }),
+
+    addTravelDeal: adminMiddleware
+      .input(z.object({
+        title: z.string(),
+        description: z.string(),
+        destination: z.string().optional(),
+        discount: z.string().optional(),
+        expiryDate: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const userId = (ctx as any).user?.id;
+        if (!userId) throw new TRPCError({ code: 'UNAUTHORIZED' });
+        
+        const dealId = await addTravelDeal(userId, input.title, input.description, input.destination, input.discount, input.expiryDate);
+        return { dealId };
+      }),
+
+    deleteTravelDeal: adminMiddleware
+      .input(z.number())
+      .mutation(async ({ input }) => {
+        await deleteTravelDeal(input);
+        return { success: true };
+      }),
   }),
 
 });

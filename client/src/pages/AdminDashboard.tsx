@@ -44,6 +44,7 @@ import AdminBookingEmailsHub from "@/components/admin/AdminBookingEmailsHub";
 import AdminSocialHub from "@/components/admin/AdminSocialHub";
 import AdminDestinationSpotlight from "@/components/admin/AdminDestinationSpotlight";
 import AdminTravelHacks from "@/components/admin/AdminTravelHacks";
+import AdminFacebookCalendar from "@/components/admin/AdminFacebookCalendar";
 import { useSEO } from '@/hooks/useSEO';
 
 function StatusBadge({ status }: { status: string }) {
@@ -3382,6 +3383,7 @@ export default function AdminDashboard() {
       label: 'Tools',
       items: [
         { value: 'ai-assistant', label: 'AI Assistant', icon: Monitor },
+        { value: 'facebook-calendar', label: 'Facebook Calendar', icon: Calendar },
         { value: 'social-hub', label: 'Social Hub', icon: Heart },
         { value: 'spotlight', label: 'Destination Spotlights', icon: MapPinned },
         { value: 'travel-hacks', label: 'Travel Hacks', icon: Lightbulb },
@@ -4670,6 +4672,10 @@ export default function AdminDashboard() {
 
             <TabsContent value="ai-assistant">
   <AdminAIAssistant />
+</TabsContent>
+
+<TabsContent value="facebook-calendar">
+  <AdminFacebookCalendar />
 </TabsContent>
 
 <TabsContent value="booking-emails">
