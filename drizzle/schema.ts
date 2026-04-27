@@ -727,3 +727,26 @@ export const deletionLogs = mysqlTable("deletionLogs", {
 });
 
 export type DeletionLog = typeof deletionLogs.$inferSelect;
+
+// ─── Social Posts ─────────────────────────────────────────────────────────
+
+export const socialPosts = mysqlTable("socialPosts", {
+  id: int("id").autoincrement().primaryKey(),
+  platform: mysqlEnum("platform", ["instagram", "facebook", "twitter", "tiktok", "linkedin"]).notNull(),
+  title: varchar("title", { length: 255 }),
+  body: mediumtext("body").notNull(),
+  caption: text("caption"),
+  hashtags: varchar("hashtags", { length: 500 }),
+  imagePrompt: text("imagePrompt"),
+  imageUrl: varchar("imageUrl", { length: 500 }),
+  scheduledFor: timestamp("scheduledFor"),
+  status: mysqlEnum("status", ["draft", "scheduled", "published", "archived"]).notNull().default("draft"),
+  tags: json("tags"),
+  publishedAt: timestamp("publishedAt"),
+  createdBy: int("createdBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type SocialPost = typeof socialPosts.$inferSelect;
+export type InsertSocialPost = typeof socialPosts.$inferInsert;
