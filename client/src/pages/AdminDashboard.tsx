@@ -27,7 +27,7 @@ import {
   AlertCircle, RefreshCw, Shield, Lock, UserX, UserCheck, HelpCircle,
   KeyRound, UserPlus, Tag, Copy, Percent, ClipboardList, ExternalLink, ArrowRight,
   ChevronDown, ChevronRight, ChevronLeft, Send, MessageSquare, MailCheck, Ticket, Users2, UserMinus, UserRound,
-  Settings, Info, Check, User, CopyPlus, LayoutDashboard, Heart, Bell, Search, SlidersHorizontal, Monitor, MapPinned, Trophy
+  Settings, Info, Check, User, CopyPlus, LayoutDashboard, Heart, Bell, Search, SlidersHorizontal, Monitor, MapPinned
 } from "lucide-react";
 import React from "react";
 import { toast } from "sonner";
@@ -39,13 +39,7 @@ import AdminQuotesManager from "@/components/admin/AdminQuotesManager";
 import AdminCommunityManager from "@/components/admin/AdminCommunityManager";
 import AdminDestinationGuides from "@/components/admin/AdminDestinationGuides";
 import AdminNotificationsManager from "@/components/admin/AdminNotificationsManager";
-import AdminAIAssistant from "@/components/admin/AdminAIAssistant";
-import AdminBookingEmailsHub from "@/components/admin/AdminBookingEmailsHub";
-import AdminSocialHub from "@/components/admin/AdminSocialHub";
-import AdminDestinationSpotlight from "@/components/admin/AdminDestinationSpotlight";
-import AdminTravelHacks from "@/components/admin/AdminTravelHacks";
 import { useSEO } from '@/hooks/useSEO';
-
 
 function StatusBadge({ status }: { status: string }) {
   const config: Record<string, { label: string; className: string }> = {
@@ -1647,7 +1641,7 @@ function ComposeEmailSection({ allUsers }: { allUsers: any[] }) {
           />
         </div>
         <div className="flex items-center justify-between pt-2">
-          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail size={12} /> Emails are sent via CB Travel using noreply@cbtravel.uk</p>
+          <p className="text-xs text-muted-foreground flex items-center gap-1.5"><Mail size={12} /> Emails are sent via CB Travel using noreply@travelcb.co.uk</p>
           <Button
             className="rounded-xl btn-gold border-0 text-foreground gap-2"
             disabled={!recipientEmail || !subject || !message || sendEmail.isPending}
@@ -1770,8 +1764,8 @@ function GdprAdminSection() {
     <div class="section-title">Request Information</div>
     <div class="info-grid">
       <div class="info-item"><span class="info-label">Data Controller:</span><span class="info-value">Corron Barnes T/A CB Travel</span></div>
-      <div class="info-item"><span class="info-label">Website:</span><span class="info-value">cbtravel.uk</span></div>
-      <div class="info-item"><span class="info-label">DPO Contact:</span><span class="info-value">privacy@cbtravel.uk</span></div>
+      <div class="info-item"><span class="info-label">Website:</span><span class="info-value">travelcb.co.uk</span></div>
+      <div class="info-item"><span class="info-label">DPO Contact:</span><span class="info-value">privacy@travelcb.co.uk</span></div>
       <div class="info-item"><span class="info-label">Export Date:</span><span class="info-value">${new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" })}</span></div>
       <div class="info-item"><span class="info-label">Data Subject:</span><span class="info-value">${data.email}</span></div>
       <div class="info-item"><span class="info-label">Account Status:</span><span class="info-value"><span class="badge ${data.hasAccount ? "badge-account" : "badge-no-account"}">${data.hasAccount ? "Registered Account" : "No Account Found"}</span></span></div>
@@ -1822,7 +1816,7 @@ function GdprAdminSection() {
 </div>
 
 <div class="footer">
-  <p><strong>Corron Barnes T/A CB Travel</strong> · cbtravel.uk · privacy@cbtravel.uk</p>
+  <p><strong>Corron Barnes T/A CB Travel</strong> · travelcb.co.uk · privacy@travelcb.co.uk</p>
   <p style="margin-top:4px;">This document has been produced in response to a Subject Access Request under UK GDPR Article 15.</p>
   <p>It contains all personal data held by CB Travel for the data subject identified above as of the export date.</p>
 </div>
@@ -2022,7 +2016,7 @@ function GdprAdminSection() {
           <li>All requests must be responded to within <strong className="text-foreground">30 calendar days</strong> of receipt.</li>
           <li>For SAR requests, click <strong className="text-foreground">Export PDF</strong> to generate a branded data export document containing all personal data held.</li>
           <li>For erasure requests, verify the data subject has no active bookings before processing deletion.</li>
-          <li>Data Controller: <strong className="text-foreground">Corron Barnes T/A CB Travel</strong> · DPO: privacy@cbtravel.uk</li>
+          <li>Data Controller: <strong className="text-foreground">Corron Barnes T/A CB Travel</strong> · DPO: privacy@travelcb.co.uk</li>
         </ul>
       </div>
     </div>
@@ -2880,7 +2874,7 @@ function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userB
       </div>
 
       {/* Tab Content */}
-      <div className="p-5 border-t border-border bg-white">
+      <div className="p-5 border-t border-border bg-white max-h-[500px] overflow-y-auto">
 
         {/* ── Overview ── */}
         {activeTab === 'overview' && (
@@ -3091,7 +3085,7 @@ function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userB
                 <code className="text-xl font-bold font-mono text-primary tracking-wider">{user.referralCode || 'Not assigned'}</code>
                 {user.referralCode && (
                   <button
-                    onClick={() => { navigator.clipboard.writeText(`https://cbtravel.uk/?ref=${user.referralCode}`); toast.success('Referral link copied!'); }}
+                    onClick={() => { navigator.clipboard.writeText(`https://www.travelcb.co.uk/?ref=${user.referralCode}`); toast.success('Referral link copied!'); }}
                     className="text-xs text-primary hover:underline font-medium"
                   >
                     Copy link
@@ -3203,99 +3197,36 @@ function ClientProfilePanel({ user, userBookings, onUpdate }: { user: any; userB
 }
 
 
-function AdminDashboard() {
-  useSEO({ title: "Admin Dashboard" });
-  const [activeTab, setActiveTab] = useState("command");
-
-  // ── Data fetching ──────────────────────────────────────────────────────────
+export default function AdminDashboard() {
+  useSEO({ title: 'Admin Dashboard', noIndex: true });
   const utils = trpc.useUtils();
-
   const { data: bookings, isLoading: bookingsLoading } = trpc.bookings.getAllAdmin.useQuery();
-  const { data: quotes, isLoading: quotesLoading } = trpc.quotes.getAll.useQuery();
   const { data: deals, isLoading: dealsLoading } = trpc.deals.listAdmin.useQuery();
-  const { data: allUsers, isLoading: usersLoading } = trpc.admin.users.useQuery();
+  const { data: quotes, isLoading: quotesLoading } = trpc.quotes.getAllAdmin.useQuery();
   const { data: testimonials, isLoading: testimonialsLoading } = trpc.testimonials.getAllAdmin.useQuery();
-  const { data: subscribers } = trpc.newsletter.getSubscribers.useQuery();
-  const { data: promoCodes, isLoading: promoLoading } = trpc.promoCodes.list.useQuery();
+  const { data: subscribers } = trpc.newsletter.getAll.useQuery();
+  const { data: allUsers, isLoading: usersLoading } = trpc.admin.users.useQuery();
+  const { data: upcomingBirthdays } = trpc.admin.getUpcomingBirthdays.useQuery({ daysAhead: 14 });
   const { data: faqItems, isLoading: faqLoading } = trpc.faq.listAdmin.useQuery();
-  const { data: intakeSubmissions, isLoading: intakeLoading } = trpc.intake.getAll.useQuery();
-  const { data: bookedDestinations, refetch: refetchDestinations } = trpc.destinations.list.useQuery();
-  const { data: allTickets, refetch: refetchTickets } = trpc.support.getAllTickets.useQuery();
-  const { data: campaigns, refetch: refetchCampaigns } = trpc.newsletter.getCampaigns.useQuery();
-  const { data: auditLogs } = trpc.audit.getLogs.useQuery();
-  const { data: itineraryLogs } = trpc.itinerary.getLogs.useQuery();
-  const { data: itineraryPasswordData } = trpc.itinerary.getPassword.useQuery();
+  const { data: promoCodes, isLoading: promoLoading } = trpc.promoCodes.list.useQuery();
+  const [promoForm, setPromoForm] = useState({ code: "", description: "", discountAmount: "", expiresAt: "" });
+  const { data: intakeSubmissions, isLoading: intakeLoading } = trpc.intake.list.useQuery();
+
+  // V6 queries
+  const { data: bookedDestinations, refetch: refetchDestinations } = trpc.destinations.getAll.useQuery();
+  const { data: auditLogs } = trpc.auditLogs.get.useQuery({ limit: 200 });
+  const { data: itineraryLogs, refetch: refetchItineraryLogs } = trpc.ai.getItineraryAccessLogs.useQuery();
+  const { data: itineraryPasswordData, refetch: refetchItineraryPassword } = trpc.ai.getItineraryPassword.useQuery();
+  const setItineraryPasswordMutation = trpc.ai.setItineraryPassword.useMutation({
+    onSuccess: () => { toast.success("Access password updated! ✓"); refetchItineraryPassword(); setItineraryPasswordEdit(''); },
+    onError: (e) => toast.error(e.message),
+  });
+  const [itineraryPasswordEdit, setItineraryPasswordEdit] = useState('');
+  const { data: campaigns, refetch: refetchCampaigns } = trpc.newsletterV6.getCampaigns.useQuery();
   const { data: allSettings, refetch: refetchSettings } = trpc.settings.getAll.useQuery();
-
-  // ── Mutations ──────────────────────────────────────────────────────────────
-  const updateQuoteStatus = trpc.quotes.updateStatus.useMutation({
-    onSuccess: () => utils.quotes.getAll.invalidate(),
-  });
-  const deleteDeal = trpc.deals.delete.useMutation({
-    onSuccess: () => utils.deals.listAdmin.invalidate(),
-  });
-  const disableUser = trpc.admin.disableUser.useMutation({
-    onSuccess: () => utils.admin.users.invalidate(),
-  });
-  const deleteUser = trpc.admin.deleteUser.useMutation({
-    onSuccess: () => utils.admin.users.invalidate(),
-  });
-  const approveTestimonial = trpc.testimonials.approve.useMutation({
-    onSuccess: () => utils.testimonials.getAllAdmin.invalidate(),
-  });
-  const deleteTestimonial = trpc.testimonials.delete.useMutation({
-    onSuccess: () => utils.testimonials.getAllAdmin.invalidate(),
-  });
-  const createPromo = trpc.promoCodes.create.useMutation({
-    onSuccess: () => utils.promoCodes.list.invalidate(),
-  });
-  const updatePromo = trpc.promoCodes.update.useMutation({
-    onSuccess: () => utils.promoCodes.list.invalidate(),
-  });
-  const deletePromo = trpc.promoCodes.delete.useMutation({
-    onSuccess: () => utils.promoCodes.list.invalidate(),
-  });
-  const deleteFaq = trpc.faq.delete.useMutation({
-    onSuccess: () => utils.faq.listAdmin.invalidate(),
-  });
-  const updateIntakeStatus = trpc.intake.updateStatus.useMutation({
-    onSuccess: () => utils.intake.getAll.invalidate(),
-  });
-  const updateDestMut = trpc.destinations.update.useMutation();
-  const deleteDestMut = trpc.destinations.delete.useMutation();
-  const deleteAllDestMut = trpc.destinations.deleteAll.useMutation({
-    onSuccess: () => refetchDestinations(),
-  });
-  const createDestMut = trpc.destinations.create.useMutation({
-    onSuccess: () => { refetchDestinations(); setShowAddDestModal(false); toast.success("Destination added!"); },
-  });
-  const fetchDestImageMut = trpc.destinations.fetchImage.useMutation({
-    onSuccess: (data: any) => {
-      const urls: string[] = Array.isArray(data) ? data : (data?.urls ?? (data?.url ? [data.url] : []));
-      if (urls.length > 0) {
-        setDestFetchedImages(urls);
-        setDestImageIndex(0);
-        setNewDestForm((p: any) => ({ ...p, imageUrl: urls[0], imageBase64: '', imageMimeType: '' }));
-      } else {
-        toast.error("No images found for that destination");
-      }
-    },
-  });
-  const createNoteMut = trpc.clientNotes.create.useMutation();
-  const createCampaignMut = trpc.newsletter.createCampaign.useMutation();
-  const sendCampaignMut = trpc.newsletter.sendCampaign.useMutation();
-  const setSettingMut = trpc.settings.set.useMutation();
-  const setItineraryPasswordMutation = trpc.itinerary.setPassword.useMutation({
-    onSuccess: () => toast.success("Password updated!"),
-  });
-
-  // ── Local state ────────────────────────────────────────────────────────────
-  const [selectedBooking, setSelectedBooking] = useState<any>(null);
-  const [bookingSearch, setBookingSearch] = useState("");
-  const [bookingStatusFilter, setBookingStatusFilter] = useState<"all"|"pending"|"confirmed"|"completed"|"cancelled">("all");
-  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
-  const [selectedIntake, setSelectedIntake] = useState<any>(null);
-  const [intakeAdminNotes, setIntakeAdminNotes] = useState("");
+  const { data: allTickets, refetch: refetchTickets } = trpc.support.adminGetAll.useQuery();
+  const { data: taskCentre } = trpc.loyalty.getTaskCentre.useQuery();
+  const [destForm, setDestForm] = useState({ name: '', lastBooked: '' });
   const [editingDest, setEditingDest] = useState<any>(null);
   const [showAddDestModal, setShowAddDestModal] = useState(false);
   const [newDestForm, setNewDestForm] = useState({ name: '', lastBooked: '', imageBase64: '', imageMimeType: '', imageUrl: '' });
@@ -3304,151 +3235,301 @@ function AdminDashboard() {
   const [destImageIndex, setDestImageIndex] = useState(0);
   const [noteClientId, setNoteClientId] = useState('');
   const [noteContent, setNoteContent] = useState('');
-  const [promoForm, setPromoForm] = useState({ code: '', description: '', discountAmount: '', expiresAt: '' });
   const [campaignForm, setCampaignForm] = useState({ subject: '', htmlBody: '' });
+  const [settingsForm, setSettingsForm] = useState<Record<string,string>>({});
   const [auditSearch, setAuditSearch] = useState('');
-  const [itineraryPasswordEdit, setItineraryPasswordEdit] = useState('');
-  const [settingsForm, setSettingsForm] = useState<Record<string, string>>({});
+  const createDestMut = trpc.destinations.create.useMutation({
+    onSuccess: () => { utils.destinations.getAll.invalidate(); utils.destinations.list.invalidate(); utils.destinations.getActive?.invalidate(); toast.success('Destination added!'); setShowAddDestModal(false); setNewDestForm({ name: '', lastBooked: '', imageBase64: '', imageMimeType: '', imageUrl: '' }); setDestImageName(''); setDestFetchedImages([]); setDestImageIndex(0); },
+    onError: (e) => toast.error('Failed to add destination: ' + e.message),
+  });
+  const updateDestMut = trpc.destinations.update.useMutation({
+    onSuccess: () => { utils.destinations.getAll.invalidate(); utils.destinations.list.invalidate(); utils.destinations.getActive?.invalidate(); },
+    onError: (e) => toast.error('Failed to update: ' + e.message),
+  });
+  const deleteDestMut = trpc.destinations.delete.useMutation({
+    onSuccess: () => { utils.destinations.getAll.invalidate(); utils.destinations.list.invalidate(); utils.destinations.getActive?.invalidate(); },
+    onError: (e) => toast.error('Failed to delete: ' + e.message),
+  });
+  const deleteAllDestMut = trpc.destinations.deleteAll.useMutation({
+    onSuccess: () => { utils.destinations.getAll.invalidate(); utils.destinations.list.invalidate(); utils.destinations.getActive?.invalidate(); toast.success('All destinations deleted'); },
+    onError: (e) => toast.error('Failed to delete all: ' + e.message),
+  });
+  const fetchDestImageMut = trpc.destinations.fetchImage.useMutation({
+    onSuccess: (data) => {
+      const imgs = data.images;
+      setDestFetchedImages(imgs);
+      setDestImageIndex(0);
+      setNewDestForm(p => ({ ...p, imageUrl: imgs[0], imageBase64: '', imageMimeType: '' }));
+      setDestImageName('');
+      toast.success(`Found ${imgs.length} photo${imgs.length > 1 ? 's' : ''} — press again to cycle through them`);
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const createNoteMut = trpc.clientNotes.create.useMutation();
+  const createCampaignMut = trpc.newsletterV6.createCampaign.useMutation();
+  const sendCampaignMut = trpc.newsletterV6.sendCampaign.useMutation();
+  const setSettingMut = trpc.settings.set.useMutation();
+  const updateIntakeStatus = trpc.intake.updateStatus.useMutation({ onSuccess: () => { toast.success("Status updated!"); utils.intake.list.invalidate(); }, onError: (e) => toast.error(e.message) });
+  const [activeTab, setActiveTab] = useState('command');
+  const [expandedUserId, setExpandedUserId] = useState<number | null>(null);
+  const [selectedIntake, setSelectedIntake] = useState<any>(null);
+  const [selectedBooking, setSelectedBooking] = useState<any>(null);
+  const [intakeAdminNotes, setIntakeAdminNotes] = useState("");
+  const [bookingSearch, setBookingSearch] = useState('');
+  const [bookingStatusFilter, setBookingStatusFilter] = useState<string>('all');
+
+  const approveTestimonial = trpc.testimonials.approve.useMutation({ onSuccess: () => { toast.success("Testimonial approved!"); utils.testimonials.getAllAdmin.invalidate(); } });
+  const deleteTestimonial = trpc.testimonials.delete.useMutation({ onSuccess: () => { toast.success("Testimonial deleted."); utils.testimonials.getAllAdmin.invalidate(); } });
+  const updateQuoteStatus = trpc.quotes.updateStatus.useMutation({ onSuccess: () => { toast.success("Quote status updated!"); utils.quotes.getAllAdmin.invalidate(); } });
+  const deleteDeal = trpc.deals.delete.useMutation({ onSuccess: () => { toast.success("Deal deleted."); utils.deals.listAdmin.invalidate(); } });
+  const disableUser = trpc.admin.disableUser.useMutation({ onSuccess: () => { toast.success("Account status updated!"); utils.admin.users.invalidate(); }, onError: (e) => toast.error(e.message) });
+  const deleteUser = trpc.admin.deleteUser.useMutation({ onSuccess: () => { toast.success("Account deleted."); utils.admin.users.invalidate(); }, onError: (e) => toast.error(e.message) });
+  const deleteFaq = trpc.faq.delete.useMutation({ onSuccess: () => { toast.success("FAQ item deleted."); utils.faq.listAdmin.invalidate(); }, onError: (e) => toast.error(e.message) });
+  const createPromo = trpc.promoCodes.create.useMutation({ onSuccess: () => { toast.success("Promo code created!"); utils.promoCodes.list.invalidate(); setPromoForm({ code: "", description: "", discountAmount: "", expiresAt: "" }); }, onError: (e) => toast.error(e.message) });
+  const updatePromo = trpc.promoCodes.update.useMutation({ onSuccess: () => { toast.success("Updated!"); utils.promoCodes.list.invalidate(); }, onError: (e) => toast.error(e.message) });
+  const deletePromo = trpc.promoCodes.delete.useMutation({ onSuccess: () => { toast.success("Code deleted."); utils.promoCodes.list.invalidate(); } });
+
+  const stats = [
+    { label: "Total Bookings", value: bookings?.length || 0, icon: Package, color: "text-primary", bg: "bg-primary/8" },
+    { label: "Active Deals", value: deals?.filter((d: any) => d.isActive).length || 0, icon: Globe, color: "text-accent", bg: "bg-accent/10" },
+    { label: "Quote Requests", value: quotes?.length || 0, icon: FileText, color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "Subscribers", value: subscribers?.length || 0, icon: Mail, color: "text-green-600", bg: "bg-green-50" },
+  ];
+
+  // Nav sections definition
+  const newIntakeCount = intakeSubmissions?.filter((s:any)=>s.status==="new").length || 0;
+  const openSupportCount = allTickets?.filter((t:any)=>t.status==="open").length || 0;
+  const currentNavLabel = [
+    { value: 'bookings', label: 'Bookings' }, { value: 'deals', label: 'Deals' },
+    { value: 'quotes', label: 'Quote Requests' }, { value: 'quotes-manager', label: 'Quotes Manager' }, { value: 'intake', label: 'Intake' },
+    { value: 'accounts', label: 'Accounts' }, { value: 'client-notes', label: 'CRM Notes' },
+    { value: 'support', label: 'Support Tickets' }, { value: 'emails', label: 'Email Builder' },
+    { value: 'campaigns', label: 'Campaigns' }, { value: 'subscribers', label: 'Subscribers' },
+    { value: 'promos', label: 'Promo Codes' }, { value: 'faq', label: 'FAQ' },
+    { value: 'testimonials', label: 'Reviews' }, { value: 'destinations', label: 'Destinations' },
+    { value: 'loyalty-admin', label: 'Loyalty Programme' }, { value: 'gdpr', label: 'GDPR Requests' }, { value: 'audit', label: 'Audit Log' },
+    { value: 'itinerary-logs', label: 'Itinerary Tool Logs' },
+    { value: 'settings', label: 'Settings' },
+    { value: 'command', label: 'Command Centre' },
+    { value: 'passports', label: 'Passport Manager' },
+    { value: 'payments', label: 'Payment Plans' },
+  ].find(n => n.value === activeTab)?.label || 'Dashboard';
+
+  const navSections = [
+    {
+      label: 'Overview',
+      items: [
+        { value: 'command', label: 'Command Centre', icon: LayoutDashboard },
+      ]
+    },
+    {
+      label: 'Bookings & Sales',
+      items: [
+        { value: 'bookings', label: 'Bookings', icon: Plane },
+        { value: 'deals', label: 'Deals', icon: Tag },
+        { value: 'quotes', label: 'Quote Requests', icon: FileText },
+        { value: 'quotes-manager', label: 'Quotes Manager', icon: Send },
+        { value: 'intake', label: 'Intake', icon: ClipboardList, badge: newIntakeCount || null },
+      ]
+    },
+    {
+      label: 'Clients',
+      items: [
+        { value: 'accounts', label: 'Accounts', icon: Users },
+        { value: 'client-notes', label: 'CRM Notes', icon: MessageSquare },
+        { value: 'support', label: 'Support', icon: Ticket, badge: openSupportCount || null },
+      ]
+    },
+    {
+      label: 'Marketing',
+      items: [
+        { value: 'emails', label: 'Email Builder', icon: Mail },
+        { value: 'campaigns', label: 'Campaigns', icon: Send },
+        { value: 'subscribers', label: 'Subscribers', icon: MailCheck },
+        { value: 'promos', label: 'Promos', icon: Percent },
+      ]
+    },
+    {
+      label: 'Content',
+      items: [
+        { value: 'faq', label: 'FAQ', icon: HelpCircle },
+        { value: 'testimonials', label: 'Reviews', icon: Star },
+        { value: 'destinations', label: 'Destinations', icon: Globe },
+        { value: 'destination-guides', label: 'Destination Guides', icon: Globe },
+        { value: 'community', label: 'Community & Impact', icon: Heart },
+        { value: 'notifications', label: 'Notifications', icon: Bell },
+      ]
+    },
+    {
+      label: 'System',
+      items: [
+        { value: 'loyalty-admin', label: 'Loyalty', icon: TrendingUp },
+        { value: 'loyalty-rules', label: 'Earn Rules', icon: Settings },
+        { value: 'passports', label: 'Passports', icon: Shield },
+        { value: 'payments', label: 'Payments', icon: CreditCard },
+        { value: 'gdpr', label: 'GDPR', icon: Lock },
+        { value: 'audit', label: 'Audit Log', icon: BarChart3 },
+        { value: 'itinerary-logs', label: 'Itinerary Logs', icon: Monitor },
+        { value: 'settings', label: 'Settings', icon: RefreshCw },
+      ]
+    },
+  ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border bg-background/95 backdrop-blur sticky top-0 z-40">
-        <div className="px-4 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <LayoutDashboard size={16} className="text-primary-foreground" />
+    <div className="min-h-screen bg-slate-50/60">
+      <div className="flex pt-[4.5rem]">
+
+        {/* ─── Sidebar ─── */}
+        <aside className="hidden lg:flex flex-col w-56 xl:w-60 shrink-0 border-r border-border bg-white sticky top-[4.5rem] h-[calc(100vh-4.5rem)] overflow-y-auto">
+          <div className="px-4 py-5 border-b border-border">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 bg-primary rounded-xl flex items-center justify-center shadow-sm">
+                <Plane size={14} className="text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-foreground leading-none">CB Travel</p>
+                <p className="text-[10px] text-muted-foreground mt-0.5">Admin Panel</p>
+              </div>
             </div>
-            <h1 className="text-xl font-bold text-foreground">Admin Dashboard</h1>
           </div>
-          <Badge variant="outline" className="gap-2">
-            <span className="w-2 h-2 rounded-full bg-green-500" />
-            System Online
-          </Badge>
-        </div>
-      </div>
+          <nav className="flex-1 px-2.5 py-4 space-y-4">
+            {navSections.map(section => (
+              <div key={section.label}>
+                <p className="text-[10px] font-bold text-muted-foreground/70 uppercase tracking-widest px-2.5 mb-1.5">{section.label}</p>
+                <div className="space-y-0.5">
+                  {section.items.map((item: any) => (
+                    <button
+                      key={item.value}
+                      onClick={() => setActiveTab(item.value)}
+                      className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all ${
+                        activeTab === item.value
+                          ? 'bg-primary/10 text-primary font-semibold'
+                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                      }`}
+                    >
+                      <item.icon size={14} className="shrink-0" />
+                      <span className="flex-1 text-left">{item.label}</span>
+                      {item.badge ? (
+                        <span className="bg-red-500 text-white text-[9px] font-bold rounded-full min-w-[16px] h-4 flex items-center justify-center px-1">
+                          {item.badge}
+                        </span>
+                      ) : null}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </nav>
+          <div className="px-4 py-3 border-t border-border">
+            <p className="text-[10px] text-muted-foreground/60">CB Travel Admin v2</p>
+          </div>
+        </aside>
 
-      {/* Main Content — Left Sidebar Layout */}
-      <div className="flex min-h-[calc(100vh-65px)]">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="flex w-full" orientation="vertical">
+        {/* ─── Main ─── */}
+        <main className="flex-1 min-w-0">
 
-          {/* Left Sidebar Navigation */}
-          <TabsList className="flex flex-col h-auto w-56 shrink-0 bg-muted/40 border-r border-border rounded-none p-2 gap-0.5 sticky top-[65px] self-start overflow-y-auto" style={{ maxHeight: 'calc(100vh - 65px)' }}>
-            {/* Core */}
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 pt-3 pb-1">Core</p>
-            <TabsTrigger value="command" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <LayoutDashboard size={15} /> Command
-            </TabsTrigger>
-            <TabsTrigger value="bookings" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Package size={15} /> Bookings
-            </TabsTrigger>
-            <TabsTrigger value="quotes" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <FileText size={15} /> Quotes
-            </TabsTrigger>
-            <TabsTrigger value="quotes-manager" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <ClipboardList size={15} /> Quote Manager
-            </TabsTrigger>
-            <TabsTrigger value="accounts" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Users size={15} /> Accounts
-            </TabsTrigger>
-            <TabsTrigger value="intake" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <UserPlus size={15} /> Intake
-            </TabsTrigger>
+          {/* Mobile nav bar */}
+          <div className="lg:hidden bg-white border-b border-border overflow-x-auto scrollbar-hide">
+            <div className="flex items-center gap-1 px-3 py-2.5 min-w-max">
+              {navSections.flatMap(s => s.items).map((item: any) => (
+                <button
+                  key={item.value}
+                  onClick={() => setActiveTab(item.value)}
+                  className={`shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                    activeTab === item.value ? 'bg-primary text-white shadow-sm' : 'text-slate-600 hover:bg-slate-100'
+                  }`}
+                >
+                  <item.icon size={12} />
+                  {item.label}
+                  {item.badge ? <span className="bg-red-500 text-white text-[9px] font-bold rounded-full w-3.5 h-3.5 flex items-center justify-center">{item.badge}</span> : null}
+                </button>
+              ))}
+            </div>
+          </div>
 
-            {/* Content */}
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 pt-3 pb-1">Content</p>
-            <TabsTrigger value="deals" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Tag size={15} /> Deals
-            </TabsTrigger>
-            <TabsTrigger value="destinations" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <MapPin size={15} /> Destinations
-            </TabsTrigger>
-            <TabsTrigger value="destination-guides" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <MapPinned size={15} /> Dest. Guides
-            </TabsTrigger>
-            <TabsTrigger value="spotlight" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Star size={15} /> Spotlight
-            </TabsTrigger>
-            <TabsTrigger value="travel-hacks" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <TrendingUp size={15} /> Travel Hacks
-            </TabsTrigger>
-            <TabsTrigger value="faq" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <HelpCircle size={15} /> FAQ
-            </TabsTrigger>
-            <TabsTrigger value="testimonials" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Star size={15} /> Testimonials
-            </TabsTrigger>
+          <div className="px-4 sm:px-6 xl:px-8 py-6">
 
-            {/* Clients */}
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 pt-3 pb-1">Clients</p>
-            <TabsTrigger value="client-notes" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <MessageSquare size={15} /> CRM Notes
-            </TabsTrigger>
-            <TabsTrigger value="passports" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Globe size={15} /> Passports
-            </TabsTrigger>
-            <TabsTrigger value="payments" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <CreditCard size={15} /> Payments
-            </TabsTrigger>
-            <TabsTrigger value="loyalty-rules" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Star size={15} /> Loyalty Rules
-            </TabsTrigger>
-            <TabsTrigger value="loyalty-admin" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Trophy size={15} /> Loyalty Hub
-            </TabsTrigger>
+            {/* Page header */}
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Shield size={12} className="text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground uppercase tracking-widest font-medium">Admin</span>
+                </div>
+                <h1 className="font-serif text-2xl sm:text-3xl font-bold text-foreground">{currentNavLabel}</h1>
+              </div>
+            </div>
 
-            {/* Comms */}
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 pt-3 pb-1">Comms</p>
-            <TabsTrigger value="subscribers" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Mail size={15} /> Subscribers
-            </TabsTrigger>
-            <TabsTrigger value="campaigns" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Send size={15} /> Campaigns
-            </TabsTrigger>
-            <TabsTrigger value="emails" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <MailCheck size={15} /> Emails
-            </TabsTrigger>
-            <TabsTrigger value="booking-emails" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Mail size={15} /> Booking Emails
-            </TabsTrigger>
-            <TabsTrigger value="notifications" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Bell size={15} /> Notifications
-            </TabsTrigger>
-            <TabsTrigger value="community" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Users2 size={15} /> Community
-            </TabsTrigger>
-            <TabsTrigger value="social-hub" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Heart size={15} /> Social Hub
-            </TabsTrigger>
-            <TabsTrigger value="support" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <HelpCircle size={15} /> Support
-            </TabsTrigger>
+            {/* Stats cards - only on bookings tab */}
+            {activeTab === 'bookings' && (
+              <>
+                {/* ─── Task Centre ─── */}
+                {(() => {
+                  const tasks = [
+                    { key: 'pendingRedemptions', label: 'Loyalty Redemptions', desc: 'Pending fulfillment', icon: '🎟️', tab: 'loyalty-admin', color: 'bg-purple-50 border-purple-200', iconBg: 'bg-purple-100', textColor: 'text-purple-700' },
+                    { key: 'openTickets', label: 'Support Tickets', desc: 'Open / unread', icon: '💬', tab: 'support', color: 'bg-blue-50 border-blue-200', iconBg: 'bg-blue-100', textColor: 'text-blue-700' },
+                    { key: 'newQuotes', label: 'Quote Requests', desc: 'Awaiting response', icon: '📋', tab: 'quotes', color: 'bg-amber-50 border-amber-200', iconBg: 'bg-amber-100', textColor: 'text-amber-700' },
+                    { key: 'newIntake', label: 'Intake Submissions', desc: 'New submissions', icon: '📦', tab: 'intake', color: 'bg-green-50 border-green-200', iconBg: 'bg-green-100', textColor: 'text-green-700' },
+                    { key: 'pendingBookings', label: 'Pending Bookings', desc: 'Awaiting confirmation', icon: '⚠️', tab: 'bookings', color: 'bg-orange-50 border-orange-200', iconBg: 'bg-orange-100', textColor: 'text-orange-700' },
+                  ];
+                  const tc = taskCentre || { pendingRedemptions: 0, openTickets: 0, newQuotes: 0, newIntake: 0, pendingBookings: 0 };
+                  const activeTasks = tasks.filter(t => (tc as any)[t.key] > 0);
+                  const allClear = activeTasks.length === 0;
+                  return (
+                    <div className="mb-6">
+                      <div className="flex items-center gap-2 mb-3">
+                        <h2 className="font-serif text-lg font-semibold text-foreground">Your Tasks</h2>
+                        {!allClear && <span className="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-semibold">{activeTasks.length} action{activeTasks.length !== 1 ? 's' : ''} needed</span>}
+                      </div>
+                      {allClear ? (
+                        <div className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-2xl border border-green-200 p-8 text-center">
+                          <div className="text-4xl mb-2">✅</div>
+                          <p className="text-lg font-semibold text-green-700">All caught up!</p>
+                          <p className="text-sm text-green-600 mt-1">No pending tasks right now. Enjoy the calm.</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+                          {activeTasks.map(t => (
+                            <div key={t.key} className={`rounded-2xl border p-4 ${t.color} flex items-center gap-4 group hover:shadow-md transition-all`}>
+                              <div className={`w-11 h-11 ${t.iconBg} rounded-xl flex items-center justify-center text-xl shrink-0`}>{t.icon}</div>
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-sm font-bold ${t.textColor}`}>{t.label}</p>
+                                <p className="text-xs text-gray-500 mt-0.5">{t.desc}</p>
+                              </div>
+                              <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                <span className={`text-2xl font-bold ${t.textColor}`}>{(tc as any)[t.key]}</span>
+                                <button onClick={() => setActiveTab(t.tab)} className={`text-xs font-semibold ${t.textColor} hover:underline flex items-center gap-0.5`}>
+                                  View <ArrowRight size={10} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+                <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+                  {stats.map((stat) => (
+                    <div key={stat.label} className="bg-white rounded-2xl p-5 border border-border shadow-sm">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">{stat.label}</p>
+                          <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                        </div>
+                        <div className={`w-9 h-9 ${stat.bg} rounded-xl flex items-center justify-center shrink-0`}>
+                          <stat.icon size={16} className={stat.color} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
 
-            {/* Tools */}
-            <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground px-3 pt-3 pb-1">Tools</p>
-            <TabsTrigger value="ai-assistant" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Monitor size={15} /> AI Assistant
-            </TabsTrigger>
-            <TabsTrigger value="promos" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Percent size={15} /> Promos
-            </TabsTrigger>
-            <TabsTrigger value="audit" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <BarChart3 size={15} /> Audit Log
-            </TabsTrigger>
-            <TabsTrigger value="itinerary-logs" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Clock size={15} /> Itinerary Logs
-            </TabsTrigger>
-            <TabsTrigger value="gdpr" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Shield size={15} /> GDPR
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="w-full justify-start gap-2.5 rounded-lg text-sm font-medium px-3 py-2 data-[state=active]:bg-white data-[state=active]:shadow-sm data-[state=active]:text-primary">
-              <Settings size={15} /> Settings
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Main Content Area */}
-          <div className="flex-1 p-6 overflow-auto">
-          <div className="max-w-7xl">
+            {/* Tab content */}
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="hidden" />
           <TabsContent value="bookings">
             {/* Bookings mini stats */}
             {bookings && bookings.length > 0 && (() => {
@@ -4341,7 +4422,7 @@ function AdminDashboard() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm text-foreground">Access Password</h3>
-                    <p className="text-xs text-muted-foreground">Controls who can enter the AI Itinerary Generator at <code className="bg-muted px-1 rounded text-xs">cbtravel.uk/itinerarygenerator</code></p>
+                    <p className="text-xs text-muted-foreground">Controls who can enter the AI Itinerary Generator at <code className="bg-muted px-1 rounded text-xs">travelcb.co.uk/itinerarygenerator</code></p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -4377,7 +4458,7 @@ function AdminDashboard() {
                     </div>
                     <div>
                       <h2 className="font-serif text-xl font-semibold text-[#1e3a5f]">Itinerary Generator Logs</h2>
-                      <p className="text-sm text-muted-foreground">Every login and generation at <code className="bg-muted px-1 rounded text-xs">cbtravel.uk/itinerarygenerator</code></p>
+                      <p className="text-sm text-muted-foreground">Every login and generation at <code className="bg-muted px-1 rounded text-xs">travelcb.co.uk/itinerarygenerator</code></p>
                     </div>
                   </div>
                   <div className="flex gap-3">
@@ -4484,7 +4565,7 @@ function AdminDashboard() {
                   { key: 'live_chat_whatsapp', label: '💬 Live Chat WhatsApp Number', placeholder: '07495823953' },
                   { key: 'openai_api_key', label: '🤖 OpenAI API Key', placeholder: 'sk-proj-...' },
                   { key: 'aviationstack_api_key', label: '✈️ AviationStack API Key', placeholder: 'Your API key' },
-                  { key: 'admin_email', label: '📧 Admin Email', placeholder: 'hello@cbtravel.uk' },
+                  { key: 'admin_email', label: '📧 Admin Email', placeholder: 'hello@travelcb.co.uk' },
                 ].map(({ key, label, placeholder }) => (
                   <div key={key} className="space-y-1.5">
                     <Label className="text-sm">{label}</Label>
@@ -4572,31 +4653,11 @@ function AdminDashboard() {
   </div>
 </TabsContent>
 
-            <TabsContent value="ai-assistant">
-  <AdminAIAssistant />
-</TabsContent>
-
-<TabsContent value="booking-emails">
-  <AdminBookingEmailsHub />
-</TabsContent>
-
-<TabsContent value="social-hub">
-  <AdminSocialHub />
-</TabsContent>
-
-<TabsContent value="spotlight">
-  <AdminDestinationSpotlight />
-</TabsContent>
-
-<TabsContent value="travel-hacks">
-  <AdminTravelHacks />
-</TabsContent>
+            </Tabs>
           </div>
-          </div>
-        </Tabs>
+        </main>
       </div>
     </div>
   );
 }
 
-export default AdminDashboard;
