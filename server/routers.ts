@@ -3197,7 +3197,23 @@ Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 
 
         try {
           const groqApiKey = process.env.GROQ_API_KEY;
+          console.log('[AI] GROQ_API_KEY exists:', !!groqApiKey);
           if (!groqApiKey) throw new Error('GROQ_API_KEY not set');
+
+          const requestPayload = {
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              {
+                role: 'system',
+                content: `You are CB Travel's premium admin assistant. Help with travel bookings, client management, quotes, loyalty programs, and business analytics. Be concise, professional, and luxury-focused. Reference actual data when asked. Base your insights on real booking patterns, client preferences, and business metrics.`
+              },
+              ...groqMessages
+            ],
+            temperature: 0.7,
+            max_tokens: 1000,
+          };
+          
+          console.log('[AI] Calling Groq with', groqMessages.length, 'history messages');
 
           const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
@@ -3205,27 +3221,24 @@ Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 
               'Authorization': `Bearer ${groqApiKey}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              model: 'llama-3.1-70b-versatile',
-              messages: [
-                {
-                  role: 'system',
-                  content: `You are CB Travel's premium admin assistant. Help with travel bookings, client management, quotes, loyalty programs, and business analytics. Be concise, professional, and luxury-focused. Reference actual data when asked. Base your insights on real booking patterns, client preferences, and business metrics.`
-                },
-                ...groqMessages
-              ],
-              temperature: 0.7,
-              max_tokens: 1000,
-            }),
+            body: JSON.stringify(requestPayload),
           });
 
+          console.log('[AI] Groq response status:', response.status);
+
           if (!response.ok) {
-            const error = await response.json();
-            console.error('[AI] Groq API error:', error);
-            throw new Error(`Groq API error: ${response.status}`);
+            let errorData: any;
+            try {
+              errorData = await response.json();
+            } catch {
+              errorData = { text: await response.text() };
+            }
+            console.error('[AI] Groq API error response:', errorData);
+            throw new Error(`Groq API error: ${response.status} - ${JSON.stringify(errorData)}`);
           }
 
           const data = await response.json();
+          console.log('[AI] Groq response success');
           const assistantMessage = data.choices[0]?.message?.content || 'I encountered an issue processing your request.';
           
           // Save assistant response
@@ -3326,6 +3339,7 @@ Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 
 
         try {
           const groqKey = process.env.GROQ_API_KEY;
+          console.log('[Facebook] GROQ_API_KEY exists:', !!groqKey);
           if (!groqKey) throw new Error('Groq API key not configured');
 
           let prompt = '';
@@ -3363,36 +3377,48 @@ Make it feel like a newsletter wrap-up.
 Format: HEADLINE\\nWEEK_RECAP\\nLOOKING_FORWARD\\nHASHTAGS`;
           }
 
+          console.log('[Facebook] Sending prompt to Groq for post type:', input.postType);
+
+          const requestPayload = {
+            model: 'llama-3.3-70b-versatile',
+            messages: [
+              {
+                role: 'system',
+                content: 'You are a luxury travel brand social media expert creating premium Facebook posts for CB Travel, a high-end travel concierge. Keep posts engaging, warm, and aspirational. Always include emojis. Be concise.',
+              },
+              {
+                role: 'user',
+                content: prompt,
+              },
+            ],
+            temperature: 0.8,
+            max_tokens: 500,
+          };
+
           const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${groqKey}`,
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-              model: 'llama-3.1-70b-versatile',
-              messages: [
-                {
-                  role: 'system',
-                  content: 'You are a luxury travel brand social media expert creating premium Facebook posts for CB Travel, a high-end travel concierge. Keep posts engaging, warm, and aspirational. Always include emojis. Be concise.',
-                },
-                {
-                  role: 'user',
-                  content: prompt,
-                },
-              ],
-              temperature: 0.8,
-              max_tokens: 500,
-            }),
+            body: JSON.stringify(requestPayload),
           });
 
+          console.log('[Facebook] Groq response status:', response.status);
+
           if (!response.ok) {
-            const err = await response.text();
-            console.error('[Facebook] Groq error:', err);
-            throw new Error(`Groq API error: ${response.status}`);
+            let errorData: any;
+            try {
+              errorData = await response.json();
+            } catch {
+              errorData = { text: await response.text() };
+            }
+            console.error('[Facebook] Groq API error response:', errorData);
+            throw new Error(`Groq API error: ${response.status} - ${JSON.stringify(errorData)}`);
           }
 
           const data = await response.json();
+          console.log('[Facebook] Groq response success');
           const content = data.choices[0]?.message?.content || '';
           
           // Create the post in draft
