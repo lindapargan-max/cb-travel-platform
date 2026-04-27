@@ -728,22 +728,22 @@ export const deletionLogs = mysqlTable("deletionLogs", {
 
 export type DeletionLog = typeof deletionLogs.$inferSelect;
 
-// ─── Social Posts ─────────────────────────────────────────────────────────
+// ─── Social Posts (AI-generated weekly content) ────────────────────────────────
 
 export const socialPosts = mysqlTable("socialPosts", {
   id: int("id").autoincrement().primaryKey(),
-  platform: mysqlEnum("platform", ["instagram", "facebook", "twitter", "tiktok", "linkedin"]).notNull(),
-  title: varchar("title", { length: 255 }),
-  body: mediumtext("body").notNull(),
+  userId: int("userId").notNull(),
+  day: varchar("day", { length: 20 }).notNull(), // Monday-Sunday
+  type: varchar("type", { length: 100 }).notNull(), // Travel Hacks, Destination Spotlight, etc.
+  title: varchar("title", { length: 200 }).notNull(),
+  content: text("content").notNull(),
   caption: text("caption"),
-  hashtags: varchar("hashtags", { length: 500 }),
+  hashtags: text("hashtags"),
   imagePrompt: text("imagePrompt"),
-  imageUrl: varchar("imageUrl", { length: 500 }),
-  scheduledFor: timestamp("scheduledFor"),
-  status: mysqlEnum("status", ["draft", "scheduled", "published", "archived"]).notNull().default("draft"),
-  tags: json("tags"),
+  platforms: json("platforms").$type<string[]>().default(["facebook"]),
+  status: mysqlEnum("status", ["draft", "scheduled", "published"]).default("draft").notNull(),
+  scheduledAt: timestamp("scheduledAt"),
   publishedAt: timestamp("publishedAt"),
-  createdBy: int("createdBy"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
