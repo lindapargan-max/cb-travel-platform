@@ -35,7 +35,12 @@ export default function AdminAIAssistant() {
   const snapshotQ = trpc.aiAssistant.snapshot.useQuery();
 
   const createConv = trpc.aiAssistant.createConversation.useMutation({
-    onSuccess: ({ id }) => { setActiveId(id); utils.aiAssistant.listConversations.invalidate(); },
+    onSuccess: ({ id }) => { 
+      setActiveId(id); 
+      utils.aiAssistant.listConversations.invalidate();
+      // Invalidate the messages query for the new conversation to ensure fresh fetch
+      utils.aiAssistant.getConversation.invalidate({ id });
+    },
   });
   const renameConv = trpc.aiAssistant.renameConversation.useMutation({
     onSuccess: () => { utils.aiAssistant.listConversations.invalidate(); setRenamingId(null); },
