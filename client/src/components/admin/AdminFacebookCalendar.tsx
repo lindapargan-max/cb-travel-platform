@@ -85,14 +85,18 @@ export default function AdminFacebookCalendar() {
     const date = new Date(year, month - 1, day);
     const dayOfWeek = date.getDay();
     
-    // Rules: 3 deals (Mon/Wed/Fri), 2 destinations (Tue/Thu), 1 hack (Wed), 1 roundup (Sun)
-    if (dayOfWeek === 0) return ["roundup"]; // Sunday
-    if (dayOfWeek === 1) return ["travel_deal"]; // Monday
-    if (dayOfWeek === 2) return ["travel_deal", "destination"]; // Tuesday
-    if (dayOfWeek === 3) return ["travel_deal", "hack"]; // Wednesday
-    if (dayOfWeek === 4) return ["travel_deal", "destination"]; // Thursday
-    if (dayOfWeek === 5) return ["travel_deal"]; // Friday
-    if (dayOfWeek === 6) return []; // Saturday - optional
+    // Weekly structure:
+    // - 3 Travel Deals (Mon/Wed/Fri)
+    // - 2 Destination Spotlights (Tue/Thu)
+    // - 1 Travel Hack (Wed)
+    // - 1 Weekly Roundup (Sunday)
+    if (dayOfWeek === 0) return ["roundup"]; // Sunday - Weekly Roundup
+    if (dayOfWeek === 1) return ["travel_deal"]; // Monday - Deal 1
+    if (dayOfWeek === 2) return ["destination"]; // Tuesday - Destination Spotlight 1
+    if (dayOfWeek === 3) return ["travel_deal", "hack"]; // Wednesday - Deal 2 + Travel Hack
+    if (dayOfWeek === 4) return ["destination"]; // Thursday - Destination Spotlight 2
+    if (dayOfWeek === 5) return ["travel_deal"]; // Friday - Deal 3
+    if (dayOfWeek === 6) return []; // Saturday - rest day
     return [];
   };
 
