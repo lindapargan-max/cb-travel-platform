@@ -189,6 +189,7 @@ import {
   addAIMessage,
   renameAIConversation,
   deleteAIConversation,
+  buildBusinessSnapshot,
   getFacebookCalendarMonth,
   getFacebookPost,
   createFacebookPost,
@@ -3189,15 +3190,29 @@ Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 
         // Get conversation history
         const history = await getAIConversationMessages(conversationId);
         
-        // Build messages for Groq
-        const groqMessages = history.map((m) => ({
-          role: m.role,
-          content: m.content,
-        }));
+        // Build business snapshot for grounding
+        const snapshot = await buildBusinessSnapshot();
+        
+        const snapshotText = `BUSINESS SNAPSHOT (refreshed now)
+Totals: ${snapshot.totals.clients} clients · ${snapshot.totals.bookings} bookings · ${snapshot.totals.activeDeals} active deals · ${snapshot.totals.openQuotes} open quotes · ${snapshot.totals.openTickets} open tickets
+
+Upcoming departures (next 10):
+${snapshot.upcomingDepartures.map(b => `- ${b.ref} · ${b.client} → ${b.destination} on ${b.departure || "TBC"}`).join("\n") || "- (none)"}
+
+Outstanding balances (next 10):
+${snapshot.outstandingBalances.map(b => `- ${b.ref} · ${b.client} · £${b.balance.toFixed(2)} outstanding · departs ${b.departure || "TBC"}`).join("\n") || "- (none)"}
+
+Recent bookings:
+${snapshot.recentBookings.map(b => `- ${b.ref} · ${b.client} → ${b.destination} · ${b.status} · £${b.total.toFixed(2)} (paid £${b.paid.toFixed(2)})`).join("\n") || "- (none)"}
+
+Recent quote requests:
+${snapshot.recentQuotes.map(q => `- ${q.name} → ${q.destination} · ${q.status}`).join("\n") || "- (none)"}
+
+Featured deals on sale:
+${snapshot.topDeals.map(d => `- ${d.title} · ${d.destination} · from £${d.price.toFixed(0)}`).join("\n") || "- (none)"}`;
 
         try {
           const groqApiKey = process.env.GROQ_API_KEY;
-          console.log('[AI] GROQ_API_KEY exists:', !!groqApiKey);
           if (!groqApiKey) throw new Error('GROQ_API_KEY not set');
 
           const requestPayload = {
@@ -3205,16 +3220,33 @@ Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 
             messages: [
               {
                 role: 'system',
-                content: `You are CB Travel's premium admin assistant. Help with travel bookings, client management, quotes, loyalty programs, and business analytics. Be concise, professional, and luxury-focused. Reference actual data when asked. Base your insights on real booking patterns, client preferences, and business metrics.`
+                content: `You are CB Travel's senior in-house assistant — half operations manager, half marketing strategist.
+
+Audience: the CB Travel admin team only. You are NOT customer-facing.
+
+Tone: warm, sharp, decisive, UK English. Skip filler ("Certainly!", "I'd be happy to..."). Get to the point. Format with short headings, bullets, and numbered steps.
+
+Capabilities you have:
+- You can answer questions about CB Travel's bookings, clients, deals, quotes and support load using the BUSINESS SNAPSHOT below.
+- You can draft client-facing emails, social posts, marketing campaigns, itineraries and policies.
+- You can suggest workflow improvements, escalations and prioritised action lists.
+
+Hard rules:
+- Never invent a booking reference, client name, price or date. If the data isn't in the snapshot, say so.
+- Treat the snapshot as a point-in-time view, not a real-time feed.
+- When suggesting client communications, default to the CB Travel voice: warm, professional, exciting, never cheesy.
+- Default contact details: WhatsApp 07495 823953, email hello@travelcb.co.uk, web www.travelcb.co.uk.`
               },
-              ...groqMessages
+              {
+                role: 'system',
+                content: snapshotText
+              },
+              ...history.slice(-20).map((m: any) => ({ role: m.role as 'user' | 'assistant' | 'system', content: m.content })),
             ],
-            temperature: 0.7,
-            max_tokens: 1000,
+            temperature: 0.6,
+            max_tokens: 2048,
           };
           
-          console.log('[AI] Calling Groq with', groqMessages.length, 'history messages');
-
           const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -3223,8 +3255,6 @@ Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 
             },
             body: JSON.stringify(requestPayload),
           });
-
-          console.log('[AI] Groq response status:', response.status);
 
           if (!response.ok) {
             let errorData: any;
@@ -3238,7 +3268,6 @@ Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 
           }
 
           const data = await response.json();
-          console.log('[AI] Groq response success');
           const assistantMessage = data.choices[0]?.message?.content || 'I encountered an issue processing your request.';
           
           // Save assistant response
@@ -3247,7 +3276,7 @@ Include 6-8 attractions, 4-5 dining experiences, exactly 3 accommodation tiers, 
           return { content: assistantMessage };
         } catch (error) {
           console.error('[AI] Send message error:', error);
-          const fallbackMessage = 'I apologize, I\'m having trouble connecting to my AI engine right now. Please try again in a moment.';
+          const fallbackMessage = 'I apologize, I'm having trouble connecting to my AI engine right now. Please try again in a moment.';
           await addAIMessage(conversationId, 'assistant', fallbackMessage);
           return { content: fallbackMessage };
         }
