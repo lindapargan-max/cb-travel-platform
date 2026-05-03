@@ -1,3 +1,4 @@
+import React from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Route, Switch } from "wouter";
@@ -31,6 +32,7 @@ import DestinationGuidePage from "./pages/DestinationGuidePage";
 import WhatsAppChatButton from "./components/WhatsAppChatButton";
 import AIChatbot from "./components/AIChatbot";
 import ItineraryGeneratorPage from "./pages/ItineraryGeneratorPage";
+import OperationalPause from "./pages/OperationalPause";
 
 import { trpc } from "./lib/trpc";
 
@@ -79,6 +81,7 @@ function SessionTimeoutWrapper({ children }: { children: React.ReactNode }) {
 function Router() {
   return (
     <Switch>
+      <Route path="/operational-pause" component={OperationalPause} />
       <Route path="/" component={Home} />
       <Route path="/login" component={Login} />
       <Route path="/forgot-password" component={ForgotPassword} />
@@ -116,6 +119,9 @@ function Router() {
 }
 
 function App() {
+  const [hasPauseToken, setHasPauseToken] = React.useState(!!localStorage.getItem('pause-token'));
+  const isOperationalPauseActive = import.meta.env.VITE_OPERATIONAL_PAUSE === 'true';
+
   return (
     <ThemeProvider defaultTheme="light">
       <TooltipProvider>
@@ -123,11 +129,11 @@ function App() {
           <ScrollToTop />
           <Toaster richColors position="top-right" />
           <div className="flex flex-col min-h-screen">
-            <Navigation />
+            {!(isOperationalPauseActive && !hasPauseToken) && <Navigation />}
             <main className="flex-1">
-              <Router />
+              {isOperationalPauseActive && !hasPauseToken ? <OperationalPause /> : <Router />}
             </main>
-            <Footer />
+            {!(isOperationalPauseActive && !hasPauseToken) && <Footer />}
           </div>
           {/* Global floating buttons */}
           <WhatsAppChatButton />

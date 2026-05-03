@@ -48,6 +48,18 @@ async function startServer() {
   registerOAuthRoutes(app);
   // Flight Status REST endpoint
   app.get("/api/flight-status", flightStatusHandler);
+  // Operational Pause Password Verification
+  app.post("/api/verify-pause-password", (req, res) => {
+    const { password } = req.body;
+    const pausePassword = process.env.PAUSE_PASSWORD || "cbtravel2026";
+    if (password === pausePassword) {
+      // Generate a simple token (just a timestamp-based token)
+      const token = Buffer.from(Date.now().toString()).toString("base64");
+      res.json({ token });
+    } else {
+      res.status(401).json({ error: "Invalid password" });
+    }
+  });
 
   // tRPC API
   app.use(
