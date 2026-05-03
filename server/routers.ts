@@ -2726,6 +2726,7 @@ ${faqContext}`;
         whatsapp_chat_enabled: all['whatsapp_chat_enabled'] ?? 'false',
         live_chat_whatsapp: all['live_chat_whatsapp'] ?? '07495823953',
         ai_features_enabled: all['ai_features_enabled'] ?? 'true',
+        operational_pause_enabled: all['operational_pause_enabled'] ?? 'false',
       };
     }),
   }),

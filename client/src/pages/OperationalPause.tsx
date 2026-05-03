@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Eye, EyeOff, Lock } from 'lucide-react';
 import { trpc } from '@/lib/trpc';
 
-export default function OperationalPause() {
+export default function OperationalPause({ onUnlock }: { onUnlock?: () => void } = {}) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -33,8 +33,12 @@ export default function OperationalPause() {
       const { token } = await response.json();
       localStorage.setItem('pause-token', token);
       setIsUnlocked(true);
-      // Redirect to home
-      window.location.href = '/';
+      // Notify parent (App.tsx) so it re-renders without redirect
+      if (onUnlock) {
+        onUnlock();
+      } else {
+        window.location.href = '/';
+      }
     } catch (err) {
       setError('Something went wrong. Please try again.');
       setLoading(false);

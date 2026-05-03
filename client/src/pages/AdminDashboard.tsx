@@ -4573,6 +4573,69 @@ export default function AdminDashboard() {
 
           {/* V6: SETTINGS */}
           <TabsContent value="settings">
+            <div className="space-y-6">
+
+            {/* ── Operational Pause ─────────────────────────────────────── */}
+            <div className={`rounded-2xl border-2 p-6 transition-all duration-300 ${(allSettings as any)?.['operational_pause_enabled'] === 'true' ? 'border-red-400 bg-red-50' : 'border-border bg-white'}`}>
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0 ${(allSettings as any)?.['operational_pause_enabled'] === 'true' ? 'bg-red-100' : 'bg-slate-100'}`}>
+                    🚨
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-3">
+                      <h3 className="font-serif text-lg font-semibold text-navy-900">Operational Pause</h3>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${(allSettings as any)?.['operational_pause_enabled'] === 'true' ? 'bg-red-500 text-white animate-pulse' : 'bg-slate-200 text-slate-600'}`}>
+                        {(allSettings as any)?.['operational_pause_enabled'] === 'true' ? '● ACTIVE' : '○ INACTIVE'}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+                      When active, all visitors see a branded holding page — your latest Facebook post, a "temporarily paused" message, and a password gate so only you can access the full site.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2 shrink-0">
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={(allSettings as any)?.['operational_pause_enabled'] === 'true'}
+                      onChange={async (e) => {
+                        await setSettingMut.mutateAsync({ key: 'operational_pause_enabled', value: e.target.checked ? 'true' : 'false' });
+                        toast.success(e.target.checked ? '🚨 Operational pause activated' : '✅ Site is live again');
+                        refetchSettings();
+                      }}
+                    />
+                    <div className="w-14 h-7 bg-slate-200 peer-checked:bg-red-500 rounded-full transition-colors duration-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-red-300"></div>
+                    <div className="absolute left-1 top-1 w-5 h-5 bg-white rounded-full shadow transition-transform duration-300 peer-checked:translate-x-7"></div>
+                  </label>
+                  <span className="text-xs text-muted-foreground">{(allSettings as any)?.['operational_pause_enabled'] === 'true' ? 'Turn off to restore site' : 'Toggle to activate'}</span>
+                </div>
+              </div>
+
+              {/* Password field */}
+              <div className="mt-5 pt-5 border-t border-border/60">
+                <Label className="text-sm font-medium">🔑 Access Password</Label>
+                <p className="text-xs text-muted-foreground mb-2">The password visitors must enter to bypass the pause page. Leave blank to keep existing password.</p>
+                <div className="flex gap-2 max-w-sm">
+                  <Input
+                    type="password"
+                    placeholder="Enter new password…"
+                    onChange={e => setSettingsForm(p => ({ ...p, pause_password: e.target.value }))}
+                    className="rounded-xl"
+                  />
+                  <Button size="sm" className="rounded-xl shrink-0" onClick={async () => {
+                    if (settingsForm['pause_password']) {
+                      await setSettingMut.mutateAsync({ key: 'pause_password', value: settingsForm['pause_password'] });
+                      toast.success('Password updated!');
+                      setSettingsForm(p => ({ ...p, pause_password: '' }));
+                    }
+                  }}>Update</Button>
+                </div>
+              </div>
+            </div>
+
+            {/* ── General Settings ──────────────────────────────────────── */}
             <div className="bg-white rounded-2xl border border-border p-6 space-y-6">
               <h2 className="font-serif text-xl font-semibold">⚙️ Site Settings</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -4627,6 +4690,7 @@ export default function AdminDashboard() {
                 ))}
               </div>
             </div>
+            </div>{/* end space-y-6 outer wrapper */}
           </TabsContent>
 
 

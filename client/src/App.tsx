@@ -120,7 +120,25 @@ function Router() {
 
 function App() {
   const [hasPauseToken, setHasPauseToken] = React.useState(!!localStorage.getItem('pause-token'));
-  const isOperationalPauseActive = import.meta.env.VITE_OPERATIONAL_PAUSE === 'true';
+  const { data: publicSettings, isLoading: settingsLoading } = trpc.settings.getPublic.useQuery();
+
+  const isOperationalPauseActive = publicSettings?.operational_pause_enabled === 'true';
+  const showPausePage = isOperationalPauseActive && !hasPauseToken;
+
+  // Show a minimal branded loader while we check if pause is active
+  // (prevents flash of site content before redirecting to pause page)
+  if (settingsLoading) {
+    return (
+      <ThemeProvider defaultTheme="light">
+        <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0b2240 0%, #1a3a60 100%)' }}>
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-10 h-10 rounded-full border-2 border-amber-400 border-t-transparent animate-spin" />
+            <span className="text-amber-400 text-sm tracking-widest font-light uppercase">CB Travel</span>
+          </div>
+        </div>
+      </ThemeProvider>
+    );
+  }
 
   return (
     <ThemeProvider defaultTheme="light">
@@ -129,18 +147,17 @@ function App() {
           <ScrollToTop />
           <Toaster richColors position="top-right" />
           <div className="flex flex-col min-h-screen">
-            {!(isOperationalPauseActive && !hasPauseToken) && <Navigation />}
+            {!showPausePage && <Navigation />}
             <main className="flex-1">
-              {isOperationalPauseActive && !hasPauseToken ? <OperationalPause /> : <Router />}
+              {showPausePage ? <OperationalPause onUnlock={() => setHasPauseToken(true)} /> : <Router />}
             </main>
-            {!(isOperationalPauseActive && !hasPauseToken) && <Footer />}
+            {!showPausePage && <Footer />}
           </div>
-          {/* Global floating buttons */}
-          <WhatsAppChatButton />
-          <AIChatbot />
+          {/* Global floating buttons — hidden during pause */}
+          {!showPausePage && <WhatsAppChatButton />}
+          {!showPausePage && <AIChatbot />}
           {/* GDPR cookie consent banner */}
           <CookieBanner />
-
         </SessionTimeoutWrapper>
       </TooltipProvider>
     </ThemeProvider>
